@@ -1,0 +1,7 @@
+﻿services:
+  blockchain-aid-tracker:
+    image: blockchain-aid-tracker
+    build:
+      context: .
+      dockerfile: blockchain-aid-tracker/Dockerfile
+
