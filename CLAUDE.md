@@ -63,15 +63,15 @@ All features below are planned for step-by-step implementation. Each section rep
 #### TODO: Project Structure Reorganization
 - [ ] Convert console app to ASP.NET Core Web API project
 - [ ] Add Blazor Server project for web interface
-- [ ] Create class library projects for:
-  - [ ] Core domain models and interfaces
-  - [ ] Blockchain engine
-  - [ ] Data access layer
-  - [ ] Business logic services
-  - [ ] Cryptography utilities
-- [ ] Set up solution folder structure:
-  - [ ] `src/` - Source code
-  - [ ] `tests/` - Test projects
+- [x] Create class library projects for:
+  - [x] Core domain models and interfaces
+  - [x] Blockchain engine
+  - [x] Data access layer (created, empty)
+  - [x] Business logic services (created, empty)
+  - [x] Cryptography utilities
+- [x] Set up solution folder structure:
+  - [x] `src/` - Source code
+  - [x] `tests/` - Test projects
   - [ ] `docs/` - Documentation
 
 #### TODO: Technology Stack Setup
@@ -102,7 +102,7 @@ All features below are planned for step-by-step implementation. Each section rep
 
 #### TODO: User Authentication & Authorization
 - [ ] Implement user entity model with roles (Donor, Coordinator, Logistics Partner, Recipient)
-- [ ] Create cryptographic key pair generation service (ECDSA)
+- [x] Create cryptographic key pair generation service (ECDSA)
 - [ ] Implement password hashing with bcrypt or PBKDF2
 - [ ] Build private key encryption/decryption with user passwords
 - [ ] Create JWT token generation and validation service
@@ -136,37 +136,37 @@ All features below are planned for step-by-step implementation. Each section rep
 
 ### 3. Blockchain Core Implementation
 
-#### TODO: Blockchain Data Structures
-- [ ] Create Block class with properties:
-  - [ ] Index
-  - [ ] Timestamp
-  - [ ] Transactions list
-  - [ ] Previous hash
-  - [ ] Current hash
-  - [ ] Nonce (if needed)
-  - [ ] Validator signature
-- [ ] Create Transaction class with properties:
-  - [ ] Transaction ID
-  - [ ] Type (SHIPMENT_CREATED, STATUS_UPDATED, DELIVERY_CONFIRMED)
-  - [ ] Timestamp
-  - [ ] Sender public key
-  - [ ] Payload data
-  - [ ] Digital signature
-- [ ] Create Blockchain class to manage chain operations
+#### ✅ DONE: Blockchain Data Structures
+- [x] Create Block class with properties:
+  - [x] Index
+  - [x] Timestamp
+  - [x] Transactions list
+  - [x] Previous hash
+  - [x] Current hash
+  - [x] Nonce (if needed)
+  - [x] Validator signature
+- [x] Create Transaction class with properties:
+  - [x] Transaction ID
+  - [x] Type (SHIPMENT_CREATED, STATUS_UPDATED, DELIVERY_CONFIRMED)
+  - [x] Timestamp
+  - [x] Sender public key
+  - [x] Payload data
+  - [x] Digital signature
+- [x] Create Blockchain class to manage chain operations
 
-#### TODO: Cryptographic Functions
-- [ ] Implement SHA-256 hashing for blocks
-- [ ] Implement ECDSA digital signature generation
-- [ ] Implement ECDSA signature verification
-- [ ] Create hash calculation for blocks
+#### ✅ DONE: Cryptographic Functions
+- [x] Implement SHA-256 hashing for blocks
+- [x] Implement ECDSA digital signature generation
+- [x] Implement ECDSA signature verification
+- [x] Create hash calculation for blocks
 - [ ] Build merkle tree implementation (optional for prototype)
 
-#### TODO: Blockchain Operations
-- [ ] Implement add transaction to pending pool
-- [ ] Implement block creation logic
-- [ ] Implement block validation logic
-- [ ] Implement chain validation (verify all hashes and signatures)
-- [ ] Create genesis block initialization
+#### ✅ DONE: Blockchain Operations
+- [x] Implement add transaction to pending pool
+- [x] Implement block creation logic
+- [x] Implement block validation logic
+- [x] Implement chain validation (verify all hashes and signatures)
+- [x] Create genesis block initialization
 - [ ] Implement blockchain persistence (file-based or in-memory)
 - [ ] Build blockchain loading and saving mechanisms
 
@@ -216,20 +216,20 @@ All features below are planned for step-by-step implementation. Each section rep
 
 ### 5. Supply Chain Operations
 
-#### TODO: Shipment Data Model
-- [ ] Create Shipment entity with properties:
-  - [ ] Shipment ID
-  - [ ] Item descriptions and quantities
-  - [ ] Origin point
-  - [ ] Destination point
-  - [ ] Expected delivery timeframe
-  - [ ] Assigned recipient
-  - [ ] Current status
-  - [ ] QR code data
-  - [ ] Created timestamp
-  - [ ] Updated timestamp
-- [ ] Create ShipmentStatus enum (Created, Validated, InTransit, Delivered, Confirmed)
-- [ ] Create ShipmentItem entity for item details
+#### ✅ DONE: Shipment Data Model
+- [x] Create Shipment entity with properties:
+  - [x] Shipment ID
+  - [x] Item descriptions and quantities
+  - [x] Origin point
+  - [x] Destination point
+  - [x] Expected delivery timeframe
+  - [x] Assigned recipient
+  - [x] Current status
+  - [x] QR code data
+  - [x] Created timestamp
+  - [x] Updated timestamp
+- [x] Create ShipmentStatus enum (Created, Validated, InTransit, Delivered, Confirmed)
+- [x] Create ShipmentItem entity for item details
 
 #### TODO: Shipment Service Layer
 - [ ] Create ShipmentService with business logic
@@ -361,11 +361,11 @@ All features below are planned for step-by-step implementation. Each section rep
 - [ ] Configure HTTPS enforcement
 - [ ] Implement security headers (HSTS, CSP, etc.)
 
-#### TODO: Blockchain Security
-- [ ] Implement transaction tampering detection
+#### Blockchain Security (Partially Complete)
+- [x] Implement transaction tampering detection
 - [ ] Build double-spending prevention
-- [ ] Create signature verification for all transactions
-- [ ] Implement block validation before adding to chain
+- [x] Create signature verification for all transactions
+- [x] Implement block validation before adding to chain
 - [ ] Build access control for validator operations
 - [ ] Create audit logging for all blockchain operations
 
@@ -408,27 +408,27 @@ All features below are planned for step-by-step implementation. Each section rep
 
 ### 10. Testing Strategy
 
-#### TODO: Unit Tests
-- [ ] Set up xUnit test project
-- [ ] Create test fixtures and helpers
-- [ ] Write tests for cryptographic functions:
-  - [ ] SHA-256 hashing
-  - [ ] ECDSA signature generation
-  - [ ] ECDSA signature verification
-  - [ ] Key pair generation
-- [ ] Write tests for blockchain operations:
-  - [ ] Block creation
-  - [ ] Block validation
-  - [ ] Chain validation
-  - [ ] Transaction creation
-  - [ ] Transaction validation
+#### Unit Tests (Partially Complete)
+- [x] Set up xUnit test project
+- [x] Create test fixtures and helpers
+- [x] Write tests for cryptographic functions:
+  - [x] SHA-256 hashing
+  - [x] ECDSA signature generation
+  - [x] ECDSA signature verification
+  - [x] Key pair generation
+- [x] Write tests for blockchain operations:
+  - [x] Block creation
+  - [x] Block validation
+  - [x] Chain validation
+  - [x] Transaction creation
+  - [x] Transaction validation
 - [ ] Write tests for consensus logic:
   - [ ] Validator selection
   - [ ] Block proposal
   - [ ] Consensus threshold
   - [ ] Fork resolution
 - [ ] Write tests for smart contracts:
-  - [ ] Shipment tracking state transitions
+  - [x] Shipment tracking state transitions (basic)
   - [ ] Delivery verification logic
 - [ ] Write tests for services:
   - [ ] UserService
@@ -436,6 +436,11 @@ All features below are planned for step-by-step implementation. Each section rep
   - [ ] BlockchainService
   - [ ] AuthenticationService
 - [ ] Write tests for repositories (with in-memory database)
+- [x] Write tests for core models:
+  - [x] Shipment entity
+  - [x] ShipmentItem entity
+  - [x] Block entity
+  - [x] Transaction entity
 
 #### TODO: Integration Tests
 - [ ] Set up integration test project with TestServer
