@@ -1,3 +1,4 @@
+using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.Core.Models;
 
 namespace BlockchainAidTracker.Blockchain;
@@ -7,6 +8,8 @@ namespace BlockchainAidTracker.Blockchain;
 /// </summary>
 public class Blockchain
 {
+    private readonly IHashService _hashService;
+
     /// <summary>
     /// The chain of blocks.
     /// </summary>
@@ -18,10 +21,12 @@ public class Blockchain
     public List<Transaction> PendingTransactions { get; private set; } = new();
 
     /// <summary>
-    /// Creates a new blockchain and initializes it with a genesis block.
+    /// Creates a new blockchain with the specified hash service and initializes it with a genesis block.
     /// </summary>
-    public Blockchain()
+    /// <param name="hashService">The hash service to use for computing block hashes.</param>
+    public Blockchain(IHashService hashService)
     {
+        _hashService = hashService ?? throw new ArgumentNullException(nameof(hashService));
         InitializeChain();
     }
 
@@ -51,8 +56,8 @@ public class Blockchain
             ValidatorSignature = string.Empty
         };
 
-        // For now, use a simple hash (will be replaced with SHA-256 later)
-        genesisBlock.Hash = CalculateSimpleHash(genesisBlock.CalculateHashData());
+        // Calculate hash using SHA-256
+        genesisBlock.Hash = _hashService.ComputeSha256Hash(genesisBlock.CalculateHashData());
 
         return genesisBlock;
     }
@@ -102,8 +107,8 @@ public class Blockchain
             ValidatorPublicKey = validatorPublicKey
         };
 
-        // Calculate hash (will use SHA-256 from Cryptography project later)
-        newBlock.Hash = CalculateSimpleHash(newBlock.CalculateHashData());
+        // Calculate hash using SHA-256
+        newBlock.Hash = _hashService.ComputeSha256Hash(newBlock.CalculateHashData());
 
         return newBlock;
     }
@@ -141,7 +146,7 @@ public class Blockchain
             return false;
         }
 
-        var calculatedHash = CalculateSimpleHash(newBlock.CalculateHashData());
+        var calculatedHash = _hashService.ComputeSha256Hash(newBlock.CalculateHashData());
         if (newBlock.Hash != calculatedHash)
         {
             return false;
@@ -156,7 +161,7 @@ public class Blockchain
     public bool IsValidChain()
     {
         // Check genesis block
-        if (Chain[0].Hash != CalculateSimpleHash(Chain[0].CalculateHashData()))
+        if (Chain[0].Hash != _hashService.ComputeSha256Hash(Chain[0].CalculateHashData()))
         {
             return false;
         }
@@ -201,17 +206,6 @@ public class Blockchain
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// Temporary simple hash function (will be replaced with SHA-256).
-    /// </summary>
-    private string CalculateSimpleHash(string input)
-    {
-        using var sha256 = System.Security.Cryptography.SHA256.Create();
-        var bytes = System.Text.Encoding.UTF8.GetBytes(input);
-        var hash = sha256.ComputeHash(bytes);
-        return Convert.ToHexString(hash);
     }
 
     /// <summary>
