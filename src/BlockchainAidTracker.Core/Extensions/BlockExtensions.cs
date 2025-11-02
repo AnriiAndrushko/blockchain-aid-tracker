@@ -51,6 +51,12 @@ public static class BlockExtensions
             throw new ArgumentNullException(nameof(signatureService));
         }
 
+        // Genesis block doesn't require signature validation
+        if (block.Index == 0 && block.ValidatorPublicKey == "GENESIS")
+        {
+            return true;
+        }
+
         if (string.IsNullOrEmpty(block.ValidatorSignature))
         {
             return false;
@@ -59,12 +65,6 @@ public static class BlockExtensions
         if (string.IsNullOrEmpty(block.ValidatorPublicKey))
         {
             return false;
-        }
-
-        // Genesis block doesn't require signature validation
-        if (block.Index == 0 && block.ValidatorPublicKey == "GENESIS")
-        {
-            return true;
         }
 
         var dataToSign = block.GetValidatorSignatureData();
