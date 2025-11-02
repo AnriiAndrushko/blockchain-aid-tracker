@@ -1,0 +1,241 @@
+using BlockchainAidTracker.Core.Models;
+
+namespace BlockchainAidTracker.Blockchain;
+
+/// <summary>
+/// Manages the blockchain and its operations.
+/// </summary>
+public class Blockchain
+{
+    /// <summary>
+    /// The chain of blocks.
+    /// </summary>
+    public List<Block> Chain { get; private set; } = new();
+
+    /// <summary>
+    /// Pool of pending transactions waiting to be added to a block.
+    /// </summary>
+    public List<Transaction> PendingTransactions { get; private set; } = new();
+
+    /// <summary>
+    /// Creates a new blockchain and initializes it with a genesis block.
+    /// </summary>
+    public Blockchain()
+    {
+        InitializeChain();
+    }
+
+    /// <summary>
+    /// Initializes the blockchain with a genesis block.
+    /// </summary>
+    private void InitializeChain()
+    {
+        var genesisBlock = CreateGenesisBlock();
+        Chain.Add(genesisBlock);
+    }
+
+    /// <summary>
+    /// Creates the first block in the blockchain (Genesis Block).
+    /// </summary>
+    private Block CreateGenesisBlock()
+    {
+        var genesisBlock = new Block
+        {
+            Index = 0,
+            Timestamp = DateTime.UtcNow,
+            Transactions = new List<Transaction>(),
+            PreviousHash = "0",
+            Hash = string.Empty,
+            Nonce = 0,
+            ValidatorPublicKey = "GENESIS",
+            ValidatorSignature = string.Empty
+        };
+
+        // For now, use a simple hash (will be replaced with SHA-256 later)
+        genesisBlock.Hash = CalculateSimpleHash(genesisBlock.CalculateHashData());
+
+        return genesisBlock;
+    }
+
+    /// <summary>
+    /// Gets the latest block in the chain.
+    /// </summary>
+    public Block GetLatestBlock()
+    {
+        return Chain[^1];
+    }
+
+    /// <summary>
+    /// Adds a transaction to the pending transaction pool.
+    /// </summary>
+    public void AddTransaction(Transaction transaction)
+    {
+        if (string.IsNullOrEmpty(transaction.SenderPublicKey))
+        {
+            throw new ArgumentException("Transaction must have a sender public key.");
+        }
+
+        if (string.IsNullOrEmpty(transaction.PayloadData))
+        {
+            throw new ArgumentException("Transaction must have payload data.");
+        }
+
+        PendingTransactions.Add(transaction);
+    }
+
+    /// <summary>
+    /// Creates a new block from pending transactions.
+    /// </summary>
+    public Block CreateBlock(string validatorPublicKey)
+    {
+        if (PendingTransactions.Count == 0)
+        {
+            throw new InvalidOperationException("No pending transactions to create a block.");
+        }
+
+        var newBlock = new Block
+        {
+            Index = Chain.Count,
+            Timestamp = DateTime.UtcNow,
+            Transactions = new List<Transaction>(PendingTransactions),
+            PreviousHash = GetLatestBlock().Hash,
+            ValidatorPublicKey = validatorPublicKey
+        };
+
+        // Calculate hash (will use SHA-256 from Cryptography project later)
+        newBlock.Hash = CalculateSimpleHash(newBlock.CalculateHashData());
+
+        return newBlock;
+    }
+
+    /// <summary>
+    /// Adds a block to the blockchain after validation.
+    /// </summary>
+    public bool AddBlock(Block block)
+    {
+        if (!IsValidNewBlock(block, GetLatestBlock()))
+        {
+            return false;
+        }
+
+        Chain.Add(block);
+
+        // Clear pending transactions that were included in the block
+        PendingTransactions.Clear();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validates if a new block can be added to the chain.
+    /// </summary>
+    public bool IsValidNewBlock(Block newBlock, Block previousBlock)
+    {
+        if (previousBlock.Index + 1 != newBlock.Index)
+        {
+            return false;
+        }
+
+        if (newBlock.PreviousHash != previousBlock.Hash)
+        {
+            return false;
+        }
+
+        var calculatedHash = CalculateSimpleHash(newBlock.CalculateHashData());
+        if (newBlock.Hash != calculatedHash)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validates the entire blockchain.
+    /// </summary>
+    public bool IsValidChain()
+    {
+        // Check genesis block
+        if (Chain[0].Hash != CalculateSimpleHash(Chain[0].CalculateHashData()))
+        {
+            return false;
+        }
+
+        // Validate each block against the previous one
+        for (int i = 1; i < Chain.Count; i++)
+        {
+            if (!IsValidNewBlock(Chain[i], Chain[i - 1]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets a block by its index.
+    /// </summary>
+    public Block? GetBlockByIndex(int index)
+    {
+        if (index < 0 || index >= Chain.Count)
+        {
+            return null;
+        }
+
+        return Chain[index];
+    }
+
+    /// <summary>
+    /// Gets a transaction by its ID from the entire blockchain.
+    /// </summary>
+    public Transaction? GetTransactionById(string transactionId)
+    {
+        foreach (var block in Chain)
+        {
+            var transaction = block.Transactions.FirstOrDefault(t => t.Id == transactionId);
+            if (transaction != null)
+            {
+                return transaction;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Temporary simple hash function (will be replaced with SHA-256).
+    /// </summary>
+    private string CalculateSimpleHash(string input)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(input);
+        var hash = sha256.ComputeHash(bytes);
+        return Convert.ToHexString(hash);
+    }
+
+    /// <summary>
+    /// Gets the total number of blocks in the chain.
+    /// </summary>
+    public int GetChainLength()
+    {
+        return Chain.Count;
+    }
+
+    /// <summary>
+    /// Gets all transactions from a specific sender.
+    /// </summary>
+    public List<Transaction> GetTransactionsBySender(string senderPublicKey)
+    {
+        var transactions = new List<Transaction>();
+
+        foreach (var block in Chain)
+        {
+            transactions.AddRange(
+                block.Transactions.Where(t => t.SenderPublicKey == senderPublicKey)
+            );
+        }
+
+        return transactions;
+    }
+}
