@@ -19,6 +19,7 @@
       <ProjectReference Include="..\src\BlockchainAidTracker.Blockchain\BlockchainAidTracker.Blockchain.csproj" />
       <ProjectReference Include="..\src\BlockchainAidTracker.Core\BlockchainAidTracker.Core.csproj" />
       <ProjectReference Include="..\src\BlockchainAidTracker.Cryptography\BlockchainAidTracker.Cryptography.csproj" />
+      <ProjectReference Include="..\src\BlockchainAidTracker.DataAccess\BlockchainAidTracker.DataAccess.csproj" />
     </ItemGroup>
 
 </Project>
