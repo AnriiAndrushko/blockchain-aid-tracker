@@ -68,4 +68,18 @@ public class UserRepository : Repository<User>, IUserRepository
         return await _dbSet
             .AnyAsync(u => u.Email == email, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.Username == usernameOrEmail || u.Email == usernameOrEmail, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken, cancellationToken);
+    }
 }

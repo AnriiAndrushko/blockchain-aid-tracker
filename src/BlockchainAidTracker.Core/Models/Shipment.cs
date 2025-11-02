@@ -56,6 +56,11 @@ public class Shipment
     public DateTime UpdatedTimestamp { get; set; }
 
     /// <summary>
+    /// Actual delivery date when shipment was confirmed delivered (UTC)
+    /// </summary>
+    public DateTime? ActualDeliveryDate { get; set; }
+
+    /// <summary>
     /// Public key of the coordinator who created the shipment
     /// </summary>
     public string CoordinatorPublicKey { get; set; }
@@ -219,5 +224,15 @@ public class Shipment
             ShipmentStatus.Confirmed => false, // Terminal state
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Confirms the delivery of the shipment and sets the actual delivery date
+    /// </summary>
+    public void ConfirmDelivery()
+    {
+        Status = ShipmentStatus.Confirmed;
+        ActualDeliveryDate = DateTime.UtcNow;
+        UpdatedTimestamp = DateTime.UtcNow;
     }
 }

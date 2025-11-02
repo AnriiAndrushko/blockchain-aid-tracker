@@ -61,4 +61,20 @@ public interface IUserRepository : IRepository<User>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if email exists, false otherwise</returns>
     Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a user by username or email
+    /// </summary>
+    /// <param name="usernameOrEmail">Username or email to search for</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>User if found, null otherwise</returns>
+    Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a user by refresh token
+    /// </summary>
+    /// <param name="refreshToken">Refresh token</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>User if found, null otherwise</returns>
+    Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
 }

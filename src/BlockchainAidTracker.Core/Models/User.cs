@@ -81,6 +81,16 @@ public class User
     public DateTime? LastLoginTimestamp { get; set; }
 
     /// <summary>
+    /// Refresh token for JWT authentication
+    /// </summary>
+    public string? RefreshToken { get; set; }
+
+    /// <summary>
+    /// Expiration timestamp for the refresh token (UTC)
+    /// </summary>
+    public DateTime? RefreshTokenExpiresAt { get; set; }
+
+    /// <summary>
     /// Default constructor - initializes a new user with default values
     /// </summary>
     public User()
