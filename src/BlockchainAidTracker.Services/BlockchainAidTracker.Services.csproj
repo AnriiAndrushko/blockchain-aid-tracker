@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\BlockchainAidTracker.Core\BlockchainAidTracker.Core.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.Blockchain\BlockchainAidTracker.Blockchain.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.DataAccess\BlockchainAidTracker.DataAccess.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.Cryptography\BlockchainAidTracker.Cryptography.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="QRCoder" Version="1.7.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
