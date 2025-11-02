@@ -15,4 +15,10 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\src\BlockchainAidTracker.Blockchain\BlockchainAidTracker.Blockchain.csproj" />
+      <ProjectReference Include="..\src\BlockchainAidTracker.Core\BlockchainAidTracker.Core.csproj" />
+      <ProjectReference Include="..\src\BlockchainAidTracker.Cryptography\BlockchainAidTracker.Cryptography.csproj" />
+    </ItemGroup>
+
 </Project>

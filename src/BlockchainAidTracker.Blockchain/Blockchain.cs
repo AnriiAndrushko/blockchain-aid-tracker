@@ -1,3 +1,4 @@
+using BlockchainAidTracker.Core.Extensions;
 using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.Core.Models;
 
@@ -9,6 +10,7 @@ namespace BlockchainAidTracker.Blockchain;
 public class Blockchain
 {
     private readonly IHashService _hashService;
+    private readonly IDigitalSignatureService _signatureService;
 
     /// <summary>
     /// The chain of blocks.
@@ -21,12 +23,24 @@ public class Blockchain
     public List<Transaction> PendingTransactions { get; private set; } = new();
 
     /// <summary>
-    /// Creates a new blockchain with the specified hash service and initializes it with a genesis block.
+    /// When true, transaction signatures will be validated when adding to pending pool.
+    /// </summary>
+    public bool ValidateTransactionSignatures { get; set; } = true;
+
+    /// <summary>
+    /// When true, block validator signatures will be validated when adding blocks.
+    /// </summary>
+    public bool ValidateBlockSignatures { get; set; } = true;
+
+    /// <summary>
+    /// Creates a new blockchain with the specified services and initializes it with a genesis block.
     /// </summary>
     /// <param name="hashService">The hash service to use for computing block hashes.</param>
-    public Blockchain(IHashService hashService)
+    /// <param name="signatureService">The digital signature service for signing and verifying.</param>
+    public Blockchain(IHashService hashService, IDigitalSignatureService signatureService)
     {
         _hashService = hashService ?? throw new ArgumentNullException(nameof(hashService));
+        _signatureService = signatureService ?? throw new ArgumentNullException(nameof(signatureService));
         InitializeChain();
     }
 
@@ -83,6 +97,15 @@ public class Blockchain
         if (string.IsNullOrEmpty(transaction.PayloadData))
         {
             throw new ArgumentException("Transaction must have payload data.");
+        }
+
+        // Validate transaction signature if enabled
+        if (ValidateTransactionSignatures)
+        {
+            if (!transaction.VerifySignature(_signatureService))
+            {
+                throw new InvalidOperationException("Transaction signature is invalid.");
+            }
         }
 
         PendingTransactions.Add(transaction);
@@ -150,6 +173,27 @@ public class Blockchain
         if (newBlock.Hash != calculatedHash)
         {
             return false;
+        }
+
+        // Validate validator signature if enabled
+        if (ValidateBlockSignatures)
+        {
+            if (!newBlock.VerifyValidatorSignature(_signatureService))
+            {
+                return false;
+            }
+        }
+
+        // Validate all transaction signatures in the block if enabled
+        if (ValidateTransactionSignatures)
+        {
+            foreach (var transaction in newBlock.Transactions)
+            {
+                if (!transaction.VerifySignature(_signatureService))
+                {
+                    return false;
+                }
+            }
         }
 
         return true;
