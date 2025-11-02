@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation layer complete. The blockchain engine, cryptography services, and data access layer are fully implemented and tested with 126 passing unit tests.
+**Current Status**: Foundation layer complete. The blockchain engine, cryptography services, and data access layer are fully implemented and tested with 189 passing unit tests.
 
 **Recently Completed** (Latest):
 - ✅ Complete DataAccess layer with Entity Framework Core
@@ -14,7 +14,12 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
 - ✅ Repository pattern (generic + specialized for Shipment and User)
 - ✅ Database migrations system with SQLite/PostgreSQL support
 - ✅ Comprehensive demo application showcasing database + blockchain integration
-- ✅ All 126 unit tests passing
+- ✅ **Database testing infrastructure with 63 new tests** NEW
+  - Isolated in-memory database for each test
+  - Fluent test data builders (UserBuilder, ShipmentBuilder)
+  - Automatic cleanup and state management
+  - All repository methods fully tested
+- ✅ All 189 unit tests passing (up from 126)
 
 **Next Steps**: Implement Services layer (ShipmentService, UserService, AuthenticationService) and API endpoints.
 
@@ -197,12 +202,20 @@ dotnet test
 - JWT Bearer authentication package referenced
 - OpenAPI/Swagger configured
 
-### ✅ Test Suite (126 Tests - 100% Passing)
+### ✅ Test Suite (189 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
 - Blockchain tests: 42 tests
 - Core model tests: 53 tests
-- Execution time: ~200ms
+- **Database tests: 63 tests** NEW
+  - UserRepository tests: 31 tests
+  - ShipmentRepository tests: 32 tests
+  - ApplicationDbContext tests: 20 tests
+- **Test Infrastructure**:
+  - `DatabaseTestBase` - Base class with automatic cleanup and isolation
+  - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder)
+  - In-memory database with unique instances per test
+- Execution time: ~3 seconds
 
 ---
 
@@ -563,9 +576,10 @@ All features below are planned for step-by-step implementation. Each section rep
 
 ### 10. Testing Strategy
 
-#### ✅ Unit Tests (126 Tests - All Passing)
+#### ✅ Unit Tests (189 Tests - All Passing)
 - [x] Set up xUnit test project
 - [x] Create test fixtures and helpers
+- [x] **Create database test infrastructure** (DatabaseTestBase, TestDataBuilder)
 - [x] Write tests for cryptographic functions (31 tests):
   - [x] SHA-256 hashing
   - [x] ECDSA signature generation
@@ -596,7 +610,12 @@ All features below are planned for step-by-step implementation. Each section rep
   - [ ] ShipmentService
   - [ ] BlockchainService
   - [ ] AuthenticationService
-- [ ] Write tests for repositories (with in-memory database)
+- [x] **Write tests for repositories with in-memory database (63 tests)**:
+  - [x] UserRepository tests (31 tests) - All CRUD operations, role filtering, existence checks
+  - [x] ShipmentRepository tests (32 tests) - Complex queries, eager loading, date ranges, QR codes
+  - [x] ApplicationDbContext tests (20 tests) - Relationships, cascade delete, indexes, change tracking
+  - [x] Database isolation and automatic cleanup verified
+  - [x] Bulk operations and performance testing
 - [ ] Write tests for smart contracts:
   - [ ] Delivery verification logic
 
