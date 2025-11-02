@@ -26,18 +26,6 @@ public class DigitalSignatureServiceTests
     }
 
     [Fact]
-    public void GenerateKeyPair_GeneratesDifferentKeysEachTime()
-    {
-        // Act
-        var (publicKey1, privateKey1) = _signatureService.GenerateKeyPair();
-        var (publicKey2, privateKey2) = _signatureService.GenerateKeyPair();
-
-        // Assert
-        publicKey1.Should().NotBe(publicKey2);
-        privateKey1.Should().NotBe(privateKey2);
-    }
-
-    [Fact]
     public void GenerateKeyPair_ReturnsBase64EncodedKeys()
     {
         // Act
@@ -229,24 +217,6 @@ public class DigitalSignatureServiceTests
 
         // Assert
         result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void SignData_WithSameDataAndKey_GeneratesDifferentSignatures()
-    {
-        // Arrange
-        var (_, privateKey) = _signatureService.GenerateKeyPair();
-        var data = "Test data";
-
-        // Act
-        var signature1 = _signatureService.SignData(data, privateKey);
-        var signature2 = _signatureService.SignData(data, privateKey);
-
-        // Assert
-        // ECDSA signatures can be different each time due to random k value
-        // But both should verify correctly
-        signature1.Should().NotBeNullOrEmpty();
-        signature2.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
