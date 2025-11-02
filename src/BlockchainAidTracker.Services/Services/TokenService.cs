@@ -19,7 +19,11 @@ public class TokenService : ITokenService
     public TokenService(JwtSettings jwtSettings)
     {
         _jwtSettings = jwtSettings ?? throw new ArgumentNullException(nameof(jwtSettings));
-        _tokenHandler = new JwtSecurityTokenHandler();
+        _tokenHandler = new JwtSecurityTokenHandler
+        {
+            // Clear the inbound claim type map to preserve original claim types
+            MapInboundClaims = false
+        };
 
         if (string.IsNullOrWhiteSpace(_jwtSettings.SecretKey))
         {

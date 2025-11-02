@@ -6,22 +6,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation layer complete. The blockchain engine, cryptography services, and data access layer are fully implemented and tested with 189 passing unit tests.
+**Current Status**: Foundation and business logic layers complete. The blockchain engine, cryptography services, data access layer, and services layer are fully implemented and tested with 312 passing unit tests.
 
 **Recently Completed** (Latest):
+- ✅ **Complete Services layer with business logic** NEW
+  - 6 core services: PasswordService, TokenService, AuthenticationService, UserService, QrCodeService, ShipmentService
+  - JWT authentication with access tokens and refresh tokens
+  - BCrypt password hashing (work factor: 12)
+  - QR code generation for shipment tracking
+  - Full shipment lifecycle management with blockchain integration
+  - 9 DTO classes for API contracts
+  - Custom exception classes (BusinessException, UnauthorizedException, NotFoundException)
+  - Dependency injection configuration
+- ✅ **Services layer testing with 123 new tests** NEW
+  - Comprehensive unit tests for all services
+  - Mocked dependencies using Moq framework
+  - Test coverage for success paths, error handling, and edge cases
+- ✅ All 312 unit tests passing
 - ✅ Complete DataAccess layer with Entity Framework Core
-- ✅ User entity with role-based authentication support
-- ✅ Repository pattern (generic + specialized for Shipment and User)
-- ✅ Database migrations system with SQLite/PostgreSQL support
-- ✅ Comprehensive demo application showcasing database + blockchain integration
-- ✅ **Database testing infrastructure with 63 new tests** NEW
-  - Isolated in-memory database for each test
-  - Fluent test data builders (UserBuilder, ShipmentBuilder)
-  - Automatic cleanup and state management
-  - All repository methods fully tested
-- ✅ All 189 unit tests passing (up from 126)
+- ✅ Database testing infrastructure with in-memory database isolation
 
-**Next Steps**: Implement Services layer (ShipmentService, UserService, AuthenticationService) and API endpoints.
+**Next Steps**: Implement API layer with ASP.NET Core Web API endpoints to expose services.
 
 ## Build and Run Commands
 
@@ -78,11 +83,11 @@ dotnet test
   - **BlockchainAidTracker.Blockchain/** - Blockchain engine implementation
   - **BlockchainAidTracker.Cryptography/** - Cryptographic services (SHA-256, ECDSA)
   - **BlockchainAidTracker.DataAccess/** - Entity Framework Core data access layer
-  - **BlockchainAidTracker.Services/** - Business logic services (empty, ready for implementation)
+  - **BlockchainAidTracker.Services/** - Business logic services (complete with 6 services)
   - **BlockchainAidTracker.Api/** - ASP.NET Core Web API project (template)
   - **BlockchainAidTracker.Web/** - Blazor Server web application (referenced)
 - **tests/** - Test projects
-  - **BlockchainAidTracker.Tests/** - xUnit test project (126 passing tests)
+  - **BlockchainAidTracker.Tests/** - xUnit test project (312 passing tests)
 - **blockchain-aid-tracker/** - Main console application/demo project
   - `blockchain-aid-tracker.csproj` - .NET 9.0 console app with Docker support
   - `Program.cs` - Comprehensive demo of database and blockchain integration
@@ -190,11 +195,51 @@ dotnet test
 - **Shipments**: 11 columns, unique QR code, foreign key relationships
 - **ShipmentItems**: 7 columns, cascade delete from Shipments
 
-### 🔨 Services Module (0% - Ready for Implementation)
+### ✅ Services Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Services/`
-- Project created with dependencies configured
-- NuGet packages ready: BCrypt.Net-Next, QRCoder
-- Awaiting business logic implementation
+
+**Core Services**:
+- `PasswordService` - BCrypt password hashing and verification (work factor: 12)
+- `TokenService` - JWT access token and refresh token generation/validation
+- `AuthenticationService` - User registration, login, token refresh, validation
+- `UserService` - User CRUD operations, role assignment, activation/deactivation
+- `QrCodeService` - QR code generation for shipment tracking (Base64 and PNG formats)
+- `ShipmentService` - Complete shipment lifecycle with blockchain integration
+
+**DTOs (Data Transfer Objects)**:
+- Authentication: `RegisterRequest`, `LoginRequest`, `AuthenticationResponse`, `RefreshTokenRequest`
+- User: `UserDto`, `UpdateUserRequest`, `AssignRoleRequest`
+- Shipment: `CreateShipmentRequest`, `ShipmentDto`, `UpdateShipmentStatusRequest`, `ShipmentItemDto`
+
+**Exception Classes**:
+- `BusinessException` - Business logic validation errors
+- `UnauthorizedException` - Authentication/authorization failures
+- `NotFoundException` - Resource not found errors
+
+**Configuration**:
+- `JwtSettings` - JWT token configuration (secret key, issuer, audience, expiration times)
+- `DependencyInjection` - Service registration extension methods
+
+**Key Features**:
+- JWT-based authentication with access tokens (60 min) and refresh tokens (7 days)
+- BCrypt password hashing for secure credential storage
+- QR code generation for shipment tracking
+- Blockchain transaction creation for shipment lifecycle events
+- Role-based access control validation
+- Complete CRUD operations for users and shipments
+
+**Known Limitations**:
+- Transaction signatures use placeholders (private key management to be implemented later)
+- Private key encryption/decryption not yet implemented
+- Blockchain signature validation disabled in production use (requires private key infrastructure)
+
+**NuGet Packages**:
+- BCrypt.Net-Next 4.0.3
+- QRCoder 1.6.0
+- System.IdentityModel.Tokens.Jwt 8.2.1
+- Microsoft.IdentityModel.Tokens 8.2.1
+
+**Test Coverage**: 123 unit tests (100% passing)
 
 ### 🔨 API Module (5% - Template Only)
 **Location**: `src/BlockchainAidTracker.Api/`
@@ -202,20 +247,28 @@ dotnet test
 - JWT Bearer authentication package referenced
 - OpenAPI/Swagger configured
 
-### ✅ Test Suite (189 Tests - 100% Passing)
+### ✅ Test Suite (312 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
 - Blockchain tests: 42 tests
 - Core model tests: 53 tests
-- **Database tests: 63 tests** NEW
+- Database tests: 63 tests
   - UserRepository tests: 31 tests
   - ShipmentRepository tests: 32 tests
   - ApplicationDbContext tests: 20 tests
+- **Services tests: 123 tests** NEW
+  - PasswordService tests: 13 tests
+  - TokenService tests: 17 tests
+  - AuthenticationService tests: 21 tests
+  - UserService tests: 16 tests
+  - QrCodeService tests: 14 tests
+  - ShipmentService tests: 42 tests
 - **Test Infrastructure**:
   - `DatabaseTestBase` - Base class with automatic cleanup and isolation
   - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder)
   - In-memory database with unique instances per test
-- Execution time: ~3 seconds
+  - Moq framework for mocking dependencies in service tests
+- Execution time: ~13 seconds
 
 ---
 
@@ -245,8 +298,8 @@ All features below are planned for step-by-step implementation. Each section rep
   - [ ] Blazor Server (referenced)
   - [x] Entity Framework Core (9.0.10)
   - [x] SQLite/PostgreSQL provider (SQLite 9.0.10, Npgsql 9.0.4)
-  - [ ] JWT authentication libraries (referenced in API project)
-  - [x] QR code generation library (QRCoder - added to Services project)
+  - [x] JWT authentication libraries (System.IdentityModel.Tokens.Jwt 8.2.1, Microsoft.IdentityModel.Tokens 8.2.1)
+  - [x] QR code generation library (QRCoder 1.6.0)
   - [x] BCrypt.NET or similar for password hashing (BCrypt.Net-Next - added to Services project)
 - [x] Configure dependency injection container (DataAccess DI extensions created)
 - [ ] Set up appsettings.json configuration structure
@@ -267,31 +320,33 @@ All features below are planned for step-by-step implementation. Each section rep
 
 ### 2. User Management System
 
-#### User Authentication & Authorization (Partially Complete)
+#### User Authentication & Authorization (70% Complete)
 - [x] Implement user entity model with roles (Recipient, Donor, Coordinator, LogisticsPartner, Validator, Administrator)
 - [x] Create UserRole enum with all role types
 - [x] Create cryptographic key pair generation service (ECDSA)
-- [ ] Implement password hashing with bcrypt or PBKDF2
-- [ ] Build private key encryption/decryption with user passwords
-- [ ] Create JWT token generation and validation service
+- [x] Implement password hashing with BCrypt (work factor: 12)
+- [x] Create JWT token generation and validation service (access + refresh tokens)
+- [x] Implement AuthenticationService with registration, login, and token refresh
+- [x] Build role-based access control validation in services
+- [ ] Build private key encryption/decryption with user passwords (critical for production)
 - [ ] Implement multi-factor authentication framework
-- [ ] Build role-based access control (RBAC) middleware
+- [ ] Build role-based access control (RBAC) middleware for API
 - [ ] Create authentication API endpoints:
   - [ ] POST /api/auth/register
   - [ ] POST /api/auth/login
   - [ ] POST /api/auth/refresh-token
   - [ ] POST /api/auth/logout
 
-#### User Profile Management (Partially Complete)
+#### User Profile Management (80% Complete)
 - [x] Create user profile entity and repository (User entity with IUserRepository and UserRepository)
-- [x] Implement user profile CRUD operations (via UserRepository)
-- [x] Build secure credential storage (encrypted private key, password hash fields)
+- [x] Implement user profile CRUD operations (via UserRepository and UserService)
+- [x] Build secure credential storage (password hash fields, placeholder for encrypted private key)
+- [x] Implement UserService with profile updates, role assignment, activation/deactivation
 - [ ] Create user management API endpoints:
   - [ ] GET /api/users/profile
   - [ ] PUT /api/users/profile
   - [ ] GET /api/users/{id}
   - [ ] POST /api/users/assign-role
-- [ ] Implement user role assignment workflow
 
 #### TODO: User Management UI (Blazor)
 - [ ] Create login page component
@@ -399,23 +454,28 @@ All features below are planned for step-by-step implementation. Each section rep
 - [x] Create ShipmentStatus enum (Created, Validated, InTransit, Delivered, Confirmed)
 - [x] Create ShipmentItem entity for item details
 
-#### TODO: Shipment Service Layer
-- [ ] Create ShipmentService with business logic
-- [ ] Implement shipment creation workflow:
-  - [ ] Validate user permissions (Coordinator role)
-  - [ ] Create shipment record
-  - [ ] Generate blockchain transaction (SHIPMENT_CREATED)
-  - [ ] Broadcast transaction to validators
-- [ ] Implement shipment status update workflow
-- [ ] Implement delivery confirmation workflow
-- [ ] Build shipment validation logic
+#### ✅ DONE: Shipment Service Layer
+- [x] Create ShipmentService with business logic
+- [x] Implement shipment creation workflow:
+  - [x] Validate user permissions (Coordinator role)
+  - [x] Create shipment record
+  - [x] Generate blockchain transaction (SHIPMENT_CREATED)
+  - [ ] Broadcast transaction to validators (single-node implementation, no broadcast needed)
+- [x] Implement shipment status update workflow with blockchain transactions
+- [x] Implement delivery confirmation workflow with blockchain transactions
+- [x] Build shipment validation logic (status transitions, role-based permissions)
+- [x] Implement shipment query operations (by ID, by status, by recipient)
+- [x] Build blockchain history and verification methods
 
-#### TODO: QR Code System
-- [ ] Integrate QR code generation library
-- [ ] Create QR code generation service
-- [ ] Generate unique QR codes for shipments
-- [ ] Implement QR code scanning simulation
-- [ ] Build QR code validation logic
+**Note**: Transaction signatures currently use placeholders. Private key management infrastructure required for production use.
+
+#### ✅ DONE: QR Code System
+- [x] Integrate QR code generation library (QRCoder 1.6.0)
+- [x] Create QR code generation service (QrCodeService)
+- [x] Generate unique QR codes for shipments (Base64 and PNG formats)
+- [x] Support custom data QR code generation
+- [ ] Implement QR code scanning simulation (UI layer)
+- [ ] Build QR code validation logic (UI/API layer)
 
 #### TODO: Shipment API Endpoints
 - [ ] POST /api/shipments - Create new shipment
@@ -576,7 +636,7 @@ All features below are planned for step-by-step implementation. Each section rep
 
 ### 10. Testing Strategy
 
-#### ✅ Unit Tests (189 Tests - All Passing)
+#### ✅ Unit Tests (312 Tests - All Passing)
 - [x] Set up xUnit test project
 - [x] Create test fixtures and helpers
 - [x] **Create database test infrastructure** (DatabaseTestBase, TestDataBuilder)
@@ -605,11 +665,13 @@ All features below are planned for step-by-step implementation. Each section rep
   - [x] ShipmentItem entity
   - [x] Block entity
   - [x] Transaction entity
-- [ ] Write tests for services:
-  - [ ] UserService
-  - [ ] ShipmentService
-  - [ ] BlockchainService
-  - [ ] AuthenticationService
+- [x] Write tests for services (123 tests):
+  - [x] PasswordService (13 tests) - Hashing, verification, edge cases
+  - [x] TokenService (17 tests) - JWT generation, validation, claim extraction
+  - [x] AuthenticationService (21 tests) - Registration, login, token refresh
+  - [x] UserService (16 tests) - CRUD operations, role assignment, activation
+  - [x] QrCodeService (14 tests) - QR generation, various formats, data types
+  - [x] ShipmentService (42 tests) - Complete lifecycle, blockchain integration, validation
 - [x] **Write tests for repositories with in-memory database (63 tests)**:
   - [x] UserRepository tests (31 tests) - All CRUD operations, role filtering, existence checks
   - [x] ShipmentRepository tests (32 tests) - Complex queries, eager loading, date ranges, QR codes

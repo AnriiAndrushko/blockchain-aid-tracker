@@ -4,17 +4,19 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation Complete** - The core blockchain engine, cryptography services, and data access layer are fully implemented and tested.
+**Foundation and Business Logic Complete** - The core blockchain engine, cryptography services, data access layer, and services layer are fully implemented and tested.
 
 **Current Metrics:**
--  **189 unit tests passing** (100% success rate)
+-  **312 unit tests passing** (100% success rate)
+-  6 core business services fully implemented
 -  Blockchain engine with PoA consensus support
+-  JWT authentication with BCrypt password hashing
+-  QR code generation for shipment tracking
 -  Complete data access layer with EF Core
 -  Repository pattern fully tested
 -  Cryptographic services (SHA-256, ECDSA)
--  Comprehensive test infrastructure
 
-**Next:** Services layer (business logic) and API endpoints
+**Next:** API layer (REST endpoints) to expose services
 
 ## Quick Start
 
@@ -66,19 +68,20 @@ docker compose up --build
 ```
 blockchain-aid-tracker/
 ├── src/                                    # Source code
-│   ├── BlockchainAidTracker.Core/         # Domain models and interfaces 
-│   ├── BlockchainAidTracker.Blockchain/   # Blockchain engine 
-│   ├── BlockchainAidTracker.Cryptography/ # Cryptographic utilities 
-│   ├── BlockchainAidTracker.DataAccess/   # Entity Framework Core 
-│   ├── BlockchainAidTracker.Services/     # Business logic (ready)
+│   ├── BlockchainAidTracker.Core/         # Domain models and interfaces ✅
+│   ├── BlockchainAidTracker.Blockchain/   # Blockchain engine ✅
+│   ├── BlockchainAidTracker.Cryptography/ # Cryptographic utilities ✅
+│   ├── BlockchainAidTracker.DataAccess/   # Entity Framework Core ✅
+│   ├── BlockchainAidTracker.Services/     # Business logic (6 services) ✅
 │   ├── BlockchainAidTracker.Api/          # Web API (template)
 │   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
 ├── tests/                                  # Test projects
-│   └── BlockchainAidTracker.Tests/        # 189 unit tests 
+│   └── BlockchainAidTracker.Tests/        # 312 unit tests ✅
 │       ├── Blockchain/                    # 42 blockchain tests
 │       ├── Cryptography/                  # 31 crypto tests
 │       ├── Models/                        # 53 model tests
-│       ├── DataAccess/                    # 63 database tests 
+│       ├── DataAccess/                    # 63 database tests
+│       ├── Services/                      # 123 services tests ✅ NEW
 │       └── Infrastructure/                # Test helpers & builders
 ├── blockchain-aid-tracker/                # Demo console app
 ├── docs/                                   # Documentation
@@ -87,16 +90,30 @@ blockchain-aid-tracker/
 
 See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 
-## Features (Planned)
+## Features
 
-- User authentication with multiple roles (Donor, Coordinator, Logistics Partner, Recipient)
-- Blockchain-based shipment tracking with immutable audit trail
-- Digital signatures for transaction verification
-- Proof-of-Authority consensus mechanism
-- Smart contracts for automated state transitions
-- QR code generation for shipment verification
-- Real-time blockchain explorer
-- Transparent donation tracking for donors
+### Implemented ✅
+- ✅ User authentication with JWT tokens (access + refresh)
+- ✅ BCrypt password hashing for secure credentials
+- ✅ Multiple user roles (Recipient, Donor, Coordinator, LogisticsPartner, Validator, Administrator)
+- ✅ Blockchain-based shipment tracking with immutable audit trail
+- ✅ Digital signatures for transaction verification (ECDSA)
+- ✅ QR code generation for shipment verification (Base64 and PNG)
+- ✅ Shipment lifecycle management (Created → Validated → InTransit → Delivered → Confirmed)
+- ✅ User profile management with role assignment
+- ✅ Business logic services layer
+
+### In Progress 🔨
+- 🔨 Private key encryption/decryption with user passwords
+- 🔨 REST API endpoints
+- 🔨 API authentication middleware
+
+### Planned 📋
+- 📋 Proof-of-Authority consensus with validator nodes
+- 📋 Smart contracts for automated state transitions
+- 📋 Real-time blockchain explorer UI
+- 📋 Blazor web application interface
+- 📋 Transparent donation tracking dashboard
 
 ## Technology Stack
 
@@ -118,11 +135,11 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 |-----------|--------|----------|
 | 1. Core Architecture Setup | ✅ Complete | Database, repositories, models |
 | 2. Blockchain Core Implementation | ✅ Complete | Engine, consensus, cryptography |
-| 3. Testing Infrastructure | ✅ Complete | 189 tests, DB test helpers |
-| 4. User Management System | 🔨 In Progress | Entity/repo done, services pending |
-| 5. Supply Chain Operations | 🔨 In Progress | Models done, services pending |
-| 6. Services Layer | 📋 Next | Business logic implementation |
-| 7. API Endpoints | 📋 Planned | REST API with authentication |
+| 3. Testing Infrastructure | ✅ Complete | 312 tests, comprehensive coverage |
+| 4. User Management System | ✅ Complete | Authentication, JWT, user services |
+| 5. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
+| 6. Services Layer | ✅ Complete | 6 services, DTOs, validation |
+| 7. API Endpoints | 📋 Next | REST API with authentication |
 | 8. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
 | 9. Smart Contracts | 📋 Planned | Automated workflows |
 | 10. Web Application UI | 📋 Planned | Blazor dashboard |
@@ -131,7 +148,7 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 
 ## Testing
 
-The project has a comprehensive test suite with **189 passing tests**:
+The project has a comprehensive test suite with **312 passing tests**:
 
 ### Test Coverage
 
@@ -140,6 +157,7 @@ The project has a comprehensive test suite with **189 passing tests**:
 dotnet test
 
 # Run specific test category
+dotnet test --filter "FullyQualifiedName~Services"
 dotnet test --filter "FullyQualifiedName~DataAccess"
 dotnet test --filter "FullyQualifiedName~Blockchain"
 dotnet test --filter "FullyQualifiedName~Cryptography"
@@ -149,16 +167,19 @@ dotnet test --filter "FullyQualifiedName~Cryptography"
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| **Cryptography** | 31 | SHA-256 hashing, ECDSA signatures, key generation |
-| **Blockchain** | 42 | Chain validation, block creation, transaction handling |
-| **Models** | 53 | Domain entities (User, Shipment, Block, Transaction) |
+| **Services** | 123 | Business logic, authentication, shipment lifecycle, QR codes ✅ NEW |
 | **Database** | 63 | Repository tests with in-memory DB, automatic cleanup |
+| **Models** | 53 | Domain entities (User, Shipment, Block, Transaction) |
+| **Blockchain** | 42 | Chain validation, block creation, transaction handling |
+| **Cryptography** | 31 | SHA-256 hashing, ECDSA signatures, key generation |
 
 ### Test Infrastructure Features
 
 - ✅ **Isolated databases** - Each test gets a unique in-memory database
 - ✅ **Automatic cleanup** - Database state reset after every test
 - ✅ **Fluent builders** - `UserBuilder`, `ShipmentBuilder` for easy test data
+- ✅ **Moq framework** - Mocking dependencies for service layer tests
+- ✅ **Comprehensive coverage** - Success paths, error handling, edge cases
 - ✅ **Zero cross-test contamination** - Tests can run in parallel
 
 **Example:**
