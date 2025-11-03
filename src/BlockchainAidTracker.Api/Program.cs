@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using BlockchainAidTracker.Blockchain;
 using BlockchainAidTracker.Cryptography;
@@ -9,6 +10,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
+// Clear default JWT claim type mappings to preserve original claim types
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -114,10 +118,16 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IHashService, HashService>();
 builder.Services.AddSingleton<IDigitalSignatureService, DigitalSignatureService>();
 
-// Register blockchain
+// Register blockchain with signature validation enabled
 var hashService = new HashService();
 var digitalSignatureService = new DigitalSignatureService();
-var blockchain = new Blockchain(hashService, digitalSignatureService);
+var blockchain = new Blockchain(hashService, digitalSignatureService)
+{
+    // Transaction signatures are now validated with real cryptographic keys
+    ValidateTransactionSignatures = true,
+    // Block validator signatures not yet implemented
+    ValidateBlockSignatures = false
+};
 builder.Services.AddSingleton(blockchain);
 
 // Register DataAccess layer - skip in Testing environment (will be configured by tests)

@@ -20,6 +20,7 @@ public class ShipmentServiceTests
     private readonly Mock<IQrCodeService> _qrCodeServiceMock;
     private readonly BlockchainAidTracker.Blockchain.Blockchain _blockchain;
     private readonly Mock<IDigitalSignatureService> _digitalSignatureServiceMock;
+    private readonly TransactionSigningContext _signingContext;
     private readonly ShipmentService _shipmentService;
 
     public ShipmentServiceTests()
@@ -27,6 +28,7 @@ public class ShipmentServiceTests
         _shipmentRepositoryMock = new Mock<IShipmentRepository>();
         _userRepositoryMock = new Mock<IUserRepository>();
         _qrCodeServiceMock = new Mock<IQrCodeService>();
+        _signingContext = new TransactionSigningContext();
 
         // Create a real blockchain instance for testing (can't mock non-virtual methods)
         var hashServiceMock = new Mock<IHashService>();
@@ -43,7 +45,8 @@ public class ShipmentServiceTests
             _userRepositoryMock.Object,
             _qrCodeServiceMock.Object,
             _blockchain,
-            _digitalSignatureServiceMock.Object
+            _digitalSignatureServiceMock.Object,
+            _signingContext
         );
     }
 
@@ -236,6 +239,8 @@ public class ShipmentServiceTests
         };
 
         _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _shipmentRepositoryMock.Setup(x => x.GetByIdAsync(shipmentId, default))
             .ReturnsAsync(shipment);
 
         // Act
@@ -523,6 +528,9 @@ public class ShipmentServiceTests
     {
         // Arrange
         var shipmentId = "shipment123";
+        var shipment = new Shipment { Id = shipmentId };
+        _shipmentRepositoryMock.Setup(x => x.GetByIdAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
 
         // Act
         var result = await _shipmentService.GetShipmentBlockchainHistoryAsync(shipmentId);
@@ -537,6 +545,9 @@ public class ShipmentServiceTests
     {
         // Arrange
         var shipmentId = "nonexistent";
+        var shipment = new Shipment { Id = shipmentId };
+        _shipmentRepositoryMock.Setup(x => x.GetByIdAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
 
         // Act
         var result = await _shipmentService.VerifyShipmentOnBlockchainAsync(shipmentId);

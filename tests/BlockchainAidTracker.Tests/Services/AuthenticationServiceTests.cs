@@ -19,6 +19,8 @@ public class AuthenticationServiceTests
     private readonly Mock<IPasswordService> _passwordServiceMock;
     private readonly Mock<ITokenService> _tokenServiceMock;
     private readonly Mock<IDigitalSignatureService> _digitalSignatureServiceMock;
+    private readonly Mock<IKeyManagementService> _keyManagementServiceMock;
+    private readonly TransactionSigningContext _signingContext;
     private readonly AuthenticationService _authService;
 
     public AuthenticationServiceTests()
@@ -27,12 +29,16 @@ public class AuthenticationServiceTests
         _passwordServiceMock = new Mock<IPasswordService>();
         _tokenServiceMock = new Mock<ITokenService>();
         _digitalSignatureServiceMock = new Mock<IDigitalSignatureService>();
+        _keyManagementServiceMock = new Mock<IKeyManagementService>();
+        _signingContext = new TransactionSigningContext();
 
         _authService = new AuthenticationService(
             _userRepositoryMock.Object,
             _passwordServiceMock.Object,
             _tokenServiceMock.Object,
-            _digitalSignatureServiceMock.Object
+            _digitalSignatureServiceMock.Object,
+            _keyManagementServiceMock.Object,
+            _signingContext
         );
     }
 
@@ -59,6 +65,8 @@ public class AuthenticationServiceTests
             .Returns(("publicKey", "privateKey"));
         _passwordServiceMock.Setup(x => x.HashPassword(request.Password))
             .Returns("hashedPassword");
+        _keyManagementServiceMock.Setup(x => x.EncryptPrivateKey("privateKey", request.Password))
+            .Returns("encryptedPrivateKey");
         _tokenServiceMock.Setup(x => x.GenerateAccessToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("accessToken", DateTime.UtcNow.AddHours(1)));
         _tokenServiceMock.Setup(x => x.GenerateRefreshToken())

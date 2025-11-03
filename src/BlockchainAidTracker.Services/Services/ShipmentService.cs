@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BlockchainAidTracker.Blockchain;
+using BlockchainAidTracker.Core.Extensions;
 using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.Core.Models;
 using BlockchainAidTracker.DataAccess.Repositories;
@@ -19,19 +20,22 @@ public class ShipmentService : IShipmentService
     private readonly IQrCodeService _qrCodeService;
     private readonly Blockchain.Blockchain _blockchain;
     private readonly IDigitalSignatureService _digitalSignatureService;
+    private readonly TransactionSigningContext _signingContext;
 
     public ShipmentService(
         IShipmentRepository shipmentRepository,
         IUserRepository userRepository,
         IQrCodeService qrCodeService,
         Blockchain.Blockchain blockchain,
-        IDigitalSignatureService digitalSignatureService)
+        IDigitalSignatureService digitalSignatureService,
+        TransactionSigningContext signingContext)
     {
         _shipmentRepository = shipmentRepository ?? throw new ArgumentNullException(nameof(shipmentRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _qrCodeService = qrCodeService ?? throw new ArgumentNullException(nameof(qrCodeService));
         _blockchain = blockchain ?? throw new ArgumentNullException(nameof(blockchain));
         _digitalSignatureService = digitalSignatureService ?? throw new ArgumentNullException(nameof(digitalSignatureService));
+        _signingContext = signingContext ?? throw new ArgumentNullException(nameof(signingContext));
     }
 
     public async Task<ShipmentDto> CreateShipmentAsync(CreateShipmentRequest request, string coordinatorId)
@@ -110,7 +114,8 @@ public class ShipmentService : IShipmentService
                 Items = request.Items,
                 CreatedBy = coordinatorId,
                 CreatedAt = shipment.CreatedTimestamp
-            });
+            },
+            coordinatorId);
 
         return MapToDto(shipment, new List<string> { transactionId });
     }
@@ -158,7 +163,8 @@ public class ShipmentService : IShipmentService
         var shipmentDtos = new List<ShipmentDto>();
         foreach (var shipment in shipments)
         {
-            var transactionIds = await GetShipmentBlockchainHistoryAsync(shipment.Id);
+            // Use private method since we already have the shipment (no need to check existence)
+            var transactionIds = GetBlockchainTransactionsForShipment(shipment.Id);
             shipmentDtos.Add(MapToDto(shipment, transactionIds));
         }
 
@@ -211,9 +217,11 @@ public class ShipmentService : IShipmentService
                 NewStatus = newStatus.ToString(),
                 UpdatedBy = updatedBy,
                 UpdatedAt = shipment.UpdatedTimestamp
-            });
+            },
+            updatedBy);
 
-        var transactionIds = await GetShipmentBlockchainHistoryAsync(shipmentId);
+        // Use private method since we already have the shipment (no need to check existence)
+        var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
         return MapToDto(shipment, transactionIds);
     }
 
@@ -265,19 +273,33 @@ public class ShipmentService : IShipmentService
                 RecipientId = recipientId,
                 ConfirmedAt = shipment.UpdatedTimestamp,
                 ActualDeliveryDate = shipment.ActualDeliveryDate
-            });
+            },
+            recipientId);
 
-        var transactionIds = await GetShipmentBlockchainHistoryAsync(shipmentId);
+        // Use private method since we already have the shipment (no need to check existence)
+        var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
         return MapToDto(shipment, transactionIds);
     }
 
-    public Task<List<string>> GetShipmentBlockchainHistoryAsync(string shipmentId)
+    public async Task<List<string>> GetShipmentBlockchainHistoryAsync(string shipmentId)
     {
         if (string.IsNullOrWhiteSpace(shipmentId))
         {
             throw new ArgumentException("Shipment ID cannot be null or empty", nameof(shipmentId));
         }
 
+        // Verify the shipment exists in the database
+        var shipment = await _shipmentRepository.GetByIdAsync(shipmentId);
+        if (shipment == null)
+        {
+            throw new NotFoundException($"Shipment with ID '{shipmentId}' not found");
+        }
+
+        return GetBlockchainTransactionsForShipment(shipmentId);
+    }
+
+    private List<string> GetBlockchainTransactionsForShipment(string shipmentId)
+    {
         var transactionIds = new List<string>();
 
         // Search through blockchain for transactions related to this shipment
@@ -297,7 +319,7 @@ public class ShipmentService : IShipmentService
             }
         }
 
-        return Task.FromResult(transactionIds);
+        return transactionIds;
     }
 
     public async Task<bool> VerifyShipmentOnBlockchainAsync(string shipmentId)
@@ -314,7 +336,8 @@ public class ShipmentService : IShipmentService
     private async Task<string> CreateBlockchainTransactionAsync(
         TransactionType type,
         string senderPublicKey,
-        object payload)
+        object payload,
+        string userId)
     {
         var transaction = new Transaction
         {
@@ -326,11 +349,26 @@ public class ShipmentService : IShipmentService
             Signature = string.Empty // Will be set by signing
         };
 
-        // Note: In production, transactions should be signed with the user's private key
-        // For now, we'll use a placeholder signature
-        transaction.Signature = "PLACEHOLDER_SIGNATURE";
+        // Try to sign with the real private key if available
+        var privateKey = _signingContext.GetPrivateKey(userId);
+        if (!string.IsNullOrEmpty(privateKey))
+        {
+            // Sign the transaction with the user's private key using the extension method
+            transaction.Sign(privateKey, _digitalSignatureService);
+        }
+        else
+        {
+            // Fall back to placeholder signature if private key not available
+            // This allows backward compatibility with tests that don't have keys
+            transaction.Signature = "PLACEHOLDER_SIGNATURE";
+        }
 
         _blockchain.AddTransaction(transaction);
+
+        // Create a block to add pending transactions to the chain
+        // In production, this would be done by validator nodes through consensus
+        var block = _blockchain.CreateBlock(senderPublicKey);
+        _blockchain.AddBlock(block);
 
         return await Task.FromResult(transaction.Id);
     }

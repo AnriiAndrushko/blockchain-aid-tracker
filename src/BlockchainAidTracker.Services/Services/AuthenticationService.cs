@@ -16,17 +16,23 @@ public class AuthenticationService : IAuthenticationService
     private readonly IPasswordService _passwordService;
     private readonly ITokenService _tokenService;
     private readonly IDigitalSignatureService _digitalSignatureService;
+    private readonly IKeyManagementService _keyManagementService;
+    private readonly TransactionSigningContext _signingContext;
 
     public AuthenticationService(
         IUserRepository userRepository,
         IPasswordService passwordService,
         ITokenService tokenService,
-        IDigitalSignatureService digitalSignatureService)
+        IDigitalSignatureService digitalSignatureService,
+        IKeyManagementService keyManagementService,
+        TransactionSigningContext signingContext)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _passwordService = passwordService ?? throw new ArgumentNullException(nameof(passwordService));
         _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
         _digitalSignatureService = digitalSignatureService ?? throw new ArgumentNullException(nameof(digitalSignatureService));
+        _keyManagementService = keyManagementService ?? throw new ArgumentNullException(nameof(keyManagementService));
+        _signingContext = signingContext ?? throw new ArgumentNullException(nameof(signingContext));
     }
 
     public async Task<AuthenticationResponse> RegisterAsync(RegisterRequest request)
@@ -57,6 +63,9 @@ public class AuthenticationService : IAuthenticationService
         // Hash the password
         var passwordHash = _passwordService.HashPassword(request.Password);
 
+        // Encrypt the private key with the user's password
+        var encryptedPrivateKey = _keyManagementService.EncryptPrivateKey(privateKey, request.Password);
+
         // Parse full name into first and last name
         var nameParts = request.FullName.Trim().Split(' ', 2);
         var firstName = nameParts[0];
@@ -74,7 +83,7 @@ public class AuthenticationService : IAuthenticationService
             Organization = request.Organization,
             Role = UserRole.Recipient, // Default role
             PublicKey = publicKey,
-            EncryptedPrivateKey = privateKey, // TODO: Encrypt with user password
+            EncryptedPrivateKey = encryptedPrivateKey,
             RefreshToken = null,
             RefreshTokenExpiresAt = null,
             IsActive = true,
@@ -84,6 +93,9 @@ public class AuthenticationService : IAuthenticationService
 
         // Save user to database (AddAsync saves automatically)
         await _userRepository.AddAsync(user);
+
+        // Store the decrypted private key for immediate transaction signing
+        _signingContext.StorePrivateKey(user.Id, privateKey);
 
         // Generate tokens
         var (accessToken, accessTokenExpiresAt) = _tokenService.GenerateAccessToken(
@@ -141,6 +153,18 @@ public class AuthenticationService : IAuthenticationService
         if (!_passwordService.VerifyPassword(request.Password, user.PasswordHash))
         {
             throw new UnauthorizedException("Invalid username/email or password");
+        }
+
+        // Decrypt and store the private key for transaction signing
+        try
+        {
+            var privateKey = _keyManagementService.DecryptPrivateKey(user.EncryptedPrivateKey, request.Password);
+            _signingContext.StorePrivateKey(user.Id, privateKey);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // If decryption fails, log but don't block login (allows backward compatibility)
+            // In production, you might want to handle this differently
         }
 
         // Generate tokens

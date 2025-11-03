@@ -31,10 +31,14 @@ public static class DependencyInjection
         // Register JWT settings as singleton
         services.AddSingleton(jwtSettings);
 
+        // Register transaction signing context as singleton (in-memory key storage)
+        services.AddSingleton<TransactionSigningContext>();
+
         // Register core services
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IQrCodeService, QrCodeService>();
+        services.AddScoped<IKeyManagementService, KeyManagementService>();
 
         // Register business logic services
         services.AddScoped<IAuthenticationService, AuthenticationService>();
