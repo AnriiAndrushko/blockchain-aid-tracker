@@ -19,6 +19,10 @@ var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..
 optionsBuilder.UseSqlite($"Data Source={dbPath}");
 var dbContext = new ApplicationDbContext(optionsBuilder.Options);
 
+// Ensure clean database for demo (reset on each run)
+await dbContext.Database.EnsureDeletedAsync();
+await dbContext.Database.EnsureCreatedAsync();
+
 // Verify database connection
 Console.WriteLine("✓ Database connection established");
 Console.WriteLine($"  Database: {dbContext.Database.GetConnectionString()}\n");
