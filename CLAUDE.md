@@ -6,10 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation and business logic layers complete. The blockchain engine, cryptography services, data access layer, and services layer are fully implemented and tested with 312 passing unit tests.
+**Current Status**: Foundation, business logic, and authentication API layers complete. The blockchain engine, cryptography services, data access layer, services layer, and authentication endpoints are fully implemented and tested with 329 passing tests.
 
 **Recently Completed** (Latest):
-- ✅ **Complete Services layer with business logic** NEW
+- ✅ **Authentication API Endpoints** NEW
+  - AuthenticationController with 5 endpoints (register, login, refresh-token, logout, validate)
+  - JWT Bearer authentication configured in ASP.NET Core
+  - Swagger/OpenAPI with JWT authentication UI
+  - CORS policy configuration
+  - Health checks with database monitoring
+  - Comprehensive error handling and logging
+- ✅ **Integration Test Infrastructure** NEW
+  - CustomWebApplicationFactory for isolated API testing
+  - 17 integration tests for authentication endpoints (all passing)
+  - InMemory database configuration for test isolation
+  - Test environment configuration with appsettings.Testing.json
+- ✅ **Complete Services layer with business logic**
   - 6 core services: PasswordService, TokenService, AuthenticationService, UserService, QrCodeService, ShipmentService
   - JWT authentication with access tokens and refresh tokens
   - BCrypt password hashing (work factor: 12)
@@ -18,15 +30,11 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - 9 DTO classes for API contracts
   - Custom exception classes (BusinessException, UnauthorizedException, NotFoundException)
   - Dependency injection configuration
-- ✅ **Services layer testing with 123 new tests** NEW
-  - Comprehensive unit tests for all services
-  - Mocked dependencies using Moq framework
-  - Test coverage for success paths, error handling, and edge cases
-- ✅ All 312 unit tests passing
+- ✅ All 329 tests passing (312 unit tests + 17 integration tests)
 - ✅ Complete DataAccess layer with Entity Framework Core
 - ✅ Database testing infrastructure with in-memory database isolation
 
-**Next Steps**: Implement API layer with ASP.NET Core Web API endpoints to expose services.
+**Next Steps**: Implement remaining API endpoints (User management, Shipment operations, Blockchain queries).
 
 ## Build and Run Commands
 
@@ -35,7 +43,10 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
 # Build the solution
 dotnet build blockchain-aid-tracker.sln
 
-# Run the application
+# Run the API (Swagger available at http://localhost:5000 or https://localhost:5001)
+dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+
+# Run the demo console application
 dotnet run --project blockchain-aid-tracker/blockchain-aid-tracker.csproj
 
 # Build with specific configuration
@@ -68,8 +79,14 @@ dotnet ef migrations list --project src/BlockchainAidTracker.DataAccess
 # Run comprehensive database + blockchain demo
 dotnet run --project blockchain-aid-tracker
 
-# Run all unit tests
+# Run all tests (unit + integration)
 dotnet test
+
+# Run only integration tests
+dotnet test --filter "FullyQualifiedName~Integration"
+
+# Run only unit tests
+dotnet test --filter "FullyQualifiedName!~Integration"
 ```
 
 ### Database File Location
@@ -84,10 +101,10 @@ dotnet test
   - **BlockchainAidTracker.Cryptography/** - Cryptographic services (SHA-256, ECDSA)
   - **BlockchainAidTracker.DataAccess/** - Entity Framework Core data access layer
   - **BlockchainAidTracker.Services/** - Business logic services (complete with 6 services)
-  - **BlockchainAidTracker.Api/** - ASP.NET Core Web API project (template)
+  - **BlockchainAidTracker.Api/** - ASP.NET Core Web API project (authentication endpoints functional)
   - **BlockchainAidTracker.Web/** - Blazor Server web application (referenced)
 - **tests/** - Test projects
-  - **BlockchainAidTracker.Tests/** - xUnit test project (312 passing tests)
+  - **BlockchainAidTracker.Tests/** - xUnit test project (329 passing tests: 312 unit + 17 integration)
 - **blockchain-aid-tracker/** - Main console application/demo project
   - `blockchain-aid-tracker.csproj` - .NET 9.0 console app with Docker support
   - `Program.cs` - Comprehensive demo of database and blockchain integration
@@ -241,13 +258,38 @@ dotnet test
 
 **Test Coverage**: 123 unit tests (100% passing)
 
-### 🔨 API Module (5% - Template Only)
+### ✅ API Module (30% - Authentication Complete)
 **Location**: `src/BlockchainAidTracker.Api/`
-- ASP.NET Core Web API template
-- JWT Bearer authentication package referenced
-- OpenAPI/Swagger configured
 
-### ✅ Test Suite (312 Tests - 100% Passing)
+**Controllers**:
+- `AuthenticationController` - Complete authentication endpoints
+  - POST /api/authentication/register
+  - POST /api/authentication/login
+  - POST /api/authentication/refresh-token
+  - POST /api/authentication/logout (requires auth)
+  - GET /api/authentication/validate (requires auth)
+
+**Configuration** (Program.cs):
+- JWT Bearer authentication with token validation
+- Swagger/OpenAPI with JWT authentication UI
+- CORS policy for cross-origin requests
+- Health checks with database context monitoring
+- Environment-specific database initialization
+- All service layers registered (Cryptography, Blockchain, DataAccess, Services)
+
+**NuGet Packages**:
+- Microsoft.AspNetCore.Authentication.JwtBearer 9.0.10
+- Swashbuckle.AspNetCore 7.2.0
+- Microsoft.AspNetCore.Mvc.Testing 9.0.10
+- Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore 9.0.10
+
+**Configuration Files**:
+- `appsettings.json` - Production configuration
+- `appsettings.Testing.json` - Test environment configuration
+
+**Next**: User management, shipment operations, and blockchain query endpoints
+
+### ✅ Test Suite (329 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
 - Blockchain tests: 42 tests
@@ -256,19 +298,25 @@ dotnet test
   - UserRepository tests: 31 tests
   - ShipmentRepository tests: 32 tests
   - ApplicationDbContext tests: 20 tests
-- **Services tests: 123 tests** NEW
+- **Services tests: 123 tests**
   - PasswordService tests: 13 tests
   - TokenService tests: 17 tests
   - AuthenticationService tests: 21 tests
   - UserService tests: 16 tests
   - QrCodeService tests: 14 tests
   - ShipmentService tests: 42 tests
+- **Integration tests: 17 tests** NEW
+  - AuthenticationController API tests: 17 tests
+  - Full end-to-end authentication workflows
+  - In-memory database for test isolation
+  - WebApplicationFactory for API testing
 - **Test Infrastructure**:
-  - `DatabaseTestBase` - Base class with automatic cleanup and isolation
+  - `DatabaseTestBase` - Base class with automatic cleanup and isolation (unit tests)
+  - `CustomWebApplicationFactory` - API test factory with in-memory database (integration tests)
   - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder)
   - In-memory database with unique instances per test
   - Moq framework for mocking dependencies in service tests
-- Execution time: ~13 seconds
+- Execution time: ~10 seconds
 
 ---
 
@@ -330,12 +378,13 @@ All features below are planned for step-by-step implementation. Each section rep
 - [x] Build role-based access control validation in services
 - [ ] Build private key encryption/decryption with user passwords (critical for production)
 - [ ] Implement multi-factor authentication framework
-- [ ] Build role-based access control (RBAC) middleware for API
-- [ ] Create authentication API endpoints:
-  - [ ] POST /api/auth/register
-  - [ ] POST /api/auth/login
-  - [ ] POST /api/auth/refresh-token
-  - [ ] POST /api/auth/logout
+- [x] Build role-based access control (RBAC) middleware for API
+- [x] Create authentication API endpoints:
+  - [x] POST /api/authentication/register
+  - [x] POST /api/authentication/login
+  - [x] POST /api/authentication/refresh-token
+  - [x] POST /api/authentication/logout
+  - [x] GET /api/authentication/validate
 
 #### User Profile Management (80% Complete)
 - [x] Create user profile entity and repository (User entity with IUserRepository and UserRepository)
@@ -637,6 +686,7 @@ All features below are planned for step-by-step implementation. Each section rep
 ### 10. Testing Strategy
 
 #### ✅ Unit Tests (312 Tests - All Passing)
+*Note: Total test count is now 329, including 17 integration tests*
 - [x] Set up xUnit test project
 - [x] Create test fixtures and helpers
 - [x] **Create database test infrastructure** (DatabaseTestBase, TestDataBuilder)
@@ -681,20 +731,21 @@ All features below are planned for step-by-step implementation. Each section rep
 - [ ] Write tests for smart contracts:
   - [ ] Delivery verification logic
 
-#### TODO: Integration Tests
-- [ ] Set up integration test project with TestServer
-- [ ] Create test database setup/teardown
+#### Integration Tests (20% Complete)
+- [x] Set up integration test project with WebApplicationFactory
+- [x] Create test database setup/teardown (in-memory database)
 - [ ] Write API endpoint tests:
-  - [ ] Authentication endpoints
+  - [x] Authentication endpoints (17 tests - all passing)
   - [ ] User management endpoints
   - [ ] Shipment endpoints
   - [ ] Blockchain endpoints
   - [ ] Consensus endpoints
 - [ ] Write workflow integration tests:
+  - [x] Complete authentication lifecycle (register, login, refresh, logout)
   - [ ] Complete shipment lifecycle
   - [ ] Multi-node consensus
   - [ ] Delivery confirmation workflow
-- [ ] Test authentication and authorization
+- [x] Test authentication and authorization
 - [ ] Test blockchain synchronization between nodes
 
 #### TODO: End-to-End Tests

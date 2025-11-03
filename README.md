@@ -4,10 +4,11 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation and Business Logic Complete** - The core blockchain engine, cryptography services, data access layer, and services layer are fully implemented and tested.
+**Foundation, Business Logic, and Authentication API Complete** - The core blockchain engine, cryptography services, data access layer, services layer, and authentication endpoints are fully implemented and tested.
 
 **Current Metrics:**
--  **312 unit tests passing** (100% success rate)
+-  **329 tests passing** (100% success rate: 312 unit + 17 integration)
+-  Authentication API endpoints operational with Swagger UI
 -  6 core business services fully implemented
 -  Blockchain engine with PoA consensus support
 -  JWT authentication with BCrypt password hashing
@@ -15,8 +16,9 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Complete data access layer with EF Core
 -  Repository pattern fully tested
 -  Cryptographic services (SHA-256, ECDSA)
+-  Integration test infrastructure with WebApplicationFactory
 
-**Next:** API layer (REST endpoints) to expose services
+**Next:** User management and shipment API endpoints
 
 ## Quick Start
 
@@ -37,8 +39,23 @@ dotnet test
 # Run the demo application (Database + Blockchain integration)
 dotnet run --project blockchain-aid-tracker
 
-# Run the API (when ready)
+# Run the API with Swagger UI (available at https://localhost:5001 or http://localhost:5000)
 dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+```
+
+### API Endpoints
+
+The following authentication endpoints are available:
+
+- `POST /api/authentication/register` - Register new user
+- `POST /api/authentication/login` - Login and get JWT tokens
+- `POST /api/authentication/refresh-token` - Refresh access token
+- `POST /api/authentication/logout` - Logout (requires authentication)
+- `GET /api/authentication/validate` - Validate current token (requires authentication)
+- `GET /health` - Health check endpoint
+
+Visit the Swagger UI at the root URL when the API is running to test endpoints interactively.
+
 ```
 
 ### Database Operations
@@ -73,15 +90,16 @@ blockchain-aid-tracker/
 │   ├── BlockchainAidTracker.Cryptography/ # Cryptographic utilities ✅
 │   ├── BlockchainAidTracker.DataAccess/   # Entity Framework Core ✅
 │   ├── BlockchainAidTracker.Services/     # Business logic (6 services) ✅
-│   ├── BlockchainAidTracker.Api/          # Web API (template)
+│   ├── BlockchainAidTracker.Api/          # Web API (auth endpoints functional) ✅
 │   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
 ├── tests/                                  # Test projects
-│   └── BlockchainAidTracker.Tests/        # 312 unit tests ✅
+│   └── BlockchainAidTracker.Tests/        # 329 tests (312 unit + 17 integration) ✅
 │       ├── Blockchain/                    # 42 blockchain tests
 │       ├── Cryptography/                  # 31 crypto tests
 │       ├── Models/                        # 53 model tests
 │       ├── DataAccess/                    # 63 database tests
-│       ├── Services/                      # 123 services tests ✅ NEW
+│       ├── Services/                      # 123 services tests
+│       ├── Integration/                   # 17 API integration tests ✅ NEW
 │       └── Infrastructure/                # Test helpers & builders
 ├── blockchain-aid-tracker/                # Demo console app
 ├── docs/                                   # Documentation
@@ -102,11 +120,16 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 - ✅ Shipment lifecycle management (Created → Validated → InTransit → Delivered → Confirmed)
 - ✅ User profile management with role assignment
 - ✅ Business logic services layer
+- ✅ Authentication REST API endpoints (register, login, refresh, logout, validate)
+- ✅ JWT Bearer authentication middleware for ASP.NET Core
+- ✅ Swagger/OpenAPI documentation with JWT support
+- ✅ Integration test infrastructure with WebApplicationFactory
 
 ### In Progress 🔨
 - 🔨 Private key encryption/decryption with user passwords
-- 🔨 REST API endpoints
-- 🔨 API authentication middleware
+- 🔨 User management API endpoints
+- 🔨 Shipment operations API endpoints
+- 🔨 Blockchain query API endpoints
 
 ### Planned 📋
 - 📋 Proof-of-Authority consensus with validator nodes
@@ -135,11 +158,11 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 |-----------|--------|----------|
 | 1. Core Architecture Setup | ✅ Complete | Database, repositories, models |
 | 2. Blockchain Core Implementation | ✅ Complete | Engine, consensus, cryptography |
-| 3. Testing Infrastructure | ✅ Complete | 312 tests, comprehensive coverage |
+| 3. Testing Infrastructure | ✅ Complete | 329 tests (312 unit + 17 integration) |
 | 4. User Management System | ✅ Complete | Authentication, JWT, user services |
 | 5. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
 | 6. Services Layer | ✅ Complete | 6 services, DTOs, validation |
-| 7. API Endpoints | 📋 Next | REST API with authentication |
+| 7. API Endpoints | 🔨 In Progress (30%) | Auth endpoints complete, Swagger UI |
 | 8. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
 | 9. Smart Contracts | 📋 Planned | Automated workflows |
 | 10. Web Application UI | 📋 Planned | Blazor dashboard |
@@ -148,12 +171,12 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 
 ## Testing
 
-The project has a comprehensive test suite with **312 passing tests**:
+The project has a comprehensive test suite with **329 passing tests**:
 
 ### Test Coverage
 
 ```bash
-# Run all tests
+# Run all tests (unit + integration)
 dotnet test
 
 # Run specific test category
@@ -161,26 +184,30 @@ dotnet test --filter "FullyQualifiedName~Services"
 dotnet test --filter "FullyQualifiedName~DataAccess"
 dotnet test --filter "FullyQualifiedName~Blockchain"
 dotnet test --filter "FullyQualifiedName~Cryptography"
+dotnet test --filter "FullyQualifiedName~Integration"
 ```
 
 ### Test Categories
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| **Services** | 123 | Business logic, authentication, shipment lifecycle, QR codes ✅ NEW |
+| **Services** | 123 | Business logic, authentication, shipment lifecycle, QR codes |
 | **Database** | 63 | Repository tests with in-memory DB, automatic cleanup |
 | **Models** | 53 | Domain entities (User, Shipment, Block, Transaction) |
 | **Blockchain** | 42 | Chain validation, block creation, transaction handling |
 | **Cryptography** | 31 | SHA-256 hashing, ECDSA signatures, key generation |
+| **Integration** | 17 | API endpoint tests, full auth workflows ✅ NEW |
 
 ### Test Infrastructure Features
 
-- ✅ **Isolated databases** - Each test gets a unique in-memory database
+- ✅ **Isolated databases** - Each test gets a unique in-memory database (unit & integration)
 - ✅ **Automatic cleanup** - Database state reset after every test
 - ✅ **Fluent builders** - `UserBuilder`, `ShipmentBuilder` for easy test data
 - ✅ **Moq framework** - Mocking dependencies for service layer tests
+- ✅ **WebApplicationFactory** - Integrated API testing with real HTTP requests
 - ✅ **Comprehensive coverage** - Success paths, error handling, edge cases
 - ✅ **Zero cross-test contamination** - Tests can run in parallel
+- ✅ **Environment separation** - Test-specific configuration (appsettings.Testing.json)
 
 **Example:**
 ```csharp
