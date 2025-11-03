@@ -8,16 +8,22 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.10" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BlockchainAidTracker.Blockchain\BlockchainAidTracker.Blockchain.csproj" />
     <ProjectReference Include="..\BlockchainAidTracker.Core\BlockchainAidTracker.Core.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.Cryptography\BlockchainAidTracker.Cryptography.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.DataAccess\BlockchainAidTracker.DataAccess.csproj" />
     <ProjectReference Include="..\BlockchainAidTracker.Services\BlockchainAidTracker.Services.csproj" />
   </ItemGroup>
 

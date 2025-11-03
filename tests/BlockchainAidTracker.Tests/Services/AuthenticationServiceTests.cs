@@ -91,7 +91,7 @@ public class AuthenticationServiceTests
     [InlineData("testuser", "", "Password123!", "Test User")]
     [InlineData("testuser", "test@example.com", "", "Test User")]
     [InlineData("testuser", "test@example.com", "Password123!", "")]
-    public async Task RegisterAsync_MissingRequiredFields_ThrowsArgumentException(
+    public async Task RegisterAsync_MissingRequiredFields_ThrowsBusinessException(
         string username, string email, string password, string fullName)
     {
         // Arrange
@@ -104,11 +104,11 @@ public class AuthenticationServiceTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _authService.RegisterAsync(request));
+        await Assert.ThrowsAsync<BusinessException>(() => _authService.RegisterAsync(request));
     }
 
     [Fact]
-    public async Task RegisterAsync_PasswordTooShort_ThrowsArgumentException()
+    public async Task RegisterAsync_PasswordTooShort_ThrowsBusinessException()
     {
         // Arrange
         var request = new RegisterRequest
@@ -120,11 +120,11 @@ public class AuthenticationServiceTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _authService.RegisterAsync(request));
+        await Assert.ThrowsAsync<BusinessException>(() => _authService.RegisterAsync(request));
     }
 
     [Fact]
-    public async Task RegisterAsync_InvalidEmail_ThrowsArgumentException()
+    public async Task RegisterAsync_InvalidEmail_ThrowsBusinessException()
     {
         // Arrange
         var request = new RegisterRequest
@@ -136,7 +136,7 @@ public class AuthenticationServiceTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _authService.RegisterAsync(request));
+        await Assert.ThrowsAsync<BusinessException>(() => _authService.RegisterAsync(request));
     }
 
     [Fact]

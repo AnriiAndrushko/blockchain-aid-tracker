@@ -241,33 +241,33 @@ public class AuthenticationService : IAuthenticationService
     {
         if (string.IsNullOrWhiteSpace(request.Username))
         {
-            throw new ArgumentException("Username is required", nameof(request));
+            throw new BusinessException("Username is required");
         }
 
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            throw new ArgumentException("Email is required", nameof(request));
+            throw new BusinessException("Email is required");
         }
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            throw new ArgumentException("Password is required", nameof(request));
+            throw new BusinessException("Password is required");
         }
 
         if (request.Password.Length < 8)
         {
-            throw new ArgumentException("Password must be at least 8 characters long", nameof(request));
+            throw new BusinessException("Password must be at least 8 characters long");
         }
 
         if (string.IsNullOrWhiteSpace(request.FullName))
         {
-            throw new ArgumentException("Full name is required", nameof(request));
+            throw new BusinessException("Full name is required");
         }
 
         // Basic email validation
         if (!request.Email.Contains('@'))
         {
-            throw new ArgumentException("Invalid email format", nameof(request));
+            throw new BusinessException("Invalid email format");
         }
     }
 }
