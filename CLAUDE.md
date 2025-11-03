@@ -6,35 +6,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, and authentication API layers complete. The blockchain engine, cryptography services, data access layer, services layer, and authentication endpoints are fully implemented and tested with 329 passing tests.
+**Current Status**: Foundation, business logic, authentication API, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, and authentication endpoints are fully implemented and tested with 351 passing tests.
 
 **Recently Completed** (Latest):
-- ✅ **Authentication API Endpoints** NEW
+- ✅ **Cryptographic Key Management & Real Signatures** NEW
+  - KeyManagementService with AES-256 encryption for private keys
+  - TransactionSigningContext for secure in-memory key storage during sessions
+  - Private keys encrypted with user passwords using PBKDF2 key derivation
+  - Real ECDSA transaction signing (no more placeholder signatures)
+  - **Blockchain signature validation ENABLED** - all transactions cryptographically verified
+  - Seamless key decryption during login for transaction signing
+  - 351 tests passing with real cryptographic validation
+- ✅ **Shipment API Endpoints** NEW
+  - ShipmentController with 6 endpoints (create, list, get, update-status, confirm-delivery, history)
+  - Complete shipment lifecycle with blockchain integration
+  - QR code generation endpoint
+  - Role-based authorization for shipment operations
+  - 22 integration tests for shipment endpoints (all passing)
+- ✅ **Authentication API Endpoints**
   - AuthenticationController with 5 endpoints (register, login, refresh-token, logout, validate)
   - JWT Bearer authentication configured in ASP.NET Core
   - Swagger/OpenAPI with JWT authentication UI
   - CORS policy configuration
   - Health checks with database monitoring
   - Comprehensive error handling and logging
-- ✅ **Integration Test Infrastructure** NEW
+- ✅ **Integration Test Infrastructure**
   - CustomWebApplicationFactory for isolated API testing
-  - 17 integration tests for authentication endpoints (all passing)
+  - 39 integration tests total (17 authentication + 22 shipment endpoints, all passing)
   - InMemory database configuration for test isolation
   - Test environment configuration with appsettings.Testing.json
 - ✅ **Complete Services layer with business logic**
-  - 6 core services: PasswordService, TokenService, AuthenticationService, UserService, QrCodeService, ShipmentService
+  - 7 core services: PasswordService, TokenService, KeyManagementService, AuthenticationService, UserService, QrCodeService, ShipmentService
   - JWT authentication with access tokens and refresh tokens
   - BCrypt password hashing (work factor: 12)
+  - AES-256 private key encryption with password-based key derivation
   - QR code generation for shipment tracking
   - Full shipment lifecycle management with blockchain integration
   - 9 DTO classes for API contracts
   - Custom exception classes (BusinessException, UnauthorizedException, NotFoundException)
   - Dependency injection configuration
-- ✅ All 329 tests passing (312 unit tests + 17 integration tests)
+- ✅ All 351 tests passing (312 unit tests + 39 integration tests)
 - ✅ Complete DataAccess layer with Entity Framework Core
 - ✅ Database testing infrastructure with in-memory database isolation
 
-**Next Steps**: Implement remaining API endpoints (User management, Shipment operations, Blockchain queries).
+**Next Steps**: Implement remaining API endpoints (User management, Blockchain queries).
 
 ## Build and Run Commands
 
@@ -218,10 +233,12 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 **Core Services**:
 - `PasswordService` - BCrypt password hashing and verification (work factor: 12)
 - `TokenService` - JWT access token and refresh token generation/validation
-- `AuthenticationService` - User registration, login, token refresh, validation
+- `KeyManagementService` - AES-256 encryption/decryption of private keys with PBKDF2
+- `TransactionSigningContext` - Thread-safe in-memory storage for decrypted private keys
+- `AuthenticationService` - User registration, login, token refresh, validation with key management
 - `UserService` - User CRUD operations, role assignment, activation/deactivation
 - `QrCodeService` - QR code generation for shipment tracking (Base64 and PNG formats)
-- `ShipmentService` - Complete shipment lifecycle with blockchain integration
+- `ShipmentService` - Complete shipment lifecycle with blockchain integration and real signatures
 
 **DTOs (Data Transfer Objects)**:
 - Authentication: `RegisterRequest`, `LoginRequest`, `AuthenticationResponse`, `RefreshTokenRequest`
@@ -240,15 +257,30 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 **Key Features**:
 - JWT-based authentication with access tokens (60 min) and refresh tokens (7 days)
 - BCrypt password hashing for secure credential storage
+- **AES-256 private key encryption with user passwords (PBKDF2, 10000 iterations)**
+- **Real ECDSA transaction signing with cryptographically verified signatures**
+- **Blockchain transaction signature validation ENABLED**
+- Automatic key decryption and secure in-memory storage during user sessions
 - QR code generation for shipment tracking
-- Blockchain transaction creation for shipment lifecycle events
+- Complete shipment lifecycle with cryptographically signed blockchain transactions
 - Role-based access control validation
 - Complete CRUD operations for users and shipments
 
-**Known Limitations**:
-- Transaction signatures use placeholders (private key management to be implemented later)
-- Private key encryption/decryption not yet implemented
-- Blockchain signature validation disabled in production use (requires private key infrastructure)
+**Security Implementation**:
+- Private keys encrypted at rest with user passwords
+- Keys decrypted and stored in memory only during active sessions
+- All blockchain transactions signed with real ECDSA private keys
+- Transaction signatures validated before adding to blockchain
+- AES-256-CBC encryption with random salt and IV per key
+- PBKDF2 key derivation with 10,000 iterations and SHA-256
+
+**Production Considerations**:
+- Current implementation uses in-memory key storage (suitable for prototype/demo)
+- For production, consider:
+  - Azure Key Vault, AWS KMS, or Hardware Security Module (HSM)
+  - Session expiration for decrypted keys
+  - Key rotation mechanisms
+  - Proper logout to clear signing context
 
 **NuGet Packages**:
 - BCrypt.Net-Next 4.0.3
@@ -258,24 +290,33 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 123 unit tests (100% passing)
 
-### ✅ API Module (30% - Authentication Complete)
+### ✅ API Module (60% - Authentication & Shipments Complete)
 **Location**: `src/BlockchainAidTracker.Api/`
 
 **Controllers**:
-- `AuthenticationController` - Complete authentication endpoints
+- `AuthenticationController` - Complete authentication endpoints (5 endpoints)
   - POST /api/authentication/register
   - POST /api/authentication/login
   - POST /api/authentication/refresh-token
   - POST /api/authentication/logout (requires auth)
   - GET /api/authentication/validate (requires auth)
+- `ShipmentController` - Complete shipment management endpoints (6 endpoints)
+  - POST /api/shipments - Create new shipment (Coordinator only)
+  - GET /api/shipments - List all shipments with optional filtering
+  - GET /api/shipments/{id} - Get shipment details
+  - PUT /api/shipments/{id}/status - Update shipment status
+  - POST /api/shipments/{id}/confirm-delivery - Confirm delivery (Recipient only)
+  - GET /api/shipments/{id}/history - Get blockchain transaction history
+  - GET /api/shipments/{id}/qrcode - Get shipment QR code as PNG
 
 **Configuration** (Program.cs):
 - JWT Bearer authentication with token validation
+- **Blockchain with transaction signature validation ENABLED**
 - Swagger/OpenAPI with JWT authentication UI
 - CORS policy for cross-origin requests
 - Health checks with database context monitoring
 - Environment-specific database initialization
-- All service layers registered (Cryptography, Blockchain, DataAccess, Services)
+- All service layers registered (Cryptography, Blockchain, DataAccess, Services, KeyManagement)
 
 **NuGet Packages**:
 - Microsoft.AspNetCore.Authentication.JwtBearer 9.0.10
@@ -287,9 +328,9 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `appsettings.json` - Production configuration
 - `appsettings.Testing.json` - Test environment configuration
 
-**Next**: User management, shipment operations, and blockchain query endpoints
+**Next**: User management and blockchain query endpoints
 
-### ✅ Test Suite (329 Tests - 100% Passing)
+### ✅ Test Suite (351 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
 - Blockchain tests: 42 tests
@@ -305,9 +346,11 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - UserService tests: 16 tests
   - QrCodeService tests: 14 tests
   - ShipmentService tests: 42 tests
-- **Integration tests: 17 tests** NEW
+- **Integration tests: 39 tests**
   - AuthenticationController API tests: 17 tests
-  - Full end-to-end authentication workflows
+  - ShipmentController API tests: 22 tests
+  - Full end-to-end authentication and shipment workflows
+  - Real ECDSA signature generation and validation in tests
   - In-memory database for test isolation
   - WebApplicationFactory for API testing
 - **Test Infrastructure**:
@@ -316,7 +359,8 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder)
   - In-memory database with unique instances per test
   - Moq framework for mocking dependencies in service tests
-- Execution time: ~10 seconds
+  - All tests pass with real cryptographic signature validation
+- Execution time: ~25 seconds
 
 ---
 

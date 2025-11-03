@@ -4,21 +4,23 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation, Business Logic, and Authentication API Complete** - The core blockchain engine, cryptography services, data access layer, services layer, and authentication endpoints are fully implemented and tested.
+**Foundation, Business Logic, Authentication & Shipment APIs, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, cryptography services, key management, data access layer, services layer, and authentication/shipment endpoints are fully implemented and tested.
 
 **Current Metrics:**
--  **329 tests passing** (100% success rate: 312 unit + 17 integration)
--  Authentication API endpoints operational with Swagger UI
--  6 core business services fully implemented
--  Blockchain engine with PoA consensus support
+-  **351 tests passing** (100% success rate: 312 unit + 39 integration)
+-  Authentication & Shipment API endpoints operational with Swagger UI
+-  7 core business services fully implemented (including key management)
+-  **Blockchain engine with real ECDSA signature validation ENABLED**
+-  **AES-256 private key encryption with user passwords**
 -  JWT authentication with BCrypt password hashing
 -  QR code generation for shipment tracking
 -  Complete data access layer with EF Core
 -  Repository pattern fully tested
--  Cryptographic services (SHA-256, ECDSA)
+-  Cryptographic services (SHA-256, ECDSA) with real signatures
 -  Integration test infrastructure with WebApplicationFactory
+-  All blockchain transactions cryptographically signed and validated
 
-**Next:** User management and shipment API endpoints
+**Next:** User management API endpoints and blockchain query endpoints
 
 ## Quick Start
 
@@ -45,16 +47,26 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 
 ### API Endpoints
 
-The following authentication endpoints are available:
-
-- `POST /api/authentication/register` - Register new user
-- `POST /api/authentication/login` - Login and get JWT tokens
+**Authentication Endpoints (5 endpoints):**
+- `POST /api/authentication/register` - Register new user with encrypted private key
+- `POST /api/authentication/login` - Login and get JWT tokens (private key decrypted for session)
 - `POST /api/authentication/refresh-token` - Refresh access token
 - `POST /api/authentication/logout` - Logout (requires authentication)
 - `GET /api/authentication/validate` - Validate current token (requires authentication)
-- `GET /health` - Health check endpoint
 
-Visit the Swagger UI at the root URL when the API is running to test endpoints interactively.
+**Shipment Endpoints (6 endpoints):**
+- `POST /api/shipments` - Create new shipment (Coordinator only, creates blockchain transaction)
+- `GET /api/shipments` - List all shipments with optional filtering
+- `GET /api/shipments/{id}` - Get shipment details
+- `PUT /api/shipments/{id}/status` - Update shipment status (creates blockchain transaction)
+- `POST /api/shipments/{id}/confirm-delivery` - Confirm delivery (Recipient only, blockchain transaction)
+- `GET /api/shipments/{id}/history` - Get blockchain transaction history
+- `GET /api/shipments/{id}/qrcode` - Get shipment QR code as PNG image
+
+**System Endpoints:**
+- `GET /health` - Health check endpoint with database monitoring
+
+Visit the Swagger UI at the root URL when the API is running to test endpoints interactively. All blockchain transactions are signed with real ECDSA signatures and validated.
 
 ```
 
@@ -89,17 +101,17 @@ blockchain-aid-tracker/
 │   ├── BlockchainAidTracker.Blockchain/   # Blockchain engine ✅
 │   ├── BlockchainAidTracker.Cryptography/ # Cryptographic utilities ✅
 │   ├── BlockchainAidTracker.DataAccess/   # Entity Framework Core ✅
-│   ├── BlockchainAidTracker.Services/     # Business logic (6 services) ✅
-│   ├── BlockchainAidTracker.Api/          # Web API (auth endpoints functional) ✅
+│   ├── BlockchainAidTracker.Services/     # Business logic (7 services + key mgmt) ✅
+│   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment endpoints) ✅
 │   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
 ├── tests/                                  # Test projects
-│   └── BlockchainAidTracker.Tests/        # 329 tests (312 unit + 17 integration) ✅
+│   └── BlockchainAidTracker.Tests/        # 351 tests (312 unit + 39 integration) ✅
 │       ├── Blockchain/                    # 42 blockchain tests
 │       ├── Cryptography/                  # 31 crypto tests
 │       ├── Models/                        # 53 model tests
 │       ├── DataAccess/                    # 63 database tests
 │       ├── Services/                      # 123 services tests
-│       ├── Integration/                   # 17 API integration tests ✅ NEW
+│       ├── Integration/                   # 39 API integration tests (auth + shipments) ✅
 │       └── Infrastructure/                # Test helpers & builders
 ├── blockchain-aid-tracker/                # Demo console app
 ├── docs/                                   # Documentation
@@ -112,23 +124,26 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 
 ### Implemented ✅
 - ✅ User authentication with JWT tokens (access + refresh)
-- ✅ BCrypt password hashing for secure credentials
+- ✅ BCrypt password hashing for secure credentials (work factor: 12)
+- ✅ **AES-256 private key encryption with user passwords (PBKDF2, 10000 iterations)**
+- ✅ **Real ECDSA transaction signing with cryptographic verification**
+- ✅ **Blockchain signature validation ENABLED - all transactions verified**
 - ✅ Multiple user roles (Recipient, Donor, Coordinator, LogisticsPartner, Validator, Administrator)
 - ✅ Blockchain-based shipment tracking with immutable audit trail
-- ✅ Digital signatures for transaction verification (ECDSA)
 - ✅ QR code generation for shipment verification (Base64 and PNG)
 - ✅ Shipment lifecycle management (Created → Validated → InTransit → Delivered → Confirmed)
 - ✅ User profile management with role assignment
-- ✅ Business logic services layer
+- ✅ Business logic services layer (7 services including key management)
 - ✅ Authentication REST API endpoints (register, login, refresh, logout, validate)
+- ✅ **Shipment REST API endpoints (create, list, get, update, confirm, history, qrcode)**
 - ✅ JWT Bearer authentication middleware for ASP.NET Core
+- ✅ Role-based authorization for API endpoints
 - ✅ Swagger/OpenAPI documentation with JWT support
 - ✅ Integration test infrastructure with WebApplicationFactory
+- ✅ **351 tests passing with real cryptographic signature validation**
 
 ### In Progress 🔨
-- 🔨 Private key encryption/decryption with user passwords
 - 🔨 User management API endpoints
-- 🔨 Shipment operations API endpoints
 - 🔨 Blockchain query API endpoints
 
 ### Planned 📋
@@ -157,21 +172,22 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 | Milestone | Status | Progress |
 |-----------|--------|----------|
 | 1. Core Architecture Setup | ✅ Complete | Database, repositories, models |
-| 2. Blockchain Core Implementation | ✅ Complete | Engine, consensus, cryptography |
-| 3. Testing Infrastructure | ✅ Complete | 329 tests (312 unit + 17 integration) |
-| 4. User Management System | ✅ Complete | Authentication, JWT, user services |
-| 5. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
-| 6. Services Layer | ✅ Complete | 6 services, DTOs, validation |
-| 7. API Endpoints | 🔨 In Progress (30%) | Auth endpoints complete, Swagger UI |
-| 8. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
-| 9. Smart Contracts | 📋 Planned | Automated workflows |
-| 10. Web Application UI | 📋 Planned | Blazor dashboard |
+| 2. Blockchain Core Implementation | ✅ Complete | Engine, real signatures, validation |
+| 3. **Cryptographic Key Management** | ✅ Complete | AES-256 encryption, ECDSA signing |
+| 4. Testing Infrastructure | ✅ Complete | 351 tests (312 unit + 39 integration) |
+| 5. User Management System | ✅ Complete | Authentication, JWT, key management |
+| 6. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
+| 7. Services Layer | ✅ Complete | 7 services, DTOs, validation, encryption |
+| 8. API Endpoints | 🔨 In Progress (60%) | Auth + Shipment endpoints, Swagger UI |
+| 9. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
+| 10. Smart Contracts | 📋 Planned | Automated workflows |
+| 11. Web Application UI | 📋 Planned | Blazor dashboard |
 
 **Legend:** ✅ Complete | 🔨 In Progress | 📋 Planned
 
 ## Testing
 
-The project has a comprehensive test suite with **329 passing tests**:
+The project has a comprehensive test suite with **351 passing tests** (100% success rate):
 
 ### Test Coverage
 
@@ -191,23 +207,25 @@ dotnet test --filter "FullyQualifiedName~Integration"
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| **Services** | 123 | Business logic, authentication, shipment lifecycle, QR codes |
+| **Services** | 123 | Business logic, key management, authentication, shipment lifecycle |
 | **Database** | 63 | Repository tests with in-memory DB, automatic cleanup |
 | **Models** | 53 | Domain entities (User, Shipment, Block, Transaction) |
-| **Blockchain** | 42 | Chain validation, block creation, transaction handling |
+| **Blockchain** | 42 | Chain validation, block creation, real signature verification |
 | **Cryptography** | 31 | SHA-256 hashing, ECDSA signatures, key generation |
-| **Integration** | 17 | API endpoint tests, full auth workflows ✅ NEW |
+| **Integration** | 39 | API endpoint tests (auth + shipments), real cryptographic validation |
 
 ### Test Infrastructure Features
 
 - ✅ **Isolated databases** - Each test gets a unique in-memory database (unit & integration)
 - ✅ **Automatic cleanup** - Database state reset after every test
+- ✅ **Real cryptographic validation** - All tests use actual ECDSA signatures, no mocks
 - ✅ **Fluent builders** - `UserBuilder`, `ShipmentBuilder` for easy test data
 - ✅ **Moq framework** - Mocking dependencies for service layer tests
 - ✅ **WebApplicationFactory** - Integrated API testing with real HTTP requests
 - ✅ **Comprehensive coverage** - Success paths, error handling, edge cases
 - ✅ **Zero cross-test contamination** - Tests can run in parallel
 - ✅ **Environment separation** - Test-specific configuration (appsettings.Testing.json)
+- ✅ **Blockchain validation enabled** - Tests verify transaction signatures are cryptographically valid
 
 **Example:**
 ```csharp
