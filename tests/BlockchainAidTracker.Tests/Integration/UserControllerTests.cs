@@ -62,7 +62,7 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
             if (user != null)
             {
                 user.Role = role;
-                await userRepository.UpdateAsync(user);
+                userRepository.Update(user);
             }
         }
 
