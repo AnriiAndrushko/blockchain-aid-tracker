@@ -6,18 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, and authentication endpoints are fully implemented and tested with 351 passing tests.
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, and API endpoints are fully implemented and tested with 379 passing tests.
 
 **Recently Completed** (Latest):
-- ✅ **Cryptographic Key Management & Real Signatures** NEW
+- ✅ **User Management API Endpoints** NEW
+  - UserController with 7 endpoints (profile, profile update, get user, list users, assign role, activate, deactivate)
+  - Complete user lifecycle management with role-based access control
+  - Admin-only operations for role assignment and user activation/deactivation
+  - Self-service profile management for all users
+  - 28 integration tests for user management endpoints (all passing)
+- ✅ **Cryptographic Key Management & Real Signatures**
   - KeyManagementService with AES-256 encryption for private keys
   - TransactionSigningContext for secure in-memory key storage during sessions
   - Private keys encrypted with user passwords using PBKDF2 key derivation
   - Real ECDSA transaction signing (no more placeholder signatures)
   - **Blockchain signature validation ENABLED** - all transactions cryptographically verified
   - Seamless key decryption during login for transaction signing
-  - 351 tests passing with real cryptographic validation
-- ✅ **Shipment API Endpoints** NEW
+  - 379 tests passing with real cryptographic validation
+- ✅ **Shipment API Endpoints**
   - ShipmentController with 6 endpoints (create, list, get, update-status, confirm-delivery, history)
   - Complete shipment lifecycle with blockchain integration
   - QR code generation endpoint
@@ -32,7 +38,7 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - Comprehensive error handling and logging
 - ✅ **Integration Test Infrastructure**
   - CustomWebApplicationFactory for isolated API testing
-  - 39 integration tests total (17 authentication + 22 shipment endpoints, all passing)
+  - 67 integration tests total (17 authentication + 22 shipment + 28 user management endpoints, all passing)
   - InMemory database configuration for test isolation
   - Test environment configuration with appsettings.Testing.json
 - ✅ **Complete Services layer with business logic**
@@ -45,11 +51,11 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - 9 DTO classes for API contracts
   - Custom exception classes (BusinessException, UnauthorizedException, NotFoundException)
   - Dependency injection configuration
-- ✅ All 351 tests passing (312 unit tests + 39 integration tests)
+- ✅ All 379 tests passing (312 unit tests + 67 integration tests)
 - ✅ Complete DataAccess layer with Entity Framework Core
 - ✅ Database testing infrastructure with in-memory database isolation
 
-**Next Steps**: Implement remaining API endpoints (User management, Blockchain queries).
+**Next Steps**: Implement blockchain query API endpoints.
 
 ## Build and Run Commands
 
@@ -119,7 +125,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - **BlockchainAidTracker.Api/** - ASP.NET Core Web API project (authentication endpoints functional)
   - **BlockchainAidTracker.Web/** - Blazor Server web application (referenced)
 - **tests/** - Test projects
-  - **BlockchainAidTracker.Tests/** - xUnit test project (329 passing tests: 312 unit + 17 integration)
+  - **BlockchainAidTracker.Tests/** - xUnit test project (379 passing tests: 312 unit + 67 integration)
 - **blockchain-aid-tracker/** - Main console application/demo project
   - `blockchain-aid-tracker.csproj` - .NET 9.0 console app with Docker support
   - `Program.cs` - Comprehensive demo of database and blockchain integration
@@ -290,7 +296,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 123 unit tests (100% passing)
 
-### ✅ API Module (60% - Authentication & Shipments Complete)
+### ✅ API Module (75% - Authentication, Shipments & User Management Complete)
 **Location**: `src/BlockchainAidTracker.Api/`
 
 **Controllers**:
@@ -308,6 +314,14 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - POST /api/shipments/{id}/confirm-delivery - Confirm delivery (Recipient only)
   - GET /api/shipments/{id}/history - Get blockchain transaction history
   - GET /api/shipments/{id}/qrcode - Get shipment QR code as PNG
+- `UserController` - Complete user management endpoints (7 endpoints) NEW
+  - GET /api/users/profile - Get current user's profile
+  - PUT /api/users/profile - Update current user's profile
+  - GET /api/users/{id} - Get user by ID (Admin/Coordinator or own profile)
+  - GET /api/users - List all users with optional role filter (Admin only)
+  - POST /api/users/assign-role - Assign role to user (Admin only)
+  - POST /api/users/{id}/deactivate - Deactivate user account (Admin only)
+  - POST /api/users/{id}/activate - Activate user account (Admin only)
 
 **Configuration** (Program.cs):
 - JWT Bearer authentication with token validation
@@ -328,9 +342,9 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `appsettings.json` - Production configuration
 - `appsettings.Testing.json` - Test environment configuration
 
-**Next**: User management and blockchain query endpoints
+**Next**: Blockchain query endpoints
 
-### ✅ Test Suite (351 Tests - 100% Passing)
+### ✅ Test Suite (379 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
 - Blockchain tests: 42 tests
@@ -346,10 +360,11 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - UserService tests: 16 tests
   - QrCodeService tests: 14 tests
   - ShipmentService tests: 42 tests
-- **Integration tests: 39 tests**
+- **Integration tests: 67 tests**
   - AuthenticationController API tests: 17 tests
   - ShipmentController API tests: 22 tests
-  - Full end-to-end authentication and shipment workflows
+  - UserController API tests: 28 tests NEW
+  - Full end-to-end authentication, shipment, and user management workflows
   - Real ECDSA signature generation and validation in tests
   - In-memory database for test isolation
   - WebApplicationFactory for API testing
@@ -430,16 +445,19 @@ All features below are planned for step-by-step implementation. Each section rep
   - [x] POST /api/authentication/logout
   - [x] GET /api/authentication/validate
 
-#### User Profile Management (80% Complete)
+#### User Profile Management (100% Complete)
 - [x] Create user profile entity and repository (User entity with IUserRepository and UserRepository)
 - [x] Implement user profile CRUD operations (via UserRepository and UserService)
 - [x] Build secure credential storage (password hash fields, placeholder for encrypted private key)
 - [x] Implement UserService with profile updates, role assignment, activation/deactivation
-- [ ] Create user management API endpoints:
-  - [ ] GET /api/users/profile
-  - [ ] PUT /api/users/profile
-  - [ ] GET /api/users/{id}
-  - [ ] POST /api/users/assign-role
+- [x] Create user management API endpoints:
+  - [x] GET /api/users/profile
+  - [x] PUT /api/users/profile
+  - [x] GET /api/users/{id}
+  - [x] GET /api/users (list all users with role filter)
+  - [x] POST /api/users/assign-role
+  - [x] POST /api/users/{id}/deactivate
+  - [x] POST /api/users/{id}/activate
 
 #### TODO: User Management UI (Blazor)
 - [ ] Create login page component
