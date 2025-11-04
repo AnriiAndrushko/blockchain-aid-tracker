@@ -4,11 +4,11 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation, Business Logic, Authentication & Shipment APIs, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, cryptography services, key management, data access layer, services layer, and authentication/shipment endpoints are fully implemented and tested.
+**Foundation, Business Logic, Authentication, Shipment & User Management APIs, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, cryptography services, key management, data access layer, services layer, and authentication/shipment/user management endpoints are fully implemented and tested.
 
 **Current Metrics:**
--  **351 tests passing** (100% success rate: 312 unit + 39 integration)
--  Authentication & Shipment API endpoints operational with Swagger UI
+-  **379 tests passing** (100% success rate: 312 unit + 67 integration)
+-  Authentication, Shipment & User Management API endpoints operational with Swagger UI
 -  7 core business services fully implemented (including key management)
 -  **Blockchain engine with real ECDSA signature validation ENABLED**
 -  **AES-256 private key encryption with user passwords**
@@ -20,7 +20,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
 
-**Next:** User management API endpoints and blockchain query endpoints
+**Next:** Blockchain query API endpoints
 
 ## Quick Start
 
@@ -63,6 +63,15 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 - `GET /api/shipments/{id}/history` - Get blockchain transaction history
 - `GET /api/shipments/{id}/qrcode` - Get shipment QR code as PNG image
 
+**User Management Endpoints (7 endpoints):**
+- `GET /api/users/profile` - Get current user's profile (requires authentication)
+- `PUT /api/users/profile` - Update current user's profile (requires authentication)
+- `GET /api/users/{id}` - Get user by ID (Admin/Coordinator or own profile)
+- `GET /api/users` - List all users with optional role filter (Admin only)
+- `POST /api/users/assign-role` - Assign role to user (Admin only)
+- `POST /api/users/{id}/deactivate` - Deactivate user account (Admin only)
+- `POST /api/users/{id}/activate` - Activate user account (Admin only)
+
 **System Endpoints:**
 - `GET /health` - Health check endpoint with database monitoring
 
@@ -102,16 +111,16 @@ blockchain-aid-tracker/
 │   ├── BlockchainAidTracker.Cryptography/ # Cryptographic utilities ✅
 │   ├── BlockchainAidTracker.DataAccess/   # Entity Framework Core ✅
 │   ├── BlockchainAidTracker.Services/     # Business logic (7 services + key mgmt) ✅
-│   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment endpoints) ✅
+│   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment + user mgmt) ✅
 │   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
 ├── tests/                                  # Test projects
-│   └── BlockchainAidTracker.Tests/        # 351 tests (312 unit + 39 integration) ✅
+│   └── BlockchainAidTracker.Tests/        # 379 tests (312 unit + 67 integration) ✅
 │       ├── Blockchain/                    # 42 blockchain tests
 │       ├── Cryptography/                  # 31 crypto tests
 │       ├── Models/                        # 53 model tests
 │       ├── DataAccess/                    # 63 database tests
 │       ├── Services/                      # 123 services tests
-│       ├── Integration/                   # 39 API integration tests (auth + shipments) ✅
+│       ├── Integration/                   # 67 API integration tests (auth + shipments + users) ✅
 │       └── Infrastructure/                # Test helpers & builders
 ├── blockchain-aid-tracker/                # Demo console app
 ├── docs/                                   # Documentation
@@ -136,14 +145,14 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 - ✅ Business logic services layer (7 services including key management)
 - ✅ Authentication REST API endpoints (register, login, refresh, logout, validate)
 - ✅ **Shipment REST API endpoints (create, list, get, update, confirm, history, qrcode)**
+- ✅ **User Management REST API endpoints (profile, update, get user, list, assign role, activate, deactivate)**
 - ✅ JWT Bearer authentication middleware for ASP.NET Core
-- ✅ Role-based authorization for API endpoints
+- ✅ Role-based authorization for API endpoints (Admin/Coordinator/User permissions)
 - ✅ Swagger/OpenAPI documentation with JWT support
 - ✅ Integration test infrastructure with WebApplicationFactory
-- ✅ **351 tests passing with real cryptographic signature validation**
+- ✅ **379 tests passing with real cryptographic signature validation**
 
 ### In Progress 🔨
-- 🔨 User management API endpoints
 - 🔨 Blockchain query API endpoints
 
 ### Planned 📋
@@ -174,11 +183,11 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 | 1. Core Architecture Setup | ✅ Complete | Database, repositories, models |
 | 2. Blockchain Core Implementation | ✅ Complete | Engine, real signatures, validation |
 | 3. **Cryptographic Key Management** | ✅ Complete | AES-256 encryption, ECDSA signing |
-| 4. Testing Infrastructure | ✅ Complete | 351 tests (312 unit + 39 integration) |
-| 5. User Management System | ✅ Complete | Authentication, JWT, key management |
+| 4. Testing Infrastructure | ✅ Complete | 379 tests (312 unit + 67 integration) |
+| 5. User Management System | ✅ Complete | Authentication, JWT, key management, APIs |
 | 6. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
 | 7. Services Layer | ✅ Complete | 7 services, DTOs, validation, encryption |
-| 8. API Endpoints | 🔨 In Progress (60%) | Auth + Shipment endpoints, Swagger UI |
+| 8. API Endpoints | 🔨 In Progress (75%) | Auth + Shipment + User Mgmt, Swagger UI |
 | 9. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
 | 10. Smart Contracts | 📋 Planned | Automated workflows |
 | 11. Web Application UI | 📋 Planned | Blazor dashboard |
@@ -187,7 +196,7 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 
 ## Testing
 
-The project has a comprehensive test suite with **351 passing tests** (100% success rate):
+The project has a comprehensive test suite with **379 passing tests** (100% success rate):
 
 ### Test Coverage
 
@@ -212,7 +221,7 @@ dotnet test --filter "FullyQualifiedName~Integration"
 | **Models** | 53 | Domain entities (User, Shipment, Block, Transaction) |
 | **Blockchain** | 42 | Chain validation, block creation, real signature verification |
 | **Cryptography** | 31 | SHA-256 hashing, ECDSA signatures, key generation |
-| **Integration** | 39 | API endpoint tests (auth + shipments), real cryptographic validation |
+| **Integration** | 67 | API endpoint tests (auth + shipments + user mgmt), real cryptographic validation |
 
 ### Test Infrastructure Features
 
