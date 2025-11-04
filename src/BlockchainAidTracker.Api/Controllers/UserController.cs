@@ -369,17 +369,24 @@ public class UserController : ControllerBase
 
             if (!success)
             {
-                _logger.LogWarning("User {UserId} not found for deactivation", id);
-                return NotFound(new ProblemDetails
-                {
-                    Title = "User Not Found",
-                    Detail = $"User with ID '{id}' was not found",
-                    Status = StatusCodes.Status404NotFound
-                });
+                _logger.LogInformation("User {UserId} is already deactivated", id);
+            }
+            else
+            {
+                _logger.LogInformation("User {UserId} deactivated successfully", id);
             }
 
-            _logger.LogInformation("User {UserId} deactivated successfully", id);
             return Ok(new { message = $"User with ID '{id}' has been deactivated successfully" });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User {UserId} not found: {Message}", id, ex.Message);
+            return NotFound(new ProblemDetails
+            {
+                Title = "User Not Found",
+                Detail = ex.Message,
+                Status = StatusCodes.Status404NotFound
+            });
         }
         catch (Exception ex)
         {
@@ -433,17 +440,24 @@ public class UserController : ControllerBase
 
             if (!success)
             {
-                _logger.LogWarning("User {UserId} not found for activation", id);
-                return NotFound(new ProblemDetails
-                {
-                    Title = "User Not Found",
-                    Detail = $"User with ID '{id}' was not found",
-                    Status = StatusCodes.Status404NotFound
-                });
+                _logger.LogInformation("User {UserId} is already active", id);
+            }
+            else
+            {
+                _logger.LogInformation("User {UserId} activated successfully", id);
             }
 
-            _logger.LogInformation("User {UserId} activated successfully", id);
             return Ok(new { message = $"User with ID '{id}' has been activated successfully" });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User {UserId} not found: {Message}", id, ex.Message);
+            return NotFound(new ProblemDetails
+            {
+                Title = "User Not Found",
+                Detail = ex.Message,
+                Status = StatusCodes.Status404NotFound
+            });
         }
         catch (Exception ex)
         {
