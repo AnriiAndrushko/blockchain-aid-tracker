@@ -51,7 +51,18 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
     private async Task<(string Token, string UserId)> CreateUserWithRoleAsync(string username, string email, UserRole role, string password = "SecurePassword123!")
     {
         // Create user via registration (default role is Recipient)
-        var (token, userId) = await CreateUserAsync(username, email, password);
+        var registerRequest = new RegisterRequest
+        {
+            Username = username,
+            Email = email,
+            Password = password,
+            FullName = $"{username} User",
+            Organization = "Test Organization"
+        };
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
+        var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
+        var userId = authResponse!.UserId;
 
         // If a different role is needed, use direct database access to update the role
         if (role != UserRole.Recipient)
@@ -66,7 +77,17 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
             }
         }
 
-        return (token, userId);
+        // Login to get a fresh token with the updated role
+        var loginRequest = new LoginRequest
+        {
+            UsernameOrEmail = username,
+            Password = password
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/authentication/login", loginRequest);
+        var loginAuthResponse = await loginResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
+
+        return (loginAuthResponse!.AccessToken, userId);
     }
 
     #endregion
