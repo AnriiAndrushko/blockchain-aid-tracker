@@ -6,10 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, and API endpoints are fully implemented and tested with 496 passing tests.
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, and API endpoints are fully implemented and tested with 526 passing tests.
 
 **Recently Completed** (Latest):
-- ✅ **Smart Contract API Integration** NEW
+- ✅ **Validator Node System** NEW
+  - Validator entity model with complete lifecycle management
+  - ValidatorRepository with specialized queries (9 methods)
+  - ValidatorService with business logic (11 methods)
+  - ValidatorController with 6 API endpoints (register, list, get, update, activate, deactivate)
+  - ECDSA key pair generation for validators
+  - AES-256 encryption of validator private keys with passwords
+  - Round-robin block proposer selection algorithm
+  - Priority-based validator ordering
+  - Block creation tracking and statistics
+  - 3 DTOs for validator operations (ValidatorDto, CreateValidatorRequest, UpdateValidatorRequest)
+  - 30 unit tests (22 entity + 8 repository, all passing)
+  - ValidatorBuilder for test data creation
+- ✅ **Smart Contract API Integration**
   - ContractsController with 4 endpoints (list contracts, get contract, get state, execute contract)
   - Complete smart contract management API with deployment and execution
   - DTOs for contract operations (ContractDto, ContractExecutionResultDto, ContractEventDto, ExecuteContractRequest)
@@ -67,21 +80,22 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - InMemory database configuration for test isolation
   - Test environment configuration with appsettings.Testing.json
 - ✅ **Complete Services layer with business logic**
-  - 7 core services: PasswordService, TokenService, KeyManagementService, AuthenticationService, UserService, QrCodeService, ShipmentService
+  - 8 core services: PasswordService, TokenService, KeyManagementService, AuthenticationService, UserService, QrCodeService, ShipmentService, ValidatorService NEW
   - Smart contract integration with auto-deployment on startup
   - JWT authentication with access tokens and refresh tokens
   - BCrypt password hashing (work factor: 12)
   - AES-256 private key encryption with password-based key derivation
   - QR code generation for shipment tracking
   - Full shipment lifecycle management with blockchain integration
-  - 16 DTO classes for API contracts (9 services + 3 blockchain + 4 smart contract)
+  - Validator registration and management NEW
+  - 19 DTO classes for API contracts (9 services + 3 blockchain + 4 smart contract + 3 validator) NEW
   - Custom exception classes (BusinessException, UnauthorizedException, NotFoundException)
   - Dependency injection configuration
-- ✅ All 496 tests passing (402 unit tests + 94 integration tests)
+- ✅ All 526 tests passing (432 unit tests + 94 integration tests) NEW
 - ✅ Complete DataAccess layer with Entity Framework Core
 - ✅ Database testing infrastructure with in-memory database isolation
 
-**Next Steps**: Implement Proof-of-Authority consensus mechanism and begin Blazor UI development.
+**Next Steps**: Implement Consensus Engine with PoA block creation algorithm, then begin Blazor UI development.
 
 ## Build and Run Commands
 
@@ -188,6 +202,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `ShipmentStatus` - Enum (Created, Validated, InTransit, Delivered, Confirmed)
 - `User` - User entity with authentication fields and role-based access
 - `UserRole` - Enum (Recipient, Donor, Coordinator, LogisticsPartner, Validator, Administrator)
+- `Validator` - Validator node entity for PoA consensus NEW
 
 **Interfaces**:
 - `IHashService` - SHA-256 hashing interface
@@ -227,14 +242,15 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Database Context**:
 - `ApplicationDbContext` - EF Core DbContext with:
-  - DbSets for Shipments, ShipmentItems, Users
-  - Automatic timestamp updates
+  - DbSets for Shipments, ShipmentItems, Users, Validators NEW
+  - Automatic timestamp updates (Shipment, User, Validator) NEW
   - Fluent API entity configurations
 
 **Entity Configurations**:
 - `ShipmentConfiguration` - Shipment table schema, indexes, relationships
 - `ShipmentItemConfiguration` - ShipmentItem with foreign key to Shipment
 - `UserConfiguration` - User table with unique constraints
+- `ValidatorConfiguration` - Validator table schema with composite indexes NEW
 
 **Repository Pattern**:
 - `IRepository<T>` - Generic repository interface (12 operations)
@@ -243,22 +259,26 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `ShipmentRepository` - Shipment repository with eager loading
 - `IUserRepository` - User-specific queries (7 methods)
 - `UserRepository` - User repository implementation
+- `IValidatorRepository` - Validator-specific queries (9 methods) NEW
+- `ValidatorRepository` - Validator repository with round-robin selection NEW
 
 **Dependency Injection**:
 - `DependencyInjection` class with extension methods:
-  - `AddDataAccess()` - SQLite configuration
-  - `AddDataAccessWithPostgreSQL()` - PostgreSQL configuration
-  - `AddDataAccessWithInMemoryDatabase()` - In-memory for testing
+  - `AddDataAccess()` - SQLite configuration (includes ValidatorRepository) NEW
+  - `AddDataAccessWithPostgreSQL()` - PostgreSQL configuration (includes ValidatorRepository) NEW
+  - `AddDataAccessWithInMemoryDatabase()` - In-memory for testing (includes ValidatorRepository) NEW
 - `DesignTimeDbContextFactory` - For EF Core design-time operations
 
 **Migrations**:
 - `InitialCreate` - Initial database schema with 3 tables (Users, Shipments, ShipmentItems)
+- `AddValidatorEntity` - Adds Validators table (migration ready) NEW
 - Comprehensive indexes and foreign key constraints
 
 **Database Schema**:
 - **Users**: 14 columns, unique indexes on Username/Email/PublicKey, role-based filtering
 - **Shipments**: 11 columns, unique QR code, foreign key relationships
 - **ShipmentItems**: 7 columns, cascade delete from Shipments
+- **Validators**: 11 columns, unique indexes on Name/PublicKey, composite index on IsActive+Priority NEW
 
 ### ✅ Services Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Services/`
@@ -324,7 +344,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 123 unit tests (100% passing)
 
-### ✅ API Module (90% - Authentication, Shipments, User Management, Blockchain Query & Smart Contracts Complete)
+### ✅ API Module (95% - Authentication, Shipments, User Management, Blockchain Query, Smart Contracts & Validators Complete)
 **Location**: `src/BlockchainAidTracker.Api/`
 
 **Controllers**:
@@ -356,11 +376,19 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - GET /api/blockchain/transactions/{id} - Get transaction details by ID
   - POST /api/blockchain/validate - Validate entire blockchain integrity
   - GET /api/blockchain/pending - Get pending transactions awaiting block creation
-- `ContractsController` - Complete smart contract management endpoints (4 endpoints) NEW
+- `ContractsController` - Complete smart contract management endpoints (4 endpoints)
   - GET /api/contracts - Get all deployed smart contracts
   - GET /api/contracts/{contractId} - Get specific contract details
   - GET /api/contracts/{contractId}/state - Get contract state
   - POST /api/contracts/execute - Execute contract for a transaction (requires auth)
+- `ValidatorController` - Complete validator management endpoints (6 endpoints) NEW
+  - POST /api/validators - Register new validator (Admin only)
+  - GET /api/validators - List all validators (Admin/Validator)
+  - GET /api/validators/{id} - Get validator by ID (Admin/Validator)
+  - PUT /api/validators/{id} - Update validator (Admin only)
+  - POST /api/validators/{id}/activate - Activate validator (Admin only)
+  - POST /api/validators/{id}/deactivate - Deactivate validator (Admin only)
+  - GET /api/validators/next - Get next validator for block creation
 
 **Configuration** (Program.cs):
 - JWT Bearer authentication with token validation
@@ -422,14 +450,73 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 90 unit tests (100% passing)
 
-### ✅ Test Suite (496 Tests - 100% Passing)
+### ✅ Validator Module (100% Complete) NEW
+**Location**: Multiple (`src/BlockchainAidTracker.Core/Models/`, `src/BlockchainAidTracker.DataAccess/`, `src/BlockchainAidTracker.Services/`, `src/BlockchainAidTracker.Api/`)
+
+**Domain Model**:
+- `Validator` - Validator entity with full lifecycle management
+  - Unique name and public key for identification
+  - Priority-based ordering for block proposer selection
+  - Network address for validator communication
+  - Activity status tracking (active/inactive)
+  - Block creation statistics (count and last timestamp)
+  - Encrypted private key storage with password-based encryption
+
+**Data Access Layer**:
+- `ValidatorConfiguration` - EF Core entity configuration with indexes
+- `IValidatorRepository` - Validator-specific repository interface (9 methods)
+- `ValidatorRepository` - Repository implementation with specialized queries
+  - Query by name, public key, priority
+  - Get active validators ordered by priority
+  - Round-robin block proposer selection
+  - Block creation tracking
+
+**Services Layer**:
+- `IValidatorService` - Validator management service interface (11 methods)
+- `ValidatorService` - Business logic implementation
+  - Validator registration with key pair generation
+  - Key encryption with validator passwords
+  - Activation/deactivation management
+  - Priority and address updates
+  - Block creation statistics tracking
+  - Next validator selection for consensus
+
+**DTOs**:
+- `ValidatorDto` - Validator data transfer object
+- `CreateValidatorRequest` - Validator registration request
+- `UpdateValidatorRequest` - Validator update request
+
+**API Endpoints (ValidatorController)** (6 endpoints):
+- POST /api/validators - Register new validator (Admin only)
+- GET /api/validators - List all validators (Admin/Validator)
+- GET /api/validators/{id} - Get validator by ID (Admin/Validator)
+- PUT /api/validators/{id} - Update validator (Admin only)
+- POST /api/validators/{id}/activate - Activate validator (Admin only)
+- POST /api/validators/{id}/deactivate - Deactivate validator (Admin only)
+- GET /api/validators/next - Get next validator for block creation
+
+**Key Features**:
+- ECDSA key pair generation for validators
+- AES-256 encryption of validator private keys
+- Round-robin block proposer selection
+- Priority-based validator ordering
+- Block creation tracking and statistics
+- Role-based access control (Administrator access required)
+- Complete CRUD operations with validation
+
+**Test Coverage**: 30 unit tests (22 entity + 8 repository)
+
+### ✅ Test Suite (526 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
 - Blockchain tests: 42 tests
-- Core model tests: 53 tests
-- Database tests: 63 tests
+- Core model tests: 75 tests
+  - Shipment/ShipmentItem tests: 53 tests
+  - Validator tests: 22 tests NEW
+- Database tests: 71 tests
   - UserRepository tests: 31 tests
   - ShipmentRepository tests: 32 tests
+  - ValidatorRepository tests: 8 tests NEW
   - ApplicationDbContext tests: 20 tests
 - **Services tests: 123 tests**
   - PasswordService tests: 13 tests
@@ -455,7 +542,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - **Test Infrastructure**:
   - `DatabaseTestBase` - Base class with automatic cleanup and isolation (unit tests)
   - `CustomWebApplicationFactory` - API test factory with in-memory database (integration tests)
-  - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder)
+  - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder, ValidatorBuilder) NEW
   - In-memory database with unique instances per test
   - Moq framework for mocking dependencies in service tests
   - All tests pass with real cryptographic signature validation
@@ -599,12 +686,18 @@ All features below are planned for step-by-step implementation. Each section rep
 
 ### 4. Proof-of-Authority Consensus
 
-#### TODO: Validator Node System
-- [ ] Create Validator entity model
-- [ ] Implement validator registration and configuration (3-5 validators)
-- [ ] Build validator node service
-- [ ] Create validator authentication mechanism
-- [ ] Implement validator key pair management
+#### ✅ DONE: Validator Node System
+- [x] Create Validator entity model
+- [x] Implement validator registration and configuration (3-5 validators)
+- [x] Build validator node service
+- [x] Create validator authentication mechanism
+- [x] Implement validator key pair management
+- [x] Create ValidatorRepository with specialized queries
+- [x] Create ValidatorService with business logic
+- [x] Create ValidatorController with 6 API endpoints
+- [x] Write unit tests for Validator entity (22 tests)
+- [x] Write repository tests for ValidatorRepository (8 tests)
+- [x] Add ValidatorBuilder to test infrastructure
 
 #### TODO: Consensus Engine
 - [ ] Create consensus interface and base implementation

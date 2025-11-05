@@ -25,6 +25,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; } = null!;
 
     /// <summary>
+    /// DbSet for Validator entities
+    /// </summary>
+    public DbSet<Validator> Validators { get; set; } = null!;
+
+    /// <summary>
     /// Constructor for dependency injection
     /// </summary>
     /// <param name="options">DbContext options</param>
@@ -45,6 +50,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ShipmentConfiguration());
         modelBuilder.ApplyConfiguration(new ShipmentItemConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new ValidatorConfiguration());
     }
 
     /// <summary>
@@ -69,14 +75,30 @@ public class ApplicationDbContext : DbContext
     }
 
     /// <summary>
-    /// Updates timestamps for modified Shipment entities
+    /// Updates timestamps for modified entities
     /// </summary>
     private void UpdateTimestamps()
     {
-        var entries = ChangeTracker.Entries<Shipment>()
+        var shipmentEntries = ChangeTracker.Entries<Shipment>()
             .Where(e => e.State == EntityState.Modified);
 
-        foreach (var entry in entries)
+        foreach (var entry in shipmentEntries)
+        {
+            entry.Entity.UpdatedTimestamp = DateTime.UtcNow;
+        }
+
+        var userEntries = ChangeTracker.Entries<User>()
+            .Where(e => e.State == EntityState.Modified);
+
+        foreach (var entry in userEntries)
+        {
+            entry.Entity.UpdatedTimestamp = DateTime.UtcNow;
+        }
+
+        var validatorEntries = ChangeTracker.Entries<Validator>()
+            .Where(e => e.State == EntityState.Modified);
+
+        foreach (var entry in validatorEntries)
         {
             entry.Entity.UpdatedTimestamp = DateTime.UtcNow;
         }

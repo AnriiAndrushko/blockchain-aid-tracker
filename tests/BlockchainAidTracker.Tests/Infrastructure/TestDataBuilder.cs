@@ -260,6 +260,95 @@ public class ShipmentBuilder
 }
 
 /// <summary>
+/// Builder for creating test Validator entities with fluent API
+/// </summary>
+public class ValidatorBuilder
+{
+    private string _id = Guid.NewGuid().ToString();
+    private string _name = "Test-Validator-" + Guid.NewGuid().ToString().Substring(0, 8);
+    private string _publicKey = "test-validator-public-key-" + Guid.NewGuid().ToString();
+    private string _encryptedPrivateKey = "encrypted-validator-private-key";
+    private int _priority = 0;
+    private string? _address = null;
+    private string? _description = null;
+    private bool _isActive = true;
+    private int _totalBlocksCreated = 0;
+    private DateTime? _lastBlockCreatedTimestamp = null;
+
+    public ValidatorBuilder WithId(string id)
+    {
+        _id = id;
+        return this;
+    }
+
+    public ValidatorBuilder WithName(string name)
+    {
+        _name = name;
+        return this;
+    }
+
+    public ValidatorBuilder WithPublicKey(string publicKey)
+    {
+        _publicKey = publicKey;
+        return this;
+    }
+
+    public ValidatorBuilder WithPriority(int priority)
+    {
+        _priority = priority;
+        return this;
+    }
+
+    public ValidatorBuilder WithAddress(string address)
+    {
+        _address = address;
+        return this;
+    }
+
+    public ValidatorBuilder WithDescription(string description)
+    {
+        _description = description;
+        return this;
+    }
+
+    public ValidatorBuilder AsInactive()
+    {
+        _isActive = false;
+        return this;
+    }
+
+    public ValidatorBuilder WithBlocksCreated(int count)
+    {
+        _totalBlocksCreated = count;
+        if (count > 0)
+        {
+            _lastBlockCreatedTimestamp = DateTime.UtcNow.AddMinutes(-30);
+        }
+        return this;
+    }
+
+    public Validator Build()
+    {
+        var validator = new Validator(
+            name: _name,
+            publicKey: _publicKey,
+            encryptedPrivateKey: _encryptedPrivateKey,
+            priority: _priority,
+            address: _address,
+            description: _description
+        )
+        {
+            Id = _id,
+            IsActive = _isActive,
+            TotalBlocksCreated = _totalBlocksCreated,
+            LastBlockCreatedTimestamp = _lastBlockCreatedTimestamp
+        };
+
+        return validator;
+    }
+}
+
+/// <summary>
 /// Static helper class for creating test data
 /// </summary>
 public static class TestData
@@ -267,6 +356,8 @@ public static class TestData
     public static UserBuilder CreateUser() => new UserBuilder();
 
     public static ShipmentBuilder CreateShipment() => new ShipmentBuilder();
+
+    public static ValidatorBuilder CreateValidator() => new ValidatorBuilder();
 
     public static ShipmentItem CreateShipmentItem(
         string description = "Test Item",
@@ -278,3 +369,4 @@ public static class TestData
         return new ShipmentItem(description, quantity, unit, category, estimatedValue);
     }
 }
+
