@@ -32,11 +32,14 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
     /// </summary>
     private async Task<ShipmentDto> CreateTestShipmentAsync()
     {
+        // Create unique usernames to avoid conflicts when tests run in parallel
+        var uniqueId = Guid.NewGuid().ToString("N")[..8];
+
         // Create coordinator user
-        var coordinatorToken = await CreateUserAndGetTokenAsync("coordinator", UserRole.Coordinator);
+        var coordinatorToken = await CreateUserAndGetTokenAsync($"coordinator_{uniqueId}", UserRole.Coordinator);
 
         // Create recipient user
-        var (_, recipientId) = await CreateUserAndGetTokenWithIdAsync("recipient", UserRole.Recipient);
+        var (_, recipientId) = await CreateUserAndGetTokenWithIdAsync($"recipient_{uniqueId}", UserRole.Recipient);
 
         // Create shipment
         var shipmentRequest = new CreateShipmentRequest
