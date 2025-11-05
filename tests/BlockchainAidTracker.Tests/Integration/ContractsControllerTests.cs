@@ -340,7 +340,7 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
 
         var result = await response.Content.ReadFromJsonAsync<ContractExecutionResultDto>();
         result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
+        result!.Success.Should().BeTrue($"Contract execution failed with output: {result.Output}");
         result.Events.Should().NotBeEmpty();
     }
 

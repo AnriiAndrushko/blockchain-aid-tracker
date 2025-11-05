@@ -38,7 +38,7 @@ public class ShipmentTrackingContract : SmartContract
                 return ContractExecutionResult.FailureResult("Invalid transaction payload");
             }
 
-            var shipmentId = shipmentData.TryGetValue("shipmentId", out var idElement)
+            var shipmentId = shipmentData.TryGetValue("ShipmentId", out var idElement)
                 ? idElement.GetString() ?? string.Empty
                 : string.Empty;
 
@@ -78,7 +78,7 @@ public class ShipmentTrackingContract : SmartContract
         Dictionary<string, object> output)
     {
         // Validate required fields
-        var requiredFields = new[] { "origin", "destination", "assignedRecipient" };
+        var requiredFields = new[] { "Origin", "Destination", "RecipientId" };
         foreach (var field in requiredFields)
         {
             if (!shipmentData.ContainsKey(field) || string.IsNullOrWhiteSpace(shipmentData[field].GetString()))
@@ -100,8 +100,8 @@ public class ShipmentTrackingContract : SmartContract
         events.Add(EmitEvent("ShipmentCreated", new Dictionary<string, object>
         {
             { "shipmentId", shipmentId },
-            { "origin", shipmentData["origin"].GetString() ?? string.Empty },
-            { "destination", shipmentData["destination"].GetString() ?? string.Empty },
+            { "origin", shipmentData["Origin"].GetString() ?? string.Empty },
+            { "destination", shipmentData["Destination"].GetString() ?? string.Empty },
             { "coordinator", context.Transaction.SenderPublicKey },
             { "timestamp", context.ExecutionTime }
         }));
@@ -145,7 +145,7 @@ public class ShipmentTrackingContract : SmartContract
             return ContractExecutionResult.FailureResult("Invalid current status in state");
         }
 
-        var newStatusStr = shipmentData.TryGetValue("newStatus", out var statusElement)
+        var newStatusStr = shipmentData.TryGetValue("NewStatus", out var statusElement)
             ? statusElement.GetString() ?? string.Empty
             : string.Empty;
 
@@ -222,7 +222,7 @@ public class ShipmentTrackingContract : SmartContract
         await Task.CompletedTask; // Placeholder for async operations
 
         // For now, we'll auto-validate if the shipment has items
-        if (shipmentData.TryGetValue("items", out var itemsElement))
+        if (shipmentData.TryGetValue("Items", out var itemsElement))
         {
             if (itemsElement.ValueKind == JsonValueKind.Array)
             {
