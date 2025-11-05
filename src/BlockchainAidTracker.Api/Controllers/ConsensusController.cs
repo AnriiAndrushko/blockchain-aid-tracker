@@ -142,8 +142,8 @@ public class ConsensusController : ControllerBase
             // Add the block to the blockchain
             _blockchain.AddBlock(newBlock);
 
-            // Save validator statistics
-            await _validatorRepository.SaveChangesAsync();
+            // Note: Validator statistics are already saved by the consensusEngine.CreateBlockAsync
+            // which calls validatorRepository.Update() that automatically saves changes
 
             _logger.LogInformation(
                 "Block #{Index} created manually. Hash: {Hash}, Validator: {Validator}, Transactions: {TxCount}",

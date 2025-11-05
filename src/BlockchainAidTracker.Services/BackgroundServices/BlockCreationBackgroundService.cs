@@ -125,8 +125,8 @@ public class BlockCreationBackgroundService : BackgroundService
             // Add the block to the blockchain
             _blockchain.AddBlock(newBlock);
 
-            // Save validator statistics to database
-            await validatorRepository.SaveChangesAsync();
+            // Note: Validator statistics are already saved by the consensusEngine.CreateBlockAsync
+            // which calls validatorRepository.Update() that automatically saves changes
 
             _logger.LogInformation(
                 "Block #{Index} created successfully by validator {Validator}. Hash: {Hash}, Transactions: {TxCount}",
