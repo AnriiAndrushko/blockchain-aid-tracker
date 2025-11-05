@@ -6,10 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, and all API endpoints are fully implemented and tested with 575 passing tests (468 unit + 107 integration).
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, **blockchain persistence**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, blockchain persistence, and all API endpoints are fully implemented and tested with 594 passing tests (487 unit + 107 integration).
 
 **Recently Completed** (Latest):
-- ✅ **Consensus API Integration & Automated Block Creation** NEWEST
+- ✅ **Blockchain Persistence** NEWEST
+  - IBlockchainPersistence interface for persistence operations
+  - JsonBlockchainPersistence implementation with file-based JSON storage
+  - BlockchainPersistenceSettings configuration class
+  - Automatic save after block creation in background service
+  - Automatic load on application startup
+  - Blockchain validation before loading persisted data
+  - Backup file creation with configurable rotation (keep last N backups)
+  - Thread-safe file operations with semaphore locking
+  - Configuration in appsettings.json (enabled by default in production)
+  - Dependency injection integration with AddBlockchainWithPersistence extension method
+  - 12 unit tests for JsonBlockchainPersistence (100% passing)
+  - 7 integration tests for blockchain persistence (100% passing)
+
+- ✅ **Consensus API Integration & Automated Block Creation**
   - ConsensusController with 4 API endpoints (status, create-block, validate-block, validators)
   - BlockCreationBackgroundService for automated block creation
   - ConsensusSettings configuration class with interval, thresholds, and password management
@@ -49,7 +63,7 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - ValidatorBuilder for test data creation
 
 
-**Next Steps**: Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Optionally implement blockchain persistence (file-based or database storage) to maintain chain across restarts.
+**Next Steps**: Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Consider implementing additional security features (rate limiting, audit logging) or API enhancements.
 
 ## Build and Run Commands
 
@@ -188,8 +202,17 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - Block creation and validation
   - Chain validation (hashes, signatures, integrity)
   - Query methods (GetBlockByIndex, GetTransactionById, etc.)
+  - Persistence support (SaveToPersistenceAsync, LoadFromPersistenceAsync)
+- `IBlockchainPersistence` - Interface for blockchain persistence operations
+- `JsonBlockchainPersistence` - File-based JSON persistence implementation with:
+  - Automatic save/load operations
+  - Backup file creation and rotation
+  - Thread-safe file operations
+  - Chain integrity validation on load
+- `BlockchainPersistenceSettings` - Configuration for persistence behavior
+- `DependencyInjection` - Extension methods for blockchain registration with persistence
 
-**Test Coverage**: 42 unit tests (100% passing)
+**Test Coverage**: 61 unit tests (42 blockchain + 12 persistence + 7 persistence integration, 100% passing)
 
 ### ✅ DataAccess Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.DataAccess/`
@@ -485,9 +508,9 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 30 unit tests (22 entity + 8 repository)
 
-### ✅ Test Suite (575 Tests - 100% Passing)
+### ✅ Test Suite (594 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
-- **Services tests: 159 tests** (123 services + 30 consensus + 6 background service) NEW
+- **Services tests: 159 tests** (123 services + 30 consensus + 6 background service)
   - PasswordService tests: 13 tests
   - TokenService tests: 17 tests
   - AuthenticationService tests: 21 tests
@@ -495,7 +518,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - QrCodeService tests: 14 tests
   - ShipmentService tests: 42 tests
   - ProofOfAuthorityConsensusEngine tests: 30 tests
-  - **BlockCreationBackgroundService tests: 6 tests** NEWEST
+  - BlockCreationBackgroundService tests: 6 tests
 - **SmartContracts tests: 90 tests**
   - SmartContractEngine tests: 24 tests
   - DeliveryVerificationContract tests: 15 tests
@@ -508,7 +531,10 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - ShipmentRepository tests: 32 tests
   - ValidatorRepository tests: 8 tests
   - ApplicationDbContext tests: 20 tests
-- Blockchain tests: 42 tests
+- **Blockchain tests: 61 tests** (42 blockchain + 12 persistence + 7 persistence integration) NEW
+  - Blockchain core tests: 42 tests
+  - **JsonBlockchainPersistence tests: 12 tests** NEWEST
+  - **Blockchain persistence integration tests: 7 tests** NEWEST
 - Cryptography tests: 31 tests
 - **Integration tests: 107 tests**
   - AuthenticationController API tests: 17 tests
@@ -516,7 +542,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - UserController API tests: 28 tests
   - BlockchainController API tests: 16 tests
   - ContractsController API tests: 11 tests
-  - **ConsensusController API tests: 13 tests** NEWEST
+  - ConsensusController API tests: 13 tests
   - Full end-to-end workflows (authentication, shipment, user management, blockchain query, smart contracts, consensus)
   - Real ECDSA signature generation and validation in tests
   - In-memory database for test isolation
@@ -524,11 +550,11 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - **Test Infrastructure**:
   - `DatabaseTestBase` - Base class with automatic cleanup and isolation (unit tests)
   - `CustomWebApplicationFactory` - API test factory with in-memory database (integration tests)
-  - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder, ValidatorBuilder) NEW
+  - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder, ValidatorBuilder)
   - In-memory database with unique instances per test
   - Moq framework for mocking dependencies in service tests
   - All tests pass with real cryptographic signature validation
-- Execution time: ~25 seconds
+- Execution time: ~27 seconds
 
 ---
 
@@ -654,8 +680,8 @@ All features below are planned for step-by-step implementation. Each section rep
 - [x] Implement block validation logic
 - [x] Implement chain validation (verify all hashes and signatures)
 - [x] Create genesis block initialization
-- [ ] Implement blockchain persistence (file-based or in-memory)
-- [ ] Build blockchain loading and saving mechanisms
+- [x] Implement blockchain persistence (file-based JSON storage)
+- [x] Build blockchain loading and saving mechanisms
 
 #### ✅ DONE: Blockchain API Endpoints
 - [x] GET /api/blockchain/chain - Get full blockchain

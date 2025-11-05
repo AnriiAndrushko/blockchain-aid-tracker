@@ -39,6 +39,17 @@ var consensusSettings = new ConsensusSettings
     EnableAutomatedBlockCreation = builder.Configuration.GetValue<bool>("ConsensusSettings:EnableAutomatedBlockCreation", true)
 };
 
+// Configure Blockchain Persistence settings
+var persistenceSettings = new BlockchainAidTracker.Blockchain.Configuration.BlockchainPersistenceSettings
+{
+    Enabled = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:Enabled", false),
+    FilePath = builder.Configuration["BlockchainPersistenceSettings:FilePath"] ?? "blockchain-data.json",
+    AutoSaveAfterBlockCreation = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:AutoSaveAfterBlockCreation", true),
+    AutoLoadOnStartup = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:AutoLoadOnStartup", true),
+    CreateBackup = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:CreateBackup", true),
+    MaxBackupFiles = builder.Configuration.GetValue<int>("BlockchainPersistenceSettings:MaxBackupFiles", 5)
+};
+
 // Add controllers
 builder.Services.AddControllers();
 
@@ -130,17 +141,26 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IHashService, HashService>();
 builder.Services.AddSingleton<IDigitalSignatureService, DigitalSignatureService>();
 
-// Register blockchain with signature validation enabled
+// Register blockchain with persistence support
 var hashService = new HashService();
 var digitalSignatureService = new DigitalSignatureService();
-var blockchain = new Blockchain(hashService, digitalSignatureService)
+
+// Use persistence if enabled, otherwise use standard blockchain
+if (persistenceSettings.Enabled && !builder.Environment.IsEnvironment("Testing"))
 {
-    // Transaction signatures are validated in production, disabled in testing for easier test data
-    ValidateTransactionSignatures = !builder.Environment.IsEnvironment("Testing"),
-    // Block validator signatures not yet implemented
-    ValidateBlockSignatures = false
-};
-builder.Services.AddSingleton(blockchain);
+    builder.Services.AddBlockchainWithPersistence(hashService, digitalSignatureService, persistenceSettings);
+}
+else
+{
+    var blockchain = new Blockchain(hashService, digitalSignatureService);
+    builder.Services.AddSingleton(blockchain);
+}
+
+// Get the blockchain instance to configure signature validation
+var serviceProvider = builder.Services.BuildServiceProvider();
+var blockchain = serviceProvider.GetRequiredService<Blockchain>();
+blockchain.ValidateTransactionSignatures = !builder.Environment.IsEnvironment("Testing");
+blockchain.ValidateBlockSignatures = false; // Block validator signatures not yet implemented
 
 // Register DataAccess layer - skip in Testing environment (will be configured by tests)
 if (!builder.Environment.IsEnvironment("Testing"))
@@ -183,6 +203,20 @@ if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing")
     dbContext.Database.Migrate();
 
     app.Logger.LogInformation("Database migrations applied successfully");
+}
+
+// Load blockchain from persistence if configured
+if (persistenceSettings.Enabled && persistenceSettings.AutoLoadOnStartup && !app.Environment.IsEnvironment("Testing"))
+{
+    try
+    {
+        await app.Services.LoadBlockchainFromPersistenceAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Failed to load blockchain from persistence on startup");
+        // Continue without persisted data
+    }
 }
 
 // Configure the HTTP request pipeline
