@@ -1,3 +1,4 @@
+using BlockchainAidTracker.Blockchain.Interfaces;
 using BlockchainAidTracker.Core.Extensions;
 using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.Core.Models;
@@ -11,6 +12,7 @@ public class Blockchain
 {
     private readonly IHashService _hashService;
     private readonly IDigitalSignatureService _signatureService;
+    private readonly IBlockchainPersistence? _persistence;
 
     /// <summary>
     /// The chain of blocks.
@@ -37,10 +39,15 @@ public class Blockchain
     /// </summary>
     /// <param name="hashService">The hash service to use for computing block hashes.</param>
     /// <param name="signatureService">The digital signature service for signing and verifying.</param>
-    public Blockchain(IHashService hashService, IDigitalSignatureService signatureService)
+    /// <param name="persistence">Optional persistence service for saving/loading blockchain data.</param>
+    public Blockchain(
+        IHashService hashService,
+        IDigitalSignatureService signatureService,
+        IBlockchainPersistence? persistence = null)
     {
         _hashService = hashService ?? throw new ArgumentNullException(nameof(hashService));
         _signatureService = signatureService ?? throw new ArgumentNullException(nameof(signatureService));
+        _persistence = persistence;
         InitializeChain();
     }
 
@@ -275,5 +282,74 @@ public class Blockchain
         }
 
         return transactions;
+    }
+
+    /// <summary>
+    /// Loads the blockchain from persistent storage if available.
+    /// If no persisted data exists or persistence is not configured, returns false.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>True if blockchain was loaded from persistence, false otherwise.</returns>
+    public async Task<bool> LoadFromPersistenceAsync(CancellationToken cancellationToken = default)
+    {
+        if (_persistence == null)
+        {
+            return false;
+        }
+
+        var data = await _persistence.LoadAsync(cancellationToken);
+        if (data == null)
+        {
+            return false;
+        }
+
+        // Validate loaded chain before accepting it
+        var (loadedChain, loadedPendingTransactions) = data.Value;
+
+        // Create a temporary blockchain to validate
+        var tempBlockchain = new Blockchain(_hashService, _signatureService)
+        {
+            ValidateTransactionSignatures = this.ValidateTransactionSignatures,
+            ValidateBlockSignatures = this.ValidateBlockSignatures
+        };
+
+        // Clear the genesis block from temp chain
+        tempBlockchain.Chain.Clear();
+
+        // Add all loaded blocks
+        foreach (var block in loadedChain)
+        {
+            tempBlockchain.Chain.Add(block);
+        }
+
+        // Validate the loaded chain
+        if (!tempBlockchain.IsValidChain())
+        {
+            throw new InvalidOperationException("Loaded blockchain is invalid. Data may be corrupted.");
+        }
+
+        // If validation passes, replace current chain
+        Chain.Clear();
+        Chain.AddRange(loadedChain);
+
+        PendingTransactions.Clear();
+        PendingTransactions.AddRange(loadedPendingTransactions);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Saves the blockchain to persistent storage if configured.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task SaveToPersistenceAsync(CancellationToken cancellationToken = default)
+    {
+        if (_persistence == null)
+        {
+            return;
+        }
+
+        await _persistence.SaveAsync(Chain, PendingTransactions, cancellationToken);
     }
 }
