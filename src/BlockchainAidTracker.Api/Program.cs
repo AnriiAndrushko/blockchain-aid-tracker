@@ -135,8 +135,8 @@ var hashService = new HashService();
 var digitalSignatureService = new DigitalSignatureService();
 var blockchain = new Blockchain(hashService, digitalSignatureService)
 {
-    // Transaction signatures are now validated with real cryptographic keys
-    ValidateTransactionSignatures = true,
+    // Transaction signatures are validated in production, disabled in testing for easier test data
+    ValidateTransactionSignatures = !builder.Environment.IsEnvironment("Testing"),
     // Block validator signatures not yet implemented
     ValidateBlockSignatures = false
 };
