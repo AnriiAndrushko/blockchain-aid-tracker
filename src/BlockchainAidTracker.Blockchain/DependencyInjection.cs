@@ -52,7 +52,6 @@ public static class DependencyInjection
         services.AddSingleton(persistenceSettings);
 
         // Register persistence service if enabled
-        IBlockchainPersistence? persistence = null;
         if (persistenceSettings.Enabled)
         {
             services.AddSingleton<IBlockchainPersistence>(sp =>
@@ -60,16 +59,18 @@ public static class DependencyInjection
                 var logger = sp.GetRequiredService<ILogger<JsonBlockchainPersistence>>();
                 return new JsonBlockchainPersistence(persistenceSettings, logger);
             });
-
-            // Create persistence instance for blockchain constructor
-            var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
-            var logger = loggerFactory.CreateLogger<JsonBlockchainPersistence>();
-            persistence = new JsonBlockchainPersistence(persistenceSettings, logger);
         }
 
-        // Create blockchain with optional persistence
-        var blockchain = new Blockchain(hashService, signatureService, persistence);
-        services.AddSingleton(blockchain);
+        // Register blockchain as a singleton with factory
+        services.AddSingleton(sp =>
+        {
+            // Resolve persistence service if it was registered
+            var persistence = persistenceSettings.Enabled
+                ? sp.GetRequiredService<IBlockchainPersistence>()
+                : null;
+
+            return new Blockchain(hashService, signatureService, persistence);
+        });
 
         return services;
     }
