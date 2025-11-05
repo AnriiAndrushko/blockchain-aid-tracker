@@ -152,13 +152,12 @@ if (persistenceSettings.Enabled && !builder.Environment.IsEnvironment("Testing")
 }
 else
 {
-    var blockchain = new Blockchain(hashService, digitalSignatureService);
-    builder.Services.AddSingleton(blockchain);
+    builder.Services.AddSingleton(sp => new Blockchain(hashService, digitalSignatureService));
 }
 
 // Get the blockchain instance to configure signature validation
-var serviceProvider = builder.Services.BuildServiceProvider();
-var blockchain = serviceProvider.GetRequiredService<Blockchain>();
+var tempServiceProvider = builder.Services.BuildServiceProvider();
+var blockchain = tempServiceProvider.GetRequiredService<Blockchain>();
 blockchain.ValidateTransactionSignatures = !builder.Environment.IsEnvironment("Testing");
 blockchain.ValidateBlockSignatures = false; // Block validator signatures not yet implemented
 
