@@ -22,6 +22,7 @@ namespace BlockchainAidTracker.Tests.Services.BackgroundServices;
 public class BlockCreationBackgroundServiceTests : DatabaseTestBase
 {
     private readonly Mock<ILogger<BlockCreationBackgroundService>> _mockLogger;
+    private readonly List<string> _logMessages;
     private readonly IHashService _hashService;
     private readonly IDigitalSignatureService _signatureService;
     private readonly BlockchainAidTracker.Blockchain.Blockchain _blockchain;
@@ -29,7 +30,24 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
 
     public BlockCreationBackgroundServiceTests()
     {
+        _logMessages = new List<string>();
         _mockLogger = new Mock<ILogger<BlockCreationBackgroundService>>();
+
+        // Capture all log messages
+        _mockLogger.Setup(x => x.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Callback(new InvocationAction(invocation =>
+            {
+                var logLevel = (LogLevel)invocation.Arguments[0];
+                var formatter = invocation.Arguments[4] as Delegate;
+                var message = formatter?.DynamicInvoke(invocation.Arguments[2], invocation.Arguments[3])?.ToString();
+                _logMessages.Add($"[{logLevel}] {message}");
+            }));
+
         _hashService = new HashService();
         _signatureService = new DigitalSignatureService();
         _blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService)
@@ -287,9 +305,11 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
         await service.StopAsync(cts.Token);
 
         // Assert with better error messages
+        var logOutput = string.Join(Environment.NewLine, _logMessages);
         _mockLogger.Invocations.Should().NotBeEmpty("Logger should have been called");
         _blockchain.Chain.Count.Should().BeGreaterThan(1,
-            $"Expected at least one block to be created. Pending transactions: {_blockchain.PendingTransactions.Count}");
+            $"Expected at least one block to be created. Pending transactions: {_blockchain.PendingTransactions.Count}" +
+            $"{Environment.NewLine}Log messages:{Environment.NewLine}{logOutput}");
         _blockchain.PendingTransactions.Count.Should().Be(0, "Transactions should have been moved to block");
     }
 
