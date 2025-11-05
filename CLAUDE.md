@@ -480,9 +480,6 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - ApplicationDbContext tests: 20 tests
 - Blockchain tests: 42 tests
 - Cryptography tests: 31 tests
-  - SmartContractEngine tests: 24 tests
-  - DeliveryVerificationContract tests: 15 tests
-  - ShipmentTrackingContract tests: 51 tests
 - **Integration tests: 94 tests**
   - AuthenticationController API tests: 17 tests
   - ShipmentController API tests: 22 tests
