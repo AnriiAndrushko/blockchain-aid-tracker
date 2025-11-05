@@ -4,7 +4,7 @@ using BlockchainAidTracker.Core.Models;
 using BlockchainAidTracker.DataAccess.Repositories;
 using BlockchainAidTracker.Services.Interfaces;
 
-namespace BlockchainAidTracker.Blockchain.Consensus;
+namespace BlockchainAidTracker.Services.Consensus;
 
 /// <summary>
 /// Implements Proof-of-Authority (PoA) consensus mechanism for the blockchain.
@@ -47,7 +47,7 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
     /// Thrown when no pending transactions exist, no active validators are available,
     /// or the validator's private key cannot be decrypted.
     /// </exception>
-    public async Task<Block> CreateBlockAsync(Blockchain blockchain, string validatorPassword)
+    public async Task<Block> CreateBlockAsync(Blockchain.Blockchain blockchain, string validatorPassword)
     {
         if (blockchain == null)
         {

@@ -1,4 +1,4 @@
-using BlockchainAidTracker.Blockchain.Consensus;
+using BlockchainAidTracker.Services.Consensus;
 using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.Core.Models;
 using BlockchainAidTracker.Cryptography;
@@ -8,7 +8,7 @@ using BlockchainAidTracker.Tests.Infrastructure;
 using FluentAssertions;
 using Moq;
 
-namespace BlockchainAidTracker.Tests.Blockchain.Consensus;
+namespace BlockchainAidTracker.Tests.Services.Consensus;
 
 /// <summary>
 /// Unit tests for the ProofOfAuthorityConsensusEngine class.

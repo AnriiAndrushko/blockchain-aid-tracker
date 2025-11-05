@@ -1,6 +1,6 @@
 using BlockchainAidTracker.Core.Models;
 
-namespace BlockchainAidTracker.Blockchain.Consensus;
+namespace BlockchainAidTracker.Services.Consensus;
 
 /// <summary>
 /// Interface for blockchain consensus mechanisms.
@@ -18,7 +18,7 @@ public interface IConsensusEngine
     /// Thrown when no pending transactions exist, no active validators are available,
     /// or the validator's private key cannot be decrypted.
     /// </exception>
-    Task<Block> CreateBlockAsync(Blockchain blockchain, string validatorPassword);
+    Task<Block> CreateBlockAsync(Blockchain.Blockchain blockchain, string validatorPassword);
 
     /// <summary>
     /// Validates whether a block meets the consensus rules.
