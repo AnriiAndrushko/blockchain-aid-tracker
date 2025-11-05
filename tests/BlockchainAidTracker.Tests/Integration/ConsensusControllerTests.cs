@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.Core.Models;
 using BlockchainAidTracker.DataAccess;
@@ -77,7 +78,8 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
         var signatureService = scope.ServiceProvider.GetRequiredService<IDigitalSignatureService>();
         var keyManagementService = scope.ServiceProvider.GetRequiredService<IKeyManagementService>();
 
-        var (privateKey, publicKey) = signatureService.GenerateKeyPair();
+        // Note: GenerateKeyPair returns (publicKey, privateKey) in that order!
+        var (publicKey, privateKey) = signatureService.GenerateKeyPair();
         var encryptedPrivateKey = keyManagementService.EncryptPrivateKey(privateKey, "TestValidatorPassword123!");
 
         var validator = new Validator
@@ -432,9 +434,9 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<dynamic>();
-        result.Should().NotBeNull();
-        result!.GetProperty("isValid").GetBoolean().Should().BeTrue();
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.ValueKind.Should().NotBe(JsonValueKind.Null);
+        result.GetProperty("isValid").GetBoolean().Should().BeTrue();
     }
 
     [Fact]
