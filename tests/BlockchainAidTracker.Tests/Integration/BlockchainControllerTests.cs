@@ -135,7 +135,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var blocks = await response.Content.ReadFromJsonAsync<List<BlockDto>>();
         blocks.Should().NotBeNull();
-        blocks.Should().HaveCountGreaterOrEqualTo(1);
+        blocks.Should().HaveCountGreaterThanOrEqualTo(1);
 
         var genesisBlock = blocks![0];
         genesisBlock.Index.Should().Be(0);
@@ -158,7 +158,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
         blocks.Should().NotBeNull();
 
         // Should have at least genesis block + 1 block with shipment transaction
-        blocks.Should().HaveCountGreaterOrEqualTo(2);
+        blocks.Should().HaveCountGreaterThanOrEqualTo(2);
 
         // Find a block with transactions
         var blockWithTransactions = blocks!.FirstOrDefault(b => b.Transactions.Count > 0);
@@ -221,7 +221,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var block = await response.Content.ReadFromJsonAsync<BlockDto>();
         block.Should().NotBeNull();
-        block!.Index.Should().BeGreaterOrEqualTo(0);
+        block!.Index.Should().BeGreaterThanOrEqualTo(0);
         block.Timestamp.Should().NotBe(default(DateTime));
         block.Hash.Should().NotBeNullOrEmpty();
         block.PreviousHash.Should().NotBeNull();
@@ -314,7 +314,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
         var result = await response.Content.ReadFromJsonAsync<ValidationResultDto>();
         result.Should().NotBeNull();
         result!.IsValid.Should().BeTrue();
-        result.BlockCount.Should().BeGreaterOrEqualTo(1);
+        result.BlockCount.Should().BeGreaterThanOrEqualTo(1);
         result.ValidatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         result.Errors.Should().BeEmpty();
     }
@@ -393,7 +393,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
         chainResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var blocks = await chainResponse.Content.ReadFromJsonAsync<List<BlockDto>>();
         blocks.Should().NotBeNull();
-        blocks.Should().HaveCountGreaterOrEqualTo(2); // Genesis + at least one block
+        blocks.Should().HaveCountGreaterThanOrEqualTo(2); // Genesis + at least one block
 
         // Act 2 - Get a specific block
         var blockResponse = await _client.GetAsync($"/api/blockchain/blocks/{blocks![^1].Index}");
