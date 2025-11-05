@@ -47,28 +47,29 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         var persistence = new JsonBlockchainPersistence(settings, _loggerMock.Object);
         var blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService, persistence)
         {
-            ValidateTransactionSignatures = false,
-            ValidateBlockSignatures = false
+            ValidateTransactionSignatures = true,  // Enable validation
+            ValidateBlockSignatures = true         // Enable validation
         };
 
-        // Generate key pair for transaction signing
-        var (privateKey, publicKey) = _signatureService.GenerateKeyPair();
+        // Generate key pair - NOTE: GenerateKeyPair returns (PublicKey, PrivateKey)
+        var (publicKey, privateKey) = _signatureService.GenerateKeyPair();
 
-        // Add a transaction
+        // Add a transaction with proper signature
         var transaction = new Transaction
         {
             Id = Guid.NewGuid().ToString(),
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = publicKey,
-            PayloadData = "Test shipment data",
-            Signature = "test-signature"
+            PayloadData = "Test shipment data"
         };
+        transaction.Sign(privateKey, _signatureService);
 
         blockchain.AddTransaction(transaction);
 
-        // Create a block (no need to sign since ValidateBlockSignatures = false)
+        // Create a block and sign it
         var block = blockchain.CreateBlock("test-validator");
+        block.SignBlock(privateKey, _signatureService);
         blockchain.AddBlock(block);
 
         // Save to persistence
@@ -80,8 +81,8 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         // Act - Load into a new blockchain
         var newBlockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService, persistence)
         {
-            ValidateTransactionSignatures = false,
-            ValidateBlockSignatures = false
+            ValidateTransactionSignatures = true,  // Enable validation
+            ValidateBlockSignatures = true         // Enable validation
         };
 
         var loaded = await newBlockchain.LoadFromPersistenceAsync();
@@ -158,8 +159,8 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
 
         var blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService, persistence)
         {
-            ValidateTransactionSignatures = false,
-            ValidateBlockSignatures = false
+            ValidateTransactionSignatures = true,  // Enable validation
+            ValidateBlockSignatures = true         // Enable validation
         };
 
         // Act & Assert
@@ -202,30 +203,34 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         var persistence = new JsonBlockchainPersistence(settings, _loggerMock.Object);
         var blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService, persistence)
         {
-            ValidateTransactionSignatures = false,
-            ValidateBlockSignatures = false
+            ValidateTransactionSignatures = true,  // Enable validation
+            ValidateBlockSignatures = true         // Enable validation
         };
 
-        // Add pending transactions
+        // Generate key pairs for pending transactions
+        var (publicKey1, privateKey1) = _signatureService.GenerateKeyPair();
+        var (publicKey2, privateKey2) = _signatureService.GenerateKeyPair();
+
+        // Add pending transactions with proper signatures
         var pendingTx1 = new Transaction
         {
             Id = "pending-1",
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
-            SenderPublicKey = "sender-1",
-            PayloadData = "pending-data-1",
-            Signature = "signature-1"
+            SenderPublicKey = publicKey1,
+            PayloadData = "pending-data-1"
         };
+        pendingTx1.Sign(privateKey1, _signatureService);
 
         var pendingTx2 = new Transaction
         {
             Id = "pending-2",
             Type = TransactionType.StatusUpdated,
             Timestamp = DateTime.UtcNow,
-            SenderPublicKey = "sender-2",
-            PayloadData = "pending-data-2",
-            Signature = "signature-2"
+            SenderPublicKey = publicKey2,
+            PayloadData = "pending-data-2"
         };
+        pendingTx2.Sign(privateKey2, _signatureService);
 
         blockchain.AddTransaction(pendingTx1);
         blockchain.AddTransaction(pendingTx2);
@@ -236,8 +241,8 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         // Act - Load into new blockchain
         var newBlockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService, persistence)
         {
-            ValidateTransactionSignatures = false,
-            ValidateBlockSignatures = false
+            ValidateTransactionSignatures = true,  // Enable validation
+            ValidateBlockSignatures = true         // Enable validation
         };
 
         var loaded = await newBlockchain.LoadFromPersistenceAsync();
@@ -263,12 +268,12 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         var persistence = new JsonBlockchainPersistence(settings, _loggerMock.Object);
         var blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService, persistence)
         {
-            ValidateTransactionSignatures = false,
-            ValidateBlockSignatures = false
+            ValidateTransactionSignatures = true,  // Enable validation
+            ValidateBlockSignatures = true         // Enable validation
         };
 
-        // Create a valid chain
-        var (privateKey, publicKey) = _signatureService.GenerateKeyPair();
+        // Create a valid chain - NOTE: GenerateKeyPair returns (PublicKey, PrivateKey)
+        var (publicKey, privateKey) = _signatureService.GenerateKeyPair();
 
         // Add first block
         var tx1 = new Transaction
@@ -277,12 +282,13 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = publicKey,
-            PayloadData = "shipment-1",
-            Signature = "sig-1"
+            PayloadData = "shipment-1"
         };
+        tx1.Sign(privateKey, _signatureService);
         blockchain.AddTransaction(tx1);
 
         var block1 = blockchain.CreateBlock("validator-1");
+        block1.SignBlock(privateKey, _signatureService);
         blockchain.AddBlock(block1);
 
         // Add second block
@@ -292,12 +298,13 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
             Type = TransactionType.StatusUpdated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = publicKey,
-            PayloadData = "shipment-2",
-            Signature = "sig-2"
+            PayloadData = "shipment-2"
         };
+        tx2.Sign(privateKey, _signatureService);
         blockchain.AddTransaction(tx2);
 
         var block2 = blockchain.CreateBlock("validator-2");
+        block2.SignBlock(privateKey, _signatureService);
         blockchain.AddBlock(block2);
 
         // Save
@@ -306,8 +313,8 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         // Act - Load and validate
         var newBlockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService, persistence)
         {
-            ValidateTransactionSignatures = false,
-            ValidateBlockSignatures = false
+            ValidateTransactionSignatures = true,  // Enable validation
+            ValidateBlockSignatures = true         // Enable validation
         };
 
         var loaded = await newBlockchain.LoadFromPersistenceAsync();
