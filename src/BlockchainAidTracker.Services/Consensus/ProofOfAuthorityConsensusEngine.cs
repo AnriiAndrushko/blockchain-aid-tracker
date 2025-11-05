@@ -95,7 +95,7 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
 
         // Record block creation statistics
         validator.RecordBlockCreation();
-        await _validatorRepository.UpdateAsync(validator);
+        _validatorRepository.Update(validator);
 
         return block;
     }
@@ -181,6 +181,6 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
         }
 
         validator.RecordBlockCreation();
-        await _validatorRepository.UpdateAsync(validator);
+        _validatorRepository.Update(validator);
     }
 }
