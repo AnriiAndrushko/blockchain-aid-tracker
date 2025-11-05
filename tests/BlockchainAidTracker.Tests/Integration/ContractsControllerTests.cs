@@ -321,10 +321,10 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
         var historyResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}/history");
         historyResponse.EnsureSuccessStatusCode();
 
-        var history = await historyResponse.Content.ReadFromJsonAsync<List<BlockchainAidTracker.Services.DTOs.Blockchain.TransactionDto>>();
+        var history = await historyResponse.Content.ReadFromJsonAsync<List<string>>();
         history.Should().NotBeNullOrEmpty();
 
-        var transactionId = history!.First().Id;
+        var transactionId = history!.First();
 
         var request = new ExecuteContractRequest
         {
@@ -340,7 +340,7 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
 
         var result = await response.Content.ReadFromJsonAsync<ContractExecutionResultDto>();
         result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
+        result!.Success.Should().BeTrue($"Contract execution failed with output: {result.Output}");
         result.Events.Should().NotBeEmpty();
     }
 

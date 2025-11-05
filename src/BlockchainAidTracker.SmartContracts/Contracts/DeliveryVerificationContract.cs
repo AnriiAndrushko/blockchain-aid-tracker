@@ -37,7 +37,7 @@ public class DeliveryVerificationContract : SmartContract
                 return ContractExecutionResult.FailureResult("Invalid transaction payload");
             }
 
-            var shipmentId = shipmentData.TryGetValue("shipmentId", out var idElement)
+            var shipmentId = shipmentData.TryGetValue("ShipmentId", out var idElement)
                 ? idElement.GetString() ?? string.Empty
                 : string.Empty;
 
@@ -47,7 +47,7 @@ public class DeliveryVerificationContract : SmartContract
             }
 
             // Verify the sender is the assigned recipient
-            var assignedRecipient = shipmentData.TryGetValue("assignedRecipient", out var recipientElement)
+            var assignedRecipient = shipmentData.TryGetValue("RecipientId", out var recipientElement)
                 ? recipientElement.GetString() ?? string.Empty
                 : string.Empty;
 

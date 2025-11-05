@@ -62,10 +62,10 @@ public class ShipmentTrackingContractTests
         var shipmentId = "shipment-123";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
 
         var transaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
@@ -93,10 +93,10 @@ public class ShipmentTrackingContractTests
         var coordinatorKey = "coordinator-key";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
 
         var transaction = new Transaction(TransactionType.ShipmentCreated, coordinatorKey,
@@ -121,10 +121,10 @@ public class ShipmentTrackingContractTests
         var shipmentId = "shipment-123";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
 
         var transaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
@@ -144,18 +144,18 @@ public class ShipmentTrackingContractTests
     }
 
     [Theory]
-    [InlineData("origin")]
-    [InlineData("destination")]
-    [InlineData("assignedRecipient")]
+    [InlineData("Origin")]
+    [InlineData("Destination")]
+    [InlineData("RecipientId")]
     public async Task ExecuteAsync_WithMissingRequiredField_ShouldFail(string missingField)
     {
         // Arrange
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", "shipment-123" },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", "shipment-123" },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
         payload.Remove(missingField);
 
@@ -183,11 +183,11 @@ public class ShipmentTrackingContractTests
         };
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" },
-            { "items", items }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" },
+            { "Items", items }
         };
 
         var transaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
@@ -214,10 +214,10 @@ public class ShipmentTrackingContractTests
         // First create the shipment
         var createPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
         var createTransaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
             JsonSerializer.Serialize(createPayload));
@@ -230,8 +230,8 @@ public class ShipmentTrackingContractTests
         // Now update the status
         var updatePayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.Validated.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.Validated.ToString() }
         };
         var updateTransaction = new Transaction(TransactionType.StatusUpdated, "coordinator-key",
             JsonSerializer.Serialize(updatePayload));
@@ -257,10 +257,10 @@ public class ShipmentTrackingContractTests
         // First create the shipment
         var createPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
         var createTransaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
             JsonSerializer.Serialize(createPayload));
@@ -273,8 +273,8 @@ public class ShipmentTrackingContractTests
         // Try to update directly to Delivered (invalid transition from Created)
         var updatePayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.Delivered.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.Delivered.ToString() }
         };
         var updateTransaction = new Transaction(TransactionType.StatusUpdated, "coordinator-key",
             JsonSerializer.Serialize(updatePayload));
@@ -319,10 +319,10 @@ public class ShipmentTrackingContractTests
         // Create shipment
         var createPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
         var createTransaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
             JsonSerializer.Serialize(createPayload));
@@ -332,8 +332,8 @@ public class ShipmentTrackingContractTests
         // Validated
         var validatedPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.Validated.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.Validated.ToString() }
         };
         var validatedResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
@@ -343,8 +343,8 @@ public class ShipmentTrackingContractTests
         // InTransit
         var inTransitPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.InTransit.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.InTransit.ToString() }
         };
         var inTransitResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
@@ -354,8 +354,8 @@ public class ShipmentTrackingContractTests
         // Delivered
         var deliveredPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.Delivered.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.Delivered.ToString() }
         };
         var deliveredTransaction = new Transaction(TransactionType.StatusUpdated, "coordinator-key",
             JsonSerializer.Serialize(deliveredPayload));
@@ -389,8 +389,8 @@ public class ShipmentTrackingContractTests
         // Arrange
         var payload = new Dictionary<string, object>
         {
-            { "origin", "New York" },
-            { "destination", "London" }
+            { "Origin", "New York" },
+            { "Destination", "London" }
         };
         var transaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
             JsonSerializer.Serialize(payload));
@@ -413,10 +413,10 @@ public class ShipmentTrackingContractTests
         // Act & Assert - Created
         var createPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "origin", "New York" },
-            { "destination", "London" },
-            { "assignedRecipient", "recipient-key" }
+            { "ShipmentId", shipmentId },
+            { "Origin", "New York" },
+            { "Destination", "London" },
+            { "RecipientId", "recipient-key" }
         };
         var createResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
@@ -427,8 +427,8 @@ public class ShipmentTrackingContractTests
         // Validated
         var validatedPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.Validated.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.Validated.ToString() }
         };
         var validatedResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
@@ -439,8 +439,8 @@ public class ShipmentTrackingContractTests
         // InTransit
         var inTransitPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.InTransit.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.InTransit.ToString() }
         };
         var inTransitResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
@@ -451,8 +451,8 @@ public class ShipmentTrackingContractTests
         // Delivered
         var deliveredPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.Delivered.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.Delivered.ToString() }
         };
         var deliveredResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
@@ -463,8 +463,8 @@ public class ShipmentTrackingContractTests
         // Confirmed
         var confirmedPayload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "newStatus", ShipmentStatus.Confirmed.ToString() }
+            { "ShipmentId", shipmentId },
+            { "NewStatus", ShipmentStatus.Confirmed.ToString() }
         };
         var confirmedResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
