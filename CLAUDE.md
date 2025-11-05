@@ -6,10 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, and API endpoints are fully implemented and tested with 379 passing tests.
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, and API endpoints are fully implemented and tested with 395 passing tests.
 
 **Recently Completed** (Latest):
-- ✅ **User Management API Endpoints** NEW
+- ✅ **Blockchain Query API Endpoints** NEW
+  - BlockchainController with 5 endpoints (get chain, get block by index, get transaction, validate chain, get pending)
+  - Public blockchain data access without authentication required
+  - Complete blockchain transparency and verification capabilities
+  - 16 integration tests for blockchain query endpoints (all passing)
+  - 3 DTOs for blockchain data transfer (BlockDto, TransactionDto, ValidationResultDto)
+- ✅ **User Management API Endpoints**
   - UserController with 7 endpoints (profile, profile update, get user, list users, assign role, activate, deactivate)
   - Complete user lifecycle management with role-based access control
   - Admin-only operations for role assignment and user activation/deactivation
@@ -48,14 +54,14 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - AES-256 private key encryption with password-based key derivation
   - QR code generation for shipment tracking
   - Full shipment lifecycle management with blockchain integration
-  - 9 DTO classes for API contracts
+  - 12 DTO classes for API contracts (9 services + 3 blockchain)
   - Custom exception classes (BusinessException, UnauthorizedException, NotFoundException)
   - Dependency injection configuration
-- ✅ All 379 tests passing (312 unit tests + 67 integration tests)
+- ✅ All 395 tests passing (312 unit tests + 83 integration tests)
 - ✅ Complete DataAccess layer with Entity Framework Core
 - ✅ Database testing infrastructure with in-memory database isolation
 
-**Next Steps**: Implement blockchain query API endpoints.
+**Next Steps**: Implement smart contract framework and delivery verification logic.
 
 ## Build and Run Commands
 
@@ -125,7 +131,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - **BlockchainAidTracker.Api/** - ASP.NET Core Web API project (authentication endpoints functional)
   - **BlockchainAidTracker.Web/** - Blazor Server web application (referenced)
 - **tests/** - Test projects
-  - **BlockchainAidTracker.Tests/** - xUnit test project (379 passing tests: 312 unit + 67 integration)
+  - **BlockchainAidTracker.Tests/** - xUnit test project (395 passing tests: 312 unit + 83 integration)
 - **blockchain-aid-tracker/** - Main console application/demo project
   - `blockchain-aid-tracker.csproj` - .NET 9.0 console app with Docker support
   - `Program.cs` - Comprehensive demo of database and blockchain integration
@@ -250,6 +256,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - Authentication: `RegisterRequest`, `LoginRequest`, `AuthenticationResponse`, `RefreshTokenRequest`
 - User: `UserDto`, `UpdateUserRequest`, `AssignRoleRequest`
 - Shipment: `CreateShipmentRequest`, `ShipmentDto`, `UpdateShipmentStatusRequest`, `ShipmentItemDto`
+- Blockchain: `BlockDto`, `TransactionDto`, `ValidationResultDto`
 
 **Exception Classes**:
 - `BusinessException` - Business logic validation errors
@@ -296,7 +303,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 123 unit tests (100% passing)
 
-### ✅ API Module (75% - Authentication, Shipments & User Management Complete)
+### ✅ API Module (85% - Authentication, Shipments, User Management & Blockchain Query Complete)
 **Location**: `src/BlockchainAidTracker.Api/`
 
 **Controllers**:
@@ -314,7 +321,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - POST /api/shipments/{id}/confirm-delivery - Confirm delivery (Recipient only)
   - GET /api/shipments/{id}/history - Get blockchain transaction history
   - GET /api/shipments/{id}/qrcode - Get shipment QR code as PNG
-- `UserController` - Complete user management endpoints (7 endpoints) NEW
+- `UserController` - Complete user management endpoints (7 endpoints)
   - GET /api/users/profile - Get current user's profile
   - PUT /api/users/profile - Update current user's profile
   - GET /api/users/{id} - Get user by ID (Admin/Coordinator or own profile)
@@ -322,6 +329,12 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - POST /api/users/assign-role - Assign role to user (Admin only)
   - POST /api/users/{id}/deactivate - Deactivate user account (Admin only)
   - POST /api/users/{id}/activate - Activate user account (Admin only)
+- `BlockchainController` - Complete blockchain query endpoints (5 endpoints) NEW
+  - GET /api/blockchain/chain - Get complete blockchain with all blocks
+  - GET /api/blockchain/blocks/{index} - Get specific block by index
+  - GET /api/blockchain/transactions/{id} - Get transaction details by ID
+  - POST /api/blockchain/validate - Validate entire blockchain integrity
+  - GET /api/blockchain/pending - Get pending transactions awaiting block creation
 
 **Configuration** (Program.cs):
 - JWT Bearer authentication with token validation
@@ -342,9 +355,9 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `appsettings.json` - Production configuration
 - `appsettings.Testing.json` - Test environment configuration
 
-**Next**: Blockchain query endpoints
+**Next**: Smart contract framework
 
-### ✅ Test Suite (379 Tests - 100% Passing)
+### ✅ Test Suite (395 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
 - Blockchain tests: 42 tests
@@ -360,11 +373,12 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - UserService tests: 16 tests
   - QrCodeService tests: 14 tests
   - ShipmentService tests: 42 tests
-- **Integration tests: 67 tests**
+- **Integration tests: 83 tests**
   - AuthenticationController API tests: 17 tests
   - ShipmentController API tests: 22 tests
-  - UserController API tests: 28 tests NEW
-  - Full end-to-end authentication, shipment, and user management workflows
+  - UserController API tests: 28 tests
+  - BlockchainController API tests: 16 tests NEW
+  - Full end-to-end workflows (authentication, shipment, user management, blockchain query)
   - Real ECDSA signature generation and validation in tests
   - In-memory database for test isolation
   - WebApplicationFactory for API testing
@@ -504,12 +518,12 @@ All features below are planned for step-by-step implementation. Each section rep
 - [ ] Implement blockchain persistence (file-based or in-memory)
 - [ ] Build blockchain loading and saving mechanisms
 
-#### TODO: Blockchain API Endpoints
-- [ ] GET /api/blockchain/chain - Get full blockchain
-- [ ] GET /api/blockchain/blocks/{index} - Get specific block
-- [ ] GET /api/blockchain/transactions/{id} - Get transaction details
-- [ ] POST /api/blockchain/validate - Validate entire chain
-- [ ] GET /api/blockchain/pending - Get pending transactions
+#### ✅ DONE: Blockchain API Endpoints
+- [x] GET /api/blockchain/chain - Get full blockchain
+- [x] GET /api/blockchain/blocks/{index} - Get specific block
+- [x] GET /api/blockchain/transactions/{id} - Get transaction details
+- [x] POST /api/blockchain/validate - Validate entire chain
+- [x] GET /api/blockchain/pending - Get pending transactions
 
 ---
 
@@ -588,14 +602,14 @@ All features below are planned for step-by-step implementation. Each section rep
 - [ ] Implement QR code scanning simulation (UI layer)
 - [ ] Build QR code validation logic (UI/API layer)
 
-#### TODO: Shipment API Endpoints
-- [ ] POST /api/shipments - Create new shipment
-- [ ] GET /api/shipments - List all shipments (with filtering)
-- [ ] GET /api/shipments/{id} - Get shipment details
-- [ ] PUT /api/shipments/{id}/status - Update shipment status
-- [ ] POST /api/shipments/{id}/confirm-delivery - Confirm delivery
-- [ ] GET /api/shipments/{id}/history - Get blockchain transaction history
-- [ ] GET /api/shipments/{id}/qrcode - Get QR code image
+#### ✅ DONE: Shipment API Endpoints
+- [x] POST /api/shipments - Create new shipment
+- [x] GET /api/shipments - List all shipments (with filtering)
+- [x] GET /api/shipments/{id} - Get shipment details
+- [x] PUT /api/shipments/{id}/status - Update shipment status
+- [x] POST /api/shipments/{id}/confirm-delivery - Confirm delivery
+- [x] GET /api/shipments/{id}/history - Get blockchain transaction history
+- [x] GET /api/shipments/{id}/qrcode - Get QR code image
 
 #### TODO: Shipment Management UI (Blazor)
 - [ ] Create shipment creation form component
