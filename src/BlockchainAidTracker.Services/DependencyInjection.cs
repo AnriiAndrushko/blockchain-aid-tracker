@@ -1,4 +1,5 @@
 using BlockchainAidTracker.Services.Configuration;
+using BlockchainAidTracker.Services.Consensus;
 using BlockchainAidTracker.Services.Interfaces;
 using BlockchainAidTracker.Services.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +47,19 @@ public static class DependencyInjection
         services.AddScoped<IShipmentService, ShipmentService>();
         services.AddScoped<IValidatorService, ValidatorService>();
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the Proof-of-Authority consensus engine.
+    /// Requires that IValidatorRepository, IKeyManagementService, IDigitalSignatureService,
+    /// and IHashService are already registered.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddProofOfAuthorityConsensus(this IServiceCollection services)
+    {
+        services.AddScoped<IConsensusEngine, ProofOfAuthorityConsensusEngine>();
         return services;
     }
 
