@@ -164,7 +164,21 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
     {
         // Arrange
         await CreateTestValidatorAsync();
-        await CreatePendingTransactionAsync();
+
+        // Directly add a transaction to the blockchain
+        using var scope = _factory.Services.CreateScope();
+        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+
+        var testTransaction = new Transaction
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = TransactionType.ShipmentCreated,
+            Timestamp = DateTime.UtcNow,
+            SenderPublicKey = "test-key",
+            Payload = "test-payload",
+            Signature = "test-signature"
+        };
+        blockchain.AddTransaction(testTransaction);
 
         // Act
         var response = await _client.GetAsync("/api/consensus/status");
@@ -250,8 +264,20 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
         var uniqueId = Guid.NewGuid().ToString("N")[..8];
         var adminToken = await CreateUserAndGetTokenAsync($"admin_{uniqueId}", UserRole.Administrator);
 
-        // Create a pending transaction
-        await CreatePendingTransactionAsync();
+        // Directly add a transaction to the blockchain to ensure there are pending transactions
+        using var scope = _factory.Services.CreateScope();
+        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+
+        var testTransaction = new Transaction
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = TransactionType.ShipmentCreated,
+            Timestamp = DateTime.UtcNow,
+            SenderPublicKey = "test-key",
+            Payload = "test-payload",
+            Signature = "test-signature"
+        };
+        blockchain.AddTransaction(testTransaction);
 
         var request = new CreateBlockRequest
         {
@@ -277,7 +303,21 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
         var uniqueId = Guid.NewGuid().ToString("N")[..8];
         var adminToken = await CreateUserAndGetTokenAsync($"admin_{uniqueId}", UserRole.Administrator);
         await CreateTestValidatorAsync();
-        await CreatePendingTransactionAsync();
+
+        // Directly add a transaction to the blockchain
+        using var scope = _factory.Services.CreateScope();
+        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+
+        var testTransaction = new Transaction
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = TransactionType.ShipmentCreated,
+            Timestamp = DateTime.UtcNow,
+            SenderPublicKey = "test-key",
+            Payload = "test-payload",
+            Signature = "test-signature"
+        };
+        blockchain.AddTransaction(testTransaction);
 
         var request = new CreateBlockRequest
         {
@@ -308,7 +348,21 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
         var uniqueId = Guid.NewGuid().ToString("N")[..8];
         var validatorUserToken = await CreateUserAndGetTokenAsync($"validator_{uniqueId}", UserRole.Validator);
         await CreateTestValidatorAsync();
-        await CreatePendingTransactionAsync();
+
+        // Directly add a transaction to the blockchain
+        using var scope = _factory.Services.CreateScope();
+        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+
+        var testTransaction = new Transaction
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = TransactionType.ShipmentCreated,
+            Timestamp = DateTime.UtcNow,
+            SenderPublicKey = "test-key",
+            Payload = "test-payload",
+            Signature = "test-signature"
+        };
+        blockchain.AddTransaction(testTransaction);
 
         var request = new CreateBlockRequest
         {
