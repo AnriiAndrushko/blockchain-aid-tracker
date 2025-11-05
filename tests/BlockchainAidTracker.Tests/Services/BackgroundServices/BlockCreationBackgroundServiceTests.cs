@@ -179,9 +179,16 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
         await Context.Validators.AddAsync(validator);
         await Context.SaveChangesAsync();
 
-        // Verify validator was saved
+        // Verify validator was saved in the test's context
         var savedValidator = await Context.Validators.FirstOrDefaultAsync(v => v.Id == validator.Id);
         savedValidator.Should().NotBeNull("Validator should be saved to database");
+
+        // Verify validator is visible in a new context (simulating what the service will do)
+        using (var verifyContext = CreateNewContext())
+        {
+            var validatorInNewContext = await verifyContext.Validators.FirstOrDefaultAsync(v => v.Id == validator.Id);
+            validatorInNewContext.Should().NotBeNull("Validator should be visible in new context");
+        }
 
         // Add a pending transaction
         var transaction = new Transaction
@@ -197,6 +204,15 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
         _blockchain.PendingTransactions.Count.Should().Be(1, "Transaction should be added to pending pool");
 
         var serviceProvider = CreateServiceProvider();
+
+        // Manually test that we can retrieve the validator through the service provider
+        using (var scope = serviceProvider.CreateScope())
+        {
+            var testRepo = scope.ServiceProvider.GetRequiredService<IValidatorRepository>();
+            var nextValidator = await testRepo.GetNextValidatorForBlockCreationAsync();
+            nextValidator.Should().NotBeNull("Validator should be retrievable through service provider");
+        }
+
         var service = new BlockCreationBackgroundService(
             serviceProvider,
             _mockLogger.Object,
