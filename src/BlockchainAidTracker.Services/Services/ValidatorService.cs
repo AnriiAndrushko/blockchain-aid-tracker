@@ -55,9 +55,8 @@ public class ValidatorService : IValidatorService
             description: request.Description
         );
 
-        // Save to database
+        // Save to database (AddAsync handles SaveChanges internally)
         await _validatorRepository.AddAsync(validator);
-        await _validatorRepository.SaveChangesAsync();
 
         return MapToDto(validator);
     }
@@ -145,8 +144,8 @@ public class ValidatorService : IValidatorService
             validator.UpdatedTimestamp = DateTime.UtcNow;
         }
 
+        // Update handles SaveChanges internally
         _validatorRepository.Update(validator);
-        await _validatorRepository.SaveChangesAsync();
 
         return MapToDto(validator);
     }
@@ -165,8 +164,8 @@ public class ValidatorService : IValidatorService
         }
 
         validator.Activate();
+        // Update handles SaveChanges internally
         _validatorRepository.Update(validator);
-        await _validatorRepository.SaveChangesAsync();
 
         return true;
     }
@@ -185,8 +184,8 @@ public class ValidatorService : IValidatorService
         }
 
         validator.Deactivate();
+        // Update handles SaveChanges internally
         _validatorRepository.Update(validator);
-        await _validatorRepository.SaveChangesAsync();
 
         return true;
     }
@@ -205,8 +204,8 @@ public class ValidatorService : IValidatorService
         }
 
         validator.RecordBlockCreation();
+        // Update handles SaveChanges internally
         _validatorRepository.Update(validator);
-        await _validatorRepository.SaveChangesAsync();
 
         return true;
     }
