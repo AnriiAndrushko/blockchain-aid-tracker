@@ -143,8 +143,6 @@ dotnet ef database drop --project src/BlockchainAidTracker.DataAccess
 dotnet ef database update --project src/BlockchainAidTracker.DataAccess
 ```
 
-**Note:** The database file (*.db, *.db-shm, *.db-wal) should NOT be committed to version control. These files are now excluded in `.gitignore`.
-
 ### Docker
 
 ```bash
