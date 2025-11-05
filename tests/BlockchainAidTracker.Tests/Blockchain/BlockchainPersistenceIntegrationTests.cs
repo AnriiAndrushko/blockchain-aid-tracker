@@ -67,10 +67,11 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
 
         blockchain.AddTransaction(transaction);
 
-        // Create a block and sign it
-        var block = blockchain.CreateBlock("test-validator");
+        // Create a block and sign it (use actual public key, not a string!)
+        var block = blockchain.CreateBlock(publicKey);  // Use the actual public key
         block.SignBlock(privateKey, _signatureService);
-        blockchain.AddBlock(block);
+        var blockAdded = blockchain.AddBlock(block);
+        Assert.True(blockAdded, "Block should be added successfully");
 
         // Save to persistence
         await blockchain.SaveToPersistenceAsync();
@@ -287,9 +288,10 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         tx1.Sign(privateKey, _signatureService);
         blockchain.AddTransaction(tx1);
 
-        var block1 = blockchain.CreateBlock("validator-1");
+        var block1 = blockchain.CreateBlock(publicKey);  // Use actual public key
         block1.SignBlock(privateKey, _signatureService);
-        blockchain.AddBlock(block1);
+        var block1Added = blockchain.AddBlock(block1);
+        Assert.True(block1Added, "First block should be added successfully");
 
         // Add second block
         var tx2 = new Transaction
@@ -303,9 +305,10 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         tx2.Sign(privateKey, _signatureService);
         blockchain.AddTransaction(tx2);
 
-        var block2 = blockchain.CreateBlock("validator-2");
+        var block2 = blockchain.CreateBlock(publicKey);  // Use actual public key
         block2.SignBlock(privateKey, _signatureService);
-        blockchain.AddBlock(block2);
+        var block2Added = blockchain.AddBlock(block2);
+        Assert.True(block2Added, "Second block should be added successfully");
 
         // Save
         await blockchain.SaveToPersistenceAsync();
