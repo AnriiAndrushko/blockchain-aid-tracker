@@ -197,11 +197,11 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             _consensusSettings,
             _blockchain);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
         // Act
         await service.StartAsync(cts.Token);
-        await Task.Delay(2500); // Wait longer: interval (1s) + execution time + buffer
+        await Task.Delay(3500); // Wait for full cycle: initial delay (1s) + execution (1s) + buffer (1.5s)
         await service.StopAsync(cts.Token);
 
         // Assert
@@ -304,8 +304,9 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
     {
         var services = new ServiceCollection();
 
-        // Register DbContext
-        services.AddSingleton(Context);
+        // Register DbContext as scoped (EF Core best practice)
+        // Use a factory that returns the same Context instance for all scopes in this test
+        services.AddScoped(_ => Context);
 
         // Register repositories
         services.AddScoped<IValidatorRepository, ValidatorRepository>();
