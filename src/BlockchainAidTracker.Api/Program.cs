@@ -6,6 +6,7 @@ using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.DataAccess;
 using BlockchainAidTracker.Services;
 using BlockchainAidTracker.Services.Configuration;
+using BlockchainAidTracker.SmartContracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -139,6 +140,9 @@ if (!builder.Environment.IsEnvironment("Testing"))
 // Register Services layer with blockchain
 builder.Services.AddServicesWithBlockchain(jwtSettings, blockchain);
 
+// Register SmartContracts with auto-deployment
+builder.Services.AddSmartContractsWithAutoDeployment();
+
 // Add health checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ApplicationDbContext>();
@@ -182,6 +186,11 @@ app.MapHealthChecks("/health");
 
 app.Logger.LogInformation("Blockchain Aid Tracker API starting...");
 app.Logger.LogInformation("Blockchain initialized with {BlockCount} blocks", blockchain.Chain.Count);
+
+// Log deployed smart contracts
+var contractEngine = app.Services.GetRequiredService<SmartContracts.Engine.SmartContractEngine>();
+var deployedContracts = contractEngine.GetAllContracts();
+app.Logger.LogInformation("Smart contract engine initialized with {ContractCount} deployed contracts", deployedContracts.Count);
 
 app.Run();
 

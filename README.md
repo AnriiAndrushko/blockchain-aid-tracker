@@ -4,13 +4,14 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, smart contracts, cryptography services, key management, data access layer, services layer, and API endpoints are fully implemented and tested.
+**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, smart contracts, smart contract API, cryptography services, key management, data access layer, services layer, and API endpoints are fully implemented and tested.
 
 **Current Metrics:**
--  **485 tests passing** (100% success rate: 402 unit + 83 integration)
--  Authentication, Shipment, User Management & Blockchain Query API endpoints operational with Swagger UI
+-  **496 tests passing** (100% success rate: 402 unit + 94 integration)
+-  Authentication, Shipment, User Management, Blockchain Query & Smart Contract API endpoints operational with Swagger UI
 -  7 core business services fully implemented (including key management)
 -  **Smart contract framework with 2 built-in contracts (DeliveryVerification, ShipmentTracking)**
+-  **Smart contract API integration with 4 endpoints (list, get, execute, get state)**
 -  **Blockchain engine with real ECDSA signature validation ENABLED**
 -  **AES-256 private key encryption with user passwords**
 -  JWT authentication with BCrypt password hashing
@@ -21,7 +22,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
 
-**Next:** Integrate smart contracts with API endpoints and implement Proof-of-Authority consensus
+**Next:** Implement Proof-of-Authority consensus mechanism and begin Blazor UI development
 
 ## Quick Start
 
@@ -79,6 +80,12 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 - `GET /api/blockchain/transactions/{id}` - Get transaction details by ID
 - `POST /api/blockchain/validate` - Validate entire blockchain integrity
 - `GET /api/blockchain/pending` - Get pending transactions awaiting block creation
+
+**Smart Contract Endpoints (4 endpoints):**
+- `GET /api/contracts` - Get all deployed smart contracts
+- `GET /api/contracts/{contractId}` - Get specific contract details
+- `GET /api/contracts/{contractId}/state` - Get contract state
+- `POST /api/contracts/execute` - Execute contract for a transaction (requires authentication)
 
 **System Endpoints:**
 - `GET /health` - Health check endpoint with database monitoring
