@@ -63,8 +63,8 @@ public class DeliveryVerificationContractTests
         var shipmentId = "shipment-123";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "assignedRecipient", recipientKey },
+            { "ShipmentId", shipmentId },
+            { "RecipientId", recipientKey },
             { "qrCodeData", "QR-123" },
             { "expectedDeliveryTimeframe", "2025-01-01 to 2025-01-10" }
         };
@@ -106,7 +106,7 @@ public class DeliveryVerificationContractTests
         // Arrange
         var payload = new Dictionary<string, object>
         {
-            { "assignedRecipient", "recipient-key" }
+            { "RecipientId", "recipient-key" }
         };
 
         var transaction = new Transaction(TransactionType.DeliveryConfirmed, "recipient-key",
@@ -129,8 +129,8 @@ public class DeliveryVerificationContractTests
         var wrongRecipient = "wrong-recipient-key";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", "shipment-123" },
-            { "assignedRecipient", assignedRecipient }
+            { "ShipmentId", "shipment-123" },
+            { "RecipientId", assignedRecipient }
         };
 
         var transaction = new Transaction(TransactionType.DeliveryConfirmed, wrongRecipient,
@@ -154,8 +154,8 @@ public class DeliveryVerificationContractTests
         var qrCode = "SHIPMENT-123-QR";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", "shipment-123" },
-            { "assignedRecipient", recipientKey },
+            { "ShipmentId", "shipment-123" },
+            { "RecipientId", recipientKey },
             { "qrCodeData", qrCode },
             { "expectedDeliveryTimeframe", "2025-01-01 to 2025-01-10" }
         };
@@ -183,8 +183,8 @@ public class DeliveryVerificationContractTests
         var providedQrCode = "WRONG-QR";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", "shipment-123" },
-            { "assignedRecipient", recipientKey },
+            { "ShipmentId", "shipment-123" },
+            { "RecipientId", recipientKey },
             { "qrCodeData", expectedQrCode }
         };
 
@@ -210,8 +210,8 @@ public class DeliveryVerificationContractTests
         var endDate = DateTime.UtcNow.AddDays(5).ToString("yyyy-MM-dd");
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", "shipment-123" },
-            { "assignedRecipient", recipientKey },
+            { "ShipmentId", "shipment-123" },
+            { "RecipientId", recipientKey },
             { "expectedDeliveryTimeframe", $"2025-01-01 to {endDate}" }
         };
 
@@ -237,8 +237,8 @@ public class DeliveryVerificationContractTests
         var endDate = DateTime.UtcNow.AddDays(-5).ToString("yyyy-MM-dd");
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", "shipment-123" },
-            { "assignedRecipient", recipientKey },
+            { "ShipmentId", "shipment-123" },
+            { "RecipientId", recipientKey },
             { "expectedDeliveryTimeframe", $"2025-01-01 to {endDate}" }
         };
 
@@ -264,8 +264,8 @@ public class DeliveryVerificationContractTests
         var shipmentId = "shipment-123";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "assignedRecipient", recipientKey },
+            { "ShipmentId", shipmentId },
+            { "RecipientId", recipientKey },
             { "expectedDeliveryTimeframe", "2025-01-01 to 2025-01-10" }
         };
 
@@ -291,8 +291,8 @@ public class DeliveryVerificationContractTests
         var shipmentId = "shipment-123";
         var payload = new Dictionary<string, object>
         {
-            { "shipmentId", shipmentId },
-            { "assignedRecipient", recipientKey },
+            { "ShipmentId", shipmentId },
+            { "RecipientId", recipientKey },
             { "expectedDeliveryTimeframe", "2025-01-01 to 2025-01-10" }
         };
 
