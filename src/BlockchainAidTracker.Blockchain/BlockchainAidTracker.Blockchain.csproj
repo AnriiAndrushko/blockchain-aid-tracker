@@ -3,6 +3,12 @@
   <ItemGroup>
     <ProjectReference Include="..\BlockchainAidTracker.Core\BlockchainAidTracker.Core.csproj" />
     <ProjectReference Include="..\BlockchainAidTracker.Cryptography\BlockchainAidTracker.Cryptography.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.DataAccess\BlockchainAidTracker.DataAccess.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.Services\BlockchainAidTracker.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
   </ItemGroup>
 
   <PropertyGroup>

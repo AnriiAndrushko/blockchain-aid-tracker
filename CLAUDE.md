@@ -6,10 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, and API endpoints are fully implemented and tested with 526 passing tests.
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine, and API endpoints are fully implemented and tested with 556 passing tests.
 
 **Recently Completed** (Latest):
-- ✅ **Validator Node System** NEW
+- ✅ **Proof-of-Authority Consensus Engine** NEW
+  - IConsensusEngine interface for consensus mechanisms
+  - ProofOfAuthorityConsensusEngine implementation with PoA algorithm
+  - Automated block creation with round-robin validator selection
+  - Block validation with validator signature verification
+  - Integration with validator repository for proposer selection
+  - Private key decryption for block signing
+  - Validator statistics tracking (blocks created, timestamps)
+  - Dependency injection configuration (AddBlockchain, AddProofOfAuthorityConsensus)
+  - 30 comprehensive unit tests (100% passing)
+
+- ✅ **Validator Node System**
   - Validator entity model with complete lifecycle management
   - ValidatorRepository with specialized queries (9 methods)
   - ValidatorService with business logic (11 methods)
@@ -24,7 +35,7 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - ValidatorBuilder for test data creation
 
 
-**Next Steps**: Implement Consensus Engine with PoA block creation algorithm, then begin Blazor UI development.
+**Next Steps**: Integrate consensus engine with API endpoints for automated block creation, then begin Blazor UI development.
 
 ## Build and Run Commands
 
@@ -164,7 +175,23 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - Chain validation (hashes, signatures, integrity)
   - Query methods (GetBlockByIndex, GetTransactionById, etc.)
 
-**Test Coverage**: 42 unit tests (100% passing)
+**Consensus Engine** (NEW):
+- `IConsensusEngine` - Interface for consensus mechanisms
+- `ProofOfAuthorityConsensusEngine` - PoA consensus implementation with:
+  - Automated block creation with validator selection
+  - Round-robin block proposer selection from active validators
+  - Validator signature-based block validation
+  - Private key decryption for secure block signing
+  - Validator statistics tracking (blocks created, timestamps)
+  - Integration with validator repository and key management
+
+**Dependency Injection**:
+- `DependencyInjection` - Service registration extensions:
+  - `AddBlockchain()` - Registers blockchain as singleton
+  - `AddProofOfAuthorityConsensus()` - Registers PoA consensus engine
+  - `AddBlockchainWithPoAConsensus()` - Registers both blockchain and consensus
+
+**Test Coverage**: 72 unit tests (42 blockchain + 30 consensus, 100% passing)
 
 ### ✅ DataAccess Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.DataAccess/`
@@ -435,17 +462,19 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 30 unit tests (22 entity + 8 repository)
 
-### ✅ Test Suite (526 Tests - 100% Passing)
+### ✅ Test Suite (556 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
 - Cryptography tests: 31 tests
-- Blockchain tests: 42 tests
+- **Blockchain tests: 72 tests** (42 blockchain + 30 consensus) NEW
+  - Blockchain engine tests: 42 tests
+  - **ProofOfAuthorityConsensusEngine tests: 30 tests** NEW
 - Core model tests: 75 tests
   - Shipment/ShipmentItem tests: 53 tests
-  - Validator tests: 22 tests NEW
+  - Validator tests: 22 tests
 - Database tests: 71 tests
   - UserRepository tests: 31 tests
   - ShipmentRepository tests: 32 tests
-  - ValidatorRepository tests: 8 tests NEW
+  - ValidatorRepository tests: 8 tests
   - ApplicationDbContext tests: 20 tests
 - **Services tests: 123 tests**
   - PasswordService tests: 13 tests
@@ -628,15 +657,17 @@ All features below are planned for step-by-step implementation. Each section rep
 - [x] Write repository tests for ValidatorRepository (8 tests)
 - [x] Add ValidatorBuilder to test infrastructure
 
-#### TODO: Consensus Engine
-- [ ] Create consensus interface and base implementation
-- [ ] Implement PoA consensus algorithm:
-  - [ ] Block proposer selection (round-robin or similar)
-  - [ ] Transaction validation by validators
-  - [ ] Block confirmation by validator quorum
-  - [ ] Consensus threshold logic (e.g., 2/3 majority)
-- [ ] Build consensus state management
-- [ ] Implement fork resolution (simple longest chain rule)
+#### ✅ DONE: Consensus Engine
+- [x] Create consensus interface and base implementation (IConsensusEngine)
+- [x] Implement PoA consensus algorithm (ProofOfAuthorityConsensusEngine):
+  - [x] Block proposer selection (round-robin from active validators)
+  - [x] Transaction validation by validators
+  - [x] Block creation with validator signature
+  - [x] Block validation with signature verification
+  - [x] Integration with validator repository and key management
+- [x] Build consensus state management (validator statistics tracking)
+- [x] Implement dependency injection configuration
+- [x] Write comprehensive unit tests (30 tests, 100% passing)
 
 #### TODO: Peer-to-Peer Network (Simplified)
 - [ ] Create node communication service (HTTP-based)
