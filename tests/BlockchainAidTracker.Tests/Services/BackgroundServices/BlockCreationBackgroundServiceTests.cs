@@ -8,6 +8,7 @@ using BlockchainAidTracker.Services.Consensus;
 using BlockchainAidTracker.Services.Interfaces;
 using BlockchainAidTracker.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -178,6 +179,10 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
         await Context.Validators.AddAsync(validator);
         await Context.SaveChangesAsync();
 
+        // Verify validator was saved
+        var savedValidator = await Context.Validators.FirstOrDefaultAsync(v => v.Id == validator.Id);
+        savedValidator.Should().NotBeNull("Validator should be saved to database");
+
         // Add a pending transaction
         var transaction = new Transaction
         {
@@ -189,6 +194,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             Signature = "test-signature"
         };
         _blockchain.AddTransaction(transaction);
+        _blockchain.PendingTransactions.Count.Should().Be(1, "Transaction should be added to pending pool");
 
         var serviceProvider = CreateServiceProvider();
         var service = new BlockCreationBackgroundService(
@@ -201,12 +207,21 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
 
         // Act
         await service.StartAsync(cts.Token);
-        await Task.Delay(3500); // Wait for full cycle: initial delay (1s) + execution (1s) + buffer (1.5s)
+
+        // Poll for block creation instead of fixed delay
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        while (_blockchain.Chain.Count <= 1 && stopwatch.ElapsedMilliseconds < 5000)
+        {
+            await Task.Delay(100);
+        }
+
         await service.StopAsync(cts.Token);
 
-        // Assert
-        _blockchain.Chain.Count.Should().BeGreaterThan(1); // Genesis + at least one new block
-        _blockchain.PendingTransactions.Count.Should().Be(0); // Transactions moved to block
+        // Assert with better error messages
+        _mockLogger.Invocations.Should().NotBeEmpty("Logger should have been called");
+        _blockchain.Chain.Count.Should().BeGreaterThan(1,
+            $"Expected at least one block to be created. Pending transactions: {_blockchain.PendingTransactions.Count}");
+        _blockchain.PendingTransactions.Count.Should().Be(0, "Transactions should have been moved to block");
     }
 
     [Fact]
@@ -304,9 +319,9 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
     {
         var services = new ServiceCollection();
 
-        // Register DbContext as scoped (EF Core best practice)
-        // Use a factory that returns the same Context instance for all scopes in this test
-        services.AddScoped(_ => Context);
+        // Register DbContext factory that creates new context instances sharing the same in-memory database
+        // This allows each scope to have its own DbContext pointing to the same database
+        services.AddScoped(_ => CreateNewContext());
 
         // Register repositories
         services.AddScoped<IValidatorRepository, ValidatorRepository>();
