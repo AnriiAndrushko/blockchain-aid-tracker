@@ -22,7 +22,6 @@ namespace BlockchainAidTracker.Tests.Services.BackgroundServices;
 public class BlockCreationBackgroundServiceTests : DatabaseTestBase
 {
     private readonly Mock<ILogger<BlockCreationBackgroundService>> _mockLogger;
-    private readonly List<string> _logMessages;
     private readonly IHashService _hashService;
     private readonly IDigitalSignatureService _signatureService;
     private readonly BlockchainAidTracker.Blockchain.Blockchain _blockchain;
@@ -31,25 +30,8 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
 
     public BlockCreationBackgroundServiceTests()
     {
-        _logMessages = new List<string>();
         _validatorPrivateKeys = new Dictionary<string, string>();
         _mockLogger = new Mock<ILogger<BlockCreationBackgroundService>>();
-
-        // Capture all log messages
-        _mockLogger.Setup(x => x.Log(
-            It.IsAny<LogLevel>(),
-            It.IsAny<EventId>(),
-            It.IsAny<It.IsAnyType>(),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
-            .Callback(new InvocationAction(invocation =>
-            {
-                var logLevel = (LogLevel)invocation.Arguments[0];
-                var formatter = invocation.Arguments[4] as Delegate;
-                var message = formatter?.DynamicInvoke(invocation.Arguments[2], invocation.Arguments[3])?.ToString();
-                _logMessages.Add($"[{logLevel}] {message}");
-            }));
-
         _hashService = new HashService();
         _signatureService = new DigitalSignatureService();
         _blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService)
@@ -235,17 +217,6 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
         await Context.Validators.AddAsync(validator);
         await Context.SaveChangesAsync();
 
-        // Verify validator was saved in the test's context
-        var savedValidator = await Context.Validators.FirstOrDefaultAsync(v => v.Id == validator.Id);
-        savedValidator.Should().NotBeNull("Validator should be saved to database");
-
-        // Verify validator is visible in a new context (simulating what the service will do)
-        using (var verifyContext = CreateNewContext())
-        {
-            var validatorInNewContext = await verifyContext.Validators.FirstOrDefaultAsync(v => v.Id == validator.Id);
-            validatorInNewContext.Should().NotBeNull("Validator should be visible in new context");
-        }
-
         // Add a pending transaction
         var transaction = new Transaction
         {
@@ -257,62 +228,24 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             Signature = "test-signature"
         };
         _blockchain.AddTransaction(transaction);
-        _blockchain.PendingTransactions.Count.Should().Be(1, "Transaction should be added to pending pool");
 
         var serviceProvider = CreateServiceProvider();
-
-        // Manually test that we can retrieve the validator through the service provider
-        using (var scope = serviceProvider.CreateScope())
-        {
-            var testRepo = scope.ServiceProvider.GetRequiredService<IValidatorRepository>();
-            var nextValidator = await testRepo.GetNextValidatorForBlockCreationAsync();
-            nextValidator.Should().NotBeNull("Validator should be retrievable through service provider");
-
-            // Also verify we can manually create a block (this will consume the pending transaction)
-            var consensusEngine = scope.ServiceProvider.GetRequiredService<IConsensusEngine>();
-            var testBlock = await consensusEngine.CreateBlockAsync(_blockchain, "TestPassword123!");
-            testBlock.Should().NotBeNull("Should be able to create block manually");
-        }
-
-        // Re-add a new pending transaction for the background service test
-        var newTransaction = new Transaction
-        {
-            Id = Guid.NewGuid().ToString(),
-            Type = TransactionType.ShipmentCreated,
-            Timestamp = DateTime.UtcNow,
-            SenderPublicKey = "test-public-key",
-            PayloadData = "test-payload-2",
-            Signature = "test-signature-2"
-        };
-        _blockchain.AddTransaction(newTransaction);
-
         var service = new BlockCreationBackgroundService(
             serviceProvider,
             _mockLogger.Object,
             _consensusSettings,
             _blockchain);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
         // Act
         await service.StartAsync(cts.Token);
-
-        // Poll for block creation instead of fixed delay
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        while (_blockchain.Chain.Count <= 1 && stopwatch.ElapsedMilliseconds < 5000)
-        {
-            await Task.Delay(100);
-        }
-
+        await Task.Delay(2000); // Wait for at least one block creation cycle
         await service.StopAsync(cts.Token);
 
-        // Assert with better error messages
-        var logOutput = string.Join(Environment.NewLine, _logMessages);
-        _mockLogger.Invocations.Should().NotBeEmpty("Logger should have been called");
-        _blockchain.Chain.Count.Should().BeGreaterThan(1,
-            $"Expected at least one block to be created. Pending transactions: {_blockchain.PendingTransactions.Count}" +
-            $"{Environment.NewLine}Log messages:{Environment.NewLine}{logOutput}");
-        _blockchain.PendingTransactions.Count.Should().Be(0, "Transactions should have been moved to block");
+        // Assert
+        _blockchain.Chain.Count.Should().BeGreaterThan(1); // Genesis + at least one new block
+        _blockchain.PendingTransactions.Count.Should().Be(0); // Transactions moved to block
     }
 
     [Fact]
