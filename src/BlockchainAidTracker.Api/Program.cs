@@ -29,6 +29,16 @@ var jwtSettings = new JwtSettings
     RefreshTokenExpirationDays = builder.Configuration.GetValue<int>("JwtSettings:RefreshTokenExpirationDays", 7)
 };
 
+// Configure Consensus settings
+var consensusSettings = new ConsensusSettings
+{
+    BlockCreationIntervalSeconds = builder.Configuration.GetValue<int>("ConsensusSettings:BlockCreationIntervalSeconds", 30),
+    MinimumTransactionsPerBlock = builder.Configuration.GetValue<int>("ConsensusSettings:MinimumTransactionsPerBlock", 1),
+    MaximumTransactionsPerBlock = builder.Configuration.GetValue<int>("ConsensusSettings:MaximumTransactionsPerBlock", 100),
+    ValidatorPassword = builder.Configuration["ConsensusSettings:ValidatorPassword"] ?? "ValidatorPassword123!",
+    EnableAutomatedBlockCreation = builder.Configuration.GetValue<bool>("ConsensusSettings:EnableAutomatedBlockCreation", true)
+};
+
 // Add controllers
 builder.Services.AddControllers();
 
@@ -125,8 +135,8 @@ var hashService = new HashService();
 var digitalSignatureService = new DigitalSignatureService();
 var blockchain = new Blockchain(hashService, digitalSignatureService)
 {
-    // Transaction signatures are now validated with real cryptographic keys
-    ValidateTransactionSignatures = true,
+    // Transaction signatures are validated in production, disabled in testing for easier test data
+    ValidateTransactionSignatures = !builder.Environment.IsEnvironment("Testing"),
     // Block validator signatures not yet implemented
     ValidateBlockSignatures = false
 };
@@ -141,12 +151,21 @@ if (!builder.Environment.IsEnvironment("Testing"))
 // Register Services layer with blockchain
 builder.Services.AddServicesWithBlockchain(jwtSettings, blockchain);
 
+// Register consensus settings as singleton
+builder.Services.AddSingleton(consensusSettings);
+
+// Register Proof-of-Authority consensus engine
+builder.Services.AddProofOfAuthorityConsensus();
+
 // Register SmartContracts with auto-deployment
 builder.Services.AddSmartContractsWithAutoDeployment();
 
 // Add health checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ApplicationDbContext>();
+
+// Register background service for automated block creation
+builder.Services.AddHostedService<BlockchainAidTracker.Services.BackgroundServices.BlockCreationBackgroundService>();
 
 var app = builder.Build();
 

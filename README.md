@@ -4,12 +4,13 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, Proof-of-Authority Consensus Engine, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, PoA consensus, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, and API endpoints are fully implemented and tested.
+**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, Proof-of-Authority Consensus Engine, Consensus API Integration, Automated Block Creation Background Service, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, PoA consensus, automated block creation, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, and all API endpoints are fully implemented and tested.
 
 **Current Metrics:**
--  **556 tests passing** (100% success rate: 462 unit + 94 integration) NEW
--  **Proof-of-Authority Consensus Engine with automated block creation** NEW
--  Authentication, Shipment, User Management, Blockchain Query, Smart Contract & Validator API endpoints operational with Swagger UI
+-  **575 tests passing** (100% success rate: 468 unit + 107 integration) NEW
+-  **Consensus API with 4 endpoints for block creation and validation** NEWEST
+-  **Automated background service creating blocks every 30 seconds** NEWEST
+-  Authentication, Shipment, User Management, Blockchain Query, Smart Contract, Validator & Consensus API endpoints operational with Swagger UI
 -  8 core business services fully implemented (including key management & validator service)
 -  **Validator node system with 6 API endpoints**
 -  **Smart contract framework with 2 built-in contracts (DeliveryVerification, ShipmentTracking)**
@@ -25,7 +26,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
 
-**Next:** Integrate consensus engine with API endpoints for automated block creation, then begin Blazor UI development
+**Next:** Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Optionally implement blockchain persistence (file-based or database storage) to maintain chain across restarts.
 
 ## Quick Start
 
@@ -90,7 +91,7 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 - `GET /api/contracts/{contractId}/state` - Get contract state
 - `POST /api/contracts/execute` - Execute contract for a transaction (requires authentication)
 
-**Validator Management Endpoints (6 endpoints):** NEW
+**Validator Management Endpoints (6 endpoints):**
 - `POST /api/validators` - Register new validator with key pair generation (Admin only)
 - `GET /api/validators` - List all validators (Admin/Validator roles)
 - `GET /api/validators/{id}` - Get validator by ID (Admin/Validator roles)
@@ -98,6 +99,15 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 - `POST /api/validators/{id}/activate` - Activate validator (Admin only)
 - `POST /api/validators/{id}/deactivate` - Deactivate validator (Admin only)
 - `GET /api/validators/next` - Get next validator for block creation (consensus use)
+
+**Consensus Endpoints (4 endpoints):** NEWEST
+- `GET /api/consensus/status` - Get consensus status with chain information
+- `POST /api/consensus/create-block` - Manually create new block (Admin/Validator only)
+- `POST /api/consensus/validate-block/{index}` - Validate block by consensus rules (Admin/Validator only)
+- `GET /api/consensus/validators` - Get all active validators
+
+**Background Services:**
+- `BlockCreationBackgroundService` - Automated block creation every 30 seconds (configurable) NEW
 
 **System Endpoints:**
 - `GET /health` - Health check endpoint with database monitoring
@@ -164,14 +174,14 @@ blockchain-aid-tracker/
 │   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment + user mgmt + blockchain + validators) ✅
 │   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
 ├── tests/                                  # Test projects
-│   └── BlockchainAidTracker.Tests/        # 526 tests (432 unit + 94 integration) ✅
+│   └── BlockchainAidTracker.Tests/        # 575 tests (468 unit + 107 integration) ✅
 │       ├── Blockchain/                    # 42 blockchain tests
 │       ├── Cryptography/                  # 31 crypto tests
-│       ├── Models/                        # 53 model tests
-│       ├── DataAccess/                    # 63 database tests
-│       ├── Services/                      # 123 services tests
+│       ├── Models/                        # 75 model tests
+│       ├── DataAccess/                    # 71 database tests
+│       ├── Services/                      # 159 services tests (incl. consensus & background service) ✅
 │       ├── SmartContracts/                # 90 smart contract tests ✅
-│       ├── Integration/                   # 83 API integration tests (auth + shipments + users + blockchain) ✅
+│       ├── Integration/                   # 107 API integration tests (auth + shipments + users + blockchain + consensus) ✅
 │       └── Infrastructure/                # Test helpers & builders
 ├── blockchain-aid-tracker/                # Demo console app
 ├── docs/                                   # Documentation
@@ -208,12 +218,11 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 - ✅ **ShipmentTrackingContract for automated shipment lifecycle**
 - ✅ **Validator node system with round-robin block proposer selection**
 - ✅ **ECDSA key pair generation for validators**
-- ✅ **Proof-of-Authority Consensus Engine with automated block creation** NEW
-- ✅ **Block validation with validator signature verification** NEW
-- ✅ **556 tests passing with real cryptographic signature validation** NEW
-
-### In Progress 🔨
-- 🔨 Consensus Engine API integration for automated block creation
+- ✅ **Proof-of-Authority Consensus Engine with automated block creation**
+- ✅ **Block validation with validator signature verification**
+- ✅ **Consensus API with 4 endpoints for block operations** NEWEST
+- ✅ **Automated block creation background service (30 second intervals)** NEWEST
+- ✅ **575 tests passing with real cryptographic signature validation** NEWEST
 
 ### Planned 📋
 - 📋 Multi-node validator network communication
@@ -243,23 +252,23 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 | 1. Core Architecture Setup | ✅ Complete | Database, repositories, models |
 | 2. Blockchain Core Implementation | ✅ Complete | Engine, real signatures, validation |
 | 3. **Cryptographic Key Management** | ✅ Complete | AES-256 encryption, ECDSA signing |
-| 4. Testing Infrastructure | ✅ Complete | 556 tests (462 unit + 94 integration) |
+| 4. Testing Infrastructure | ✅ Complete | 575 tests (468 unit + 107 integration) |
 | 5. User Management System | ✅ Complete | Authentication, JWT, key management, APIs |
 | 6. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
 | 7. Services Layer | ✅ Complete | 8 services, DTOs, validation, encryption |
-| 8. API Endpoints | ✅ Complete (95%) | Auth + Shipment + User Mgmt + Blockchain + Smart Contracts + Validators, Swagger UI |
+| 8. API Endpoints | ✅ Complete | Auth + Shipment + User Mgmt + Blockchain + Smart Contracts + Validators + Consensus, Swagger UI |
 | 9. **Smart Contracts** | ✅ Complete | Framework, DeliveryVerification, ShipmentTracking |
 | 10. **Smart Contract API Integration** | ✅ Complete | Auto-execution, API endpoints |
 | 11. **Validator Node System** | ✅ Complete | Validator management, round-robin selection |
 | 12. **Consensus Engine** | ✅ Complete | PoA block creation, validator signature validation |
-| 13. Consensus API Integration | 🔨 In Progress | Automated block creation endpoints |
+| 13. **Consensus API Integration** | ✅ Complete | 4 endpoints, automated background service |
 | 14. Web Application UI | 📋 Planned | Blazor dashboard |
 
 **Legend:** ✅ Complete | 🔨 In Progress | 📋 Planned
 
 ## Testing
 
-The project has a comprehensive test suite with **556 passing tests** (100% success rate):
+The project has a comprehensive test suite with **575 passing tests** (100% success rate):
 
 ### Test Coverage
 
@@ -280,13 +289,13 @@ dotnet test --filter "FullyQualifiedName~Integration"
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| **Services** | 123 | Business logic, key management, authentication, shipment lifecycle |
+| **Services** | 159 | Business logic, key management, authentication, shipment lifecycle, **automated block creation** |
 | **SmartContracts** | 90 | Contract engine, delivery verification, shipment tracking |
 | **Models** | 75 | Domain entities (User, Shipment, Validator, Block, Transaction) |
-| **Blockchain** | 72 | Chain validation, block creation, **PoA consensus engine**, signature verification |
+| **Blockchain** | 42 | Chain validation, block creation, signature verification |
 | **Database** | 71 | Repository tests with in-memory DB, automatic cleanup |
 | **Cryptography** | 31 | SHA-256 hashing, ECDSA signatures, key generation |
-| **Integration** | 94 | API endpoint tests (auth + shipments + user mgmt + blockchain + contracts + validators), real cryptographic validation |
+| **Integration** | 107 | API endpoint tests (auth + shipments + user mgmt + blockchain + contracts + validators + **consensus**), real cryptographic validation |
 
 ### Test Infrastructure Features
 

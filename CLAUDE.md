@@ -6,10 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine, and API endpoints are fully implemented and tested with 556 passing tests.
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, and all API endpoints are fully implemented and tested with 575 passing tests (468 unit + 107 integration).
 
 **Recently Completed** (Latest):
-- ✅ **Proof-of-Authority Consensus Engine** NEW
+- ✅ **Consensus API Integration & Automated Block Creation** NEWEST
+  - ConsensusController with 4 API endpoints (status, create-block, validate-block, validators)
+  - BlockCreationBackgroundService for automated block creation
+  - ConsensusSettings configuration class with interval, thresholds, and password management
+  - 3 DTOs for consensus operations (ConsensusStatusDto, BlockCreationResultDto, CreateBlockRequest)
+  - Automated block creation every 30 seconds (configurable) when pending transactions exist
+  - Manual block creation API for admin/validator roles
+  - Block validation API endpoint with consensus rule checking
+  - Active validator listing endpoint
+  - Background service with dependency injection and scoped service management
+  - Configuration in appsettings.json and appsettings.Testing.json
+  - 6 unit tests for BlockCreationBackgroundService (100% passing)
+  - 13 integration tests for ConsensusController endpoints (100% passing)
+
+- ✅ **Proof-of-Authority Consensus Engine**
   - IConsensusEngine interface for consensus mechanisms
   - ProofOfAuthorityConsensusEngine implementation with PoA algorithm
   - Automated block creation with round-robin validator selection
@@ -35,7 +49,7 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - ValidatorBuilder for test data creation
 
 
-**Next Steps**: Integrate consensus engine with API endpoints for automated block creation, then begin Blazor UI development.
+**Next Steps**: Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Optionally implement blockchain persistence (file-based or database storage) to maintain chain across restarts.
 
 ## Build and Run Commands
 
@@ -331,7 +345,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - GET /api/contracts/{contractId} - Get specific contract details
   - GET /api/contracts/{contractId}/state - Get contract state
   - POST /api/contracts/execute - Execute contract for a transaction (requires auth)
-- `ValidatorController` - Complete validator management endpoints (6 endpoints) NEW
+- `ValidatorController` - Complete validator management endpoints (6 endpoints)
   - POST /api/validators - Register new validator (Admin only)
   - GET /api/validators - List all validators (Admin/Validator)
   - GET /api/validators/{id} - Get validator by ID (Admin/Validator)
@@ -339,16 +353,31 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - POST /api/validators/{id}/activate - Activate validator (Admin only)
   - POST /api/validators/{id}/deactivate - Deactivate validator (Admin only)
   - GET /api/validators/next - Get next validator for block creation
+- `ConsensusController` - Complete consensus operations endpoints (4 endpoints) NEW
+  - GET /api/consensus/status - Get consensus status and chain information
+  - POST /api/consensus/create-block - Manually create block (Admin/Validator only)
+  - POST /api/consensus/validate-block/{index} - Validate block by consensus rules (Admin/Validator only)
+  - GET /api/consensus/validators - Get all active validators
+
+**Background Services**:
+- `BlockCreationBackgroundService` - Automated block creation service NEW
+  - Runs every 30 seconds (configurable) to check for pending transactions
+  - Creates blocks automatically when minimum transaction threshold is met
+  - Uses consensus engine with round-robin validator selection
+  - Configurable via ConsensusSettings in appsettings.json
+  - Can be disabled for testing or manual control
 
 **Configuration** (Program.cs):
 - JWT Bearer authentication with token validation
 - **Blockchain with transaction signature validation ENABLED**
 - **Smart contracts with auto-deployment on startup**
+- **Proof-of-Authority consensus engine registered**
+- **Automated block creation background service**
 - Swagger/OpenAPI with JWT authentication UI
 - CORS policy for cross-origin requests
 - Health checks with database context monitoring
 - Environment-specific database initialization
-- All service layers registered (Cryptography, Blockchain, DataAccess, Services, KeyManagement, SmartContracts)
+- All service layers registered (Cryptography, Blockchain, DataAccess, Services, KeyManagement, SmartContracts, Consensus)
 
 **NuGet Packages**:
 - Microsoft.AspNetCore.Authentication.JwtBearer 9.0.10
@@ -456,16 +485,17 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 30 unit tests (22 entity + 8 repository)
 
-### ✅ Test Suite (556 Tests - 100% Passing)
+### ✅ Test Suite (575 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
-- **Services tests: 153 tests** (123 services + 30 consensus) NEW
+- **Services tests: 159 tests** (123 services + 30 consensus + 6 background service) NEW
   - PasswordService tests: 13 tests
   - TokenService tests: 17 tests
   - AuthenticationService tests: 21 tests
   - UserService tests: 16 tests
   - QrCodeService tests: 14 tests
   - ShipmentService tests: 42 tests
-  - **ProofOfAuthorityConsensusEngine tests: 30 tests** NEW
+  - ProofOfAuthorityConsensusEngine tests: 30 tests
+  - **BlockCreationBackgroundService tests: 6 tests** NEWEST
 - **SmartContracts tests: 90 tests**
   - SmartContractEngine tests: 24 tests
   - DeliveryVerificationContract tests: 15 tests
@@ -480,13 +510,14 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - ApplicationDbContext tests: 20 tests
 - Blockchain tests: 42 tests
 - Cryptography tests: 31 tests
-- **Integration tests: 94 tests**
+- **Integration tests: 107 tests**
   - AuthenticationController API tests: 17 tests
   - ShipmentController API tests: 22 tests
   - UserController API tests: 28 tests
   - BlockchainController API tests: 16 tests
-  - ContractsController API tests: 11 tests NEW
-  - Full end-to-end workflows (authentication, shipment, user management, blockchain query, smart contracts)
+  - ContractsController API tests: 11 tests
+  - **ConsensusController API tests: 13 tests** NEWEST
+  - Full end-to-end workflows (authentication, shipment, user management, blockchain query, smart contracts, consensus)
   - Real ECDSA signature generation and validation in tests
   - In-memory database for test isolation
   - WebApplicationFactory for API testing
@@ -670,11 +701,16 @@ All features below are planned for step-by-step implementation. Each section rep
 - [ ] Create blockchain synchronization logic
 - [ ] Handle network partitioning scenarios
 
-#### TODO: Consensus API Endpoints
-- [ ] POST /api/consensus/propose-block - Propose new block
-- [ ] POST /api/consensus/validate-block - Validate proposed block
-- [ ] GET /api/consensus/validators - Get validator list
-- [ ] GET /api/consensus/status - Get consensus status
+#### ✅ DONE: Consensus API Endpoints
+- [x] POST /api/consensus/create-block - Manually create new block (Admin/Validator only)
+- [x] POST /api/consensus/validate-block/{index} - Validate block by consensus rules (Admin/Validator only)
+- [x] GET /api/consensus/validators - Get active validator list
+- [x] GET /api/consensus/status - Get consensus status with chain information
+- [x] BlockCreationBackgroundService - Automated block creation every 30 seconds
+- [x] ConsensusSettings configuration class for block creation parameters
+- [x] Integration with Proof-of-Authority consensus engine
+- [x] 6 unit tests for background service
+- [x] 13 integration tests for API endpoints
 
 ---
 
@@ -901,11 +937,11 @@ All features below are planned for step-by-step implementation. Each section rep
   - [x] Genesis block initialization
   - [x] Tampering detection
   - [x] End-to-end workflows
-- [ ] Write tests for consensus logic:
-  - [ ] Validator selection
-  - [ ] Block proposal
-  - [ ] Consensus threshold
-  - [ ] Fork resolution
+- [x] Write tests for consensus logic:
+  - [x] Validator selection (ProofOfAuthorityConsensusEngine tests)
+  - [x] Block proposal (ProofOfAuthorityConsensusEngine tests)
+  - [x] Block creation and signing (ProofOfAuthorityConsensusEngine tests)
+  - [x] Automated block creation (BlockCreationBackgroundService tests)
 - [x] Write tests for core models (53 tests):
   - [x] Shipment entity (lifecycle, validation, state transitions)
   - [x] ShipmentItem entity
