@@ -2,10 +2,12 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using BlockchainAidTracker.Core.Models;
+using BlockchainAidTracker.DataAccess;
 using BlockchainAidTracker.Services.DTOs.Authentication;
 using BlockchainAidTracker.Services.DTOs.Shipment;
 using BlockchainAidTracker.Services.DTOs.SmartContract;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlockchainAidTracker.Tests.Integration;
 
@@ -35,6 +37,7 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
     {
         const string password = "SecurePassword123!";
 
+        // Use the registration endpoint to create user (creates with Recipient role by default)
         var registerRequest = new RegisterRequest
         {
             Username = username,
@@ -47,49 +50,34 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
         var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
         registerResponse.EnsureSuccessStatusCode();
         var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
+        var userId = authResponse!.UserId;
 
-        // Assign role if needed
+        // Update the role in the database if it's not the default Recipient role
         if (role != UserRole.Recipient)
         {
-            var adminToken = await GetAdminTokenAsync();
-            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-            await _client.PostAsJsonAsync("/api/users/assign-role", new { UserId = authResponse!.UserId, Role = role });
-            _client.DefaultRequestHeaders.Clear();
+            using var scope = _factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Re-login to get new token with updated role
-            var loginRequest = new LoginRequest { UsernameOrEmail = username, Password = password };
-            var loginResponse = await _client.PostAsJsonAsync("/api/authentication/login", loginRequest);
-            loginResponse.EnsureSuccessStatusCode();
-            authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.Role = role;
+                await dbContext.SaveChangesAsync();
+            }
         }
 
-        return (authResponse!.AccessToken, authResponse.UserId);
-    }
-
-    private async Task<string> GetAdminTokenAsync()
-    {
-        const string adminUsername = "admin";
-        const string adminPassword = "AdminPassword123!";
-
-        // Try to register admin
-        var registerRequest = new RegisterRequest
+        // Login to get a fresh token with the updated role
+        var loginRequest = new LoginRequest
         {
-            Username = adminUsername,
-            Email = "admin@example.com",
-            Password = adminPassword,
-            FullName = "Admin User",
-            Organization = "Test Organization"
+            UsernameOrEmail = username,
+            Password = password
         };
 
-        await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
-
-        // Login as admin
-        var loginRequest = new LoginRequest { UsernameOrEmail = adminUsername, Password = adminPassword };
         var loginResponse = await _client.PostAsJsonAsync("/api/authentication/login", loginRequest);
         loginResponse.EnsureSuccessStatusCode();
-        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
+        var loginAuthResponse = await loginResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
 
-        return authResponse!.AccessToken;
+        return (loginAuthResponse!.AccessToken, userId);
     }
 
     private async Task<(ShipmentDto Shipment, string CoordinatorToken)> CreateTestShipmentAsync()
