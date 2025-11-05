@@ -172,6 +172,42 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
     }
 
     [Fact]
+    public async Task ManualBlockCreation_WithConsensusEngine_Works()
+    {
+        // This test verifies that block creation works manually before testing the background service
+        // Arrange
+        var validator = CreateTestValidator();
+        await Context.Validators.AddAsync(validator);
+        await Context.SaveChangesAsync();
+
+        // Add a pending transaction
+        var transaction = new Transaction
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = TransactionType.ShipmentCreated,
+            Timestamp = DateTime.UtcNow,
+            SenderPublicKey = "test-public-key",
+            PayloadData = "test-payload",
+            Signature = "test-signature"
+        };
+        _blockchain.AddTransaction(transaction);
+
+        var serviceProvider = CreateServiceProvider();
+
+        // Act - manually create a block using the consensus engine
+        using (var scope = serviceProvider.CreateScope())
+        {
+            var consensusEngine = scope.ServiceProvider.GetRequiredService<IConsensusEngine>();
+            var block = await consensusEngine.CreateBlockAsync(_blockchain, "TestPassword123!");
+            _blockchain.AddBlock(block);
+        }
+
+        // Assert
+        _blockchain.Chain.Count.Should().Be(2, "Should have genesis + new block");
+        _blockchain.PendingTransactions.Count.Should().Be(0, "Transaction should be in block");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithPendingTransactionsAndActiveValidator_CreatesBlock()
     {
         // Arrange
@@ -211,7 +247,24 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             var testRepo = scope.ServiceProvider.GetRequiredService<IValidatorRepository>();
             var nextValidator = await testRepo.GetNextValidatorForBlockCreationAsync();
             nextValidator.Should().NotBeNull("Validator should be retrievable through service provider");
+
+            // Also verify we can manually create a block (this will consume the pending transaction)
+            var consensusEngine = scope.ServiceProvider.GetRequiredService<IConsensusEngine>();
+            var testBlock = await consensusEngine.CreateBlockAsync(_blockchain, "TestPassword123!");
+            testBlock.Should().NotBeNull("Should be able to create block manually");
         }
+
+        // Re-add a new pending transaction for the background service test
+        var newTransaction = new Transaction
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = TransactionType.ShipmentCreated,
+            Timestamp = DateTime.UtcNow,
+            SenderPublicKey = "test-public-key",
+            PayloadData = "test-payload-2",
+            Signature = "test-signature-2"
+        };
+        _blockchain.AddTransaction(newTransaction);
 
         var service = new BlockCreationBackgroundService(
             serviceProvider,
