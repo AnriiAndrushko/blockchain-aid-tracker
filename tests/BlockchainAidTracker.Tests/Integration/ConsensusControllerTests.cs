@@ -167,7 +167,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         // Directly add a transaction to the blockchain
         using var scope = _factory.Services.CreateScope();
-        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+        var blockchain = scope.ServiceProvider.GetRequiredService<BlockchainAidTracker.Blockchain.Blockchain>();
 
         var testTransaction = new Transaction
         {
@@ -175,7 +175,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = "test-key",
-            Payload = "test-payload",
+            PayloadData = "test-payload",
             Signature = "test-signature"
         };
         blockchain.AddTransaction(testTransaction);
@@ -266,7 +266,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         // Directly add a transaction to the blockchain to ensure there are pending transactions
         using var scope = _factory.Services.CreateScope();
-        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+        var blockchain = scope.ServiceProvider.GetRequiredService<BlockchainAidTracker.Blockchain.Blockchain>();
 
         var testTransaction = new Transaction
         {
@@ -274,7 +274,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = "test-key",
-            Payload = "test-payload",
+            PayloadData = "test-payload",
             Signature = "test-signature"
         };
         blockchain.AddTransaction(testTransaction);
@@ -306,7 +306,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         // Directly add a transaction to the blockchain
         using var scope = _factory.Services.CreateScope();
-        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+        var blockchain = scope.ServiceProvider.GetRequiredService<BlockchainAidTracker.Blockchain.Blockchain>();
 
         var testTransaction = new Transaction
         {
@@ -314,7 +314,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = "test-key",
-            Payload = "test-payload",
+            PayloadData = "test-payload",
             Signature = "test-signature"
         };
         blockchain.AddTransaction(testTransaction);
@@ -351,7 +351,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         // Directly add a transaction to the blockchain
         using var scope = _factory.Services.CreateScope();
-        var blockchain = scope.ServiceProvider.GetRequiredService<Blockchain.Blockchain>();
+        var blockchain = scope.ServiceProvider.GetRequiredService<BlockchainAidTracker.Blockchain.Blockchain>();
 
         var testTransaction = new Transaction
         {
@@ -359,7 +359,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = "test-key",
-            Payload = "test-payload",
+            PayloadData = "test-payload",
             Signature = "test-signature"
         };
         blockchain.AddTransaction(testTransaction);
