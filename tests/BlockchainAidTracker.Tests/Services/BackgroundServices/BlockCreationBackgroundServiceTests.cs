@@ -444,7 +444,8 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
 
     private Validator CreateTestValidator()
     {
-        var (privateKey, publicKey) = _signatureService.GenerateKeyPair();
+        // Note: GenerateKeyPair returns (publicKey, privateKey) in that order!
+        var (publicKey, privateKey) = _signatureService.GenerateKeyPair();
         var encryptedPrivateKey = $"encrypted-{Guid.NewGuid()}"; // Unique identifier for this validator's key
 
         // Store the private key so the mock can return it
