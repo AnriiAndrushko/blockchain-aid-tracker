@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using BlockchainAidTracker.Core.Models;
+using BlockchainAidTracker.DataAccess;
 using BlockchainAidTracker.Services.DTOs.Authentication;
 using BlockchainAidTracker.Services.DTOs.Blockchain;
 using BlockchainAidTracker.Services.DTOs.Shipment;
@@ -83,7 +84,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
         if (role != UserRole.Recipient)
         {
             using var scope = _factory.Services.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<DataAccess.ApplicationDbContext>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var user = await dbContext.Users.FindAsync(userId);
             if (user != null)
             {
