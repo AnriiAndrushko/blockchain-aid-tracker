@@ -27,10 +27,12 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
     private readonly IDigitalSignatureService _signatureService;
     private readonly BlockchainAidTracker.Blockchain.Blockchain _blockchain;
     private readonly ConsensusSettings _consensusSettings;
+    private readonly Dictionary<string, string> _validatorPrivateKeys; // Maps encrypted key to actual private key
 
     public BlockCreationBackgroundServiceTests()
     {
         _logMessages = new List<string>();
+        _validatorPrivateKeys = new Dictionary<string, string>();
         _mockLogger = new Mock<ILogger<BlockCreationBackgroundService>>();
 
         // Capture all log messages
@@ -425,9 +427,12 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             .Setup(x => x.DecryptPrivateKey(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string encryptedKey, string password) =>
             {
-                // For testing, return a valid private key
-                var (privateKey, _) = _signatureService.GenerateKeyPair();
-                return privateKey;
+                // Return the stored private key for this validator
+                if (_validatorPrivateKeys.TryGetValue(encryptedKey, out var privateKey))
+                {
+                    return privateKey;
+                }
+                throw new InvalidOperationException($"No private key found for encrypted key: {encryptedKey}");
             });
         services.AddScoped(_ => mockKeyManagement.Object);
 
@@ -440,13 +445,17 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
     private Validator CreateTestValidator()
     {
         var (privateKey, publicKey) = _signatureService.GenerateKeyPair();
+        var encryptedPrivateKey = $"encrypted-{Guid.NewGuid()}"; // Unique identifier for this validator's key
+
+        // Store the private key so the mock can return it
+        _validatorPrivateKeys[encryptedPrivateKey] = privateKey;
 
         return new Validator
         {
             Id = Guid.NewGuid().ToString(),
             Name = "Test Validator",
             PublicKey = publicKey,
-            EncryptedPrivateKey = "encrypted-private-key",
+            EncryptedPrivateKey = encryptedPrivateKey,
             Address = "http://localhost:5000",
             Priority = 1,
             IsActive = true,
