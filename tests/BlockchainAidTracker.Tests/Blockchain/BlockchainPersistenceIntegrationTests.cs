@@ -67,9 +67,8 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
 
         blockchain.AddTransaction(transaction);
 
-        // Create a block
+        // Create a block (no need to sign since ValidateBlockSignatures = false)
         var block = blockchain.CreateBlock("test-validator");
-        block.SignBlock(privateKey, _signatureService);
         blockchain.AddBlock(block);
 
         // Save to persistence
@@ -284,7 +283,6 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         blockchain.AddTransaction(tx1);
 
         var block1 = blockchain.CreateBlock("validator-1");
-        block1.SignBlock(privateKey, _signatureService);
         blockchain.AddBlock(block1);
 
         // Add second block
@@ -300,7 +298,6 @@ public class BlockchainPersistenceIntegrationTests : IDisposable
         blockchain.AddTransaction(tx2);
 
         var block2 = blockchain.CreateBlock("validator-2");
-        block2.SignBlock(privateKey, _signatureService);
         blockchain.AddBlock(block2);
 
         // Save
