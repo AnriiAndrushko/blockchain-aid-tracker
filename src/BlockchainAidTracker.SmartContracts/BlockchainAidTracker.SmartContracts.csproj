@@ -11,4 +11,13 @@
     <ProjectReference Include="..\BlockchainAidTracker.Blockchain\BlockchainAidTracker.Blockchain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+      <HintPath>..\..\..\..\.dotnet\packs\Microsoft.AspNetCore.App.Ref\9.0.10\ref\net9.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions">
+      <HintPath>..\..\..\..\.dotnet\packs\Microsoft.AspNetCore.App.Ref\9.0.10\ref\net9.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

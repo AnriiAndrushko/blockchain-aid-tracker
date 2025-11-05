@@ -5,6 +5,7 @@
     <ProjectReference Include="..\BlockchainAidTracker.Blockchain\BlockchainAidTracker.Blockchain.csproj" />
     <ProjectReference Include="..\BlockchainAidTracker.DataAccess\BlockchainAidTracker.DataAccess.csproj" />
     <ProjectReference Include="..\BlockchainAidTracker.Cryptography\BlockchainAidTracker.Cryptography.csproj" />
+    <ProjectReference Include="..\BlockchainAidTracker.SmartContracts\BlockchainAidTracker.SmartContracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

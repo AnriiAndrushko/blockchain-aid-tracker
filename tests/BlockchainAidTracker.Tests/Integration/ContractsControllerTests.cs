@@ -57,7 +57,7 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
             _client.DefaultRequestHeaders.Clear();
 
             // Re-login to get new token with updated role
-            var loginRequest = new LoginRequest { Username = username, Password = password };
+            var loginRequest = new LoginRequest { UsernameOrEmail = username, Password = password };
             var loginResponse = await _client.PostAsJsonAsync("/api/authentication/login", loginRequest);
             loginResponse.EnsureSuccessStatusCode();
             authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
@@ -84,7 +84,7 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
         await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
 
         // Login as admin
-        var loginRequest = new LoginRequest { Username = adminUsername, Password = adminPassword };
+        var loginRequest = new LoginRequest { UsernameOrEmail = adminUsername, Password = adminPassword };
         var loginResponse = await _client.PostAsJsonAsync("/api/authentication/login", loginRequest);
         loginResponse.EnsureSuccessStatusCode();
         var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
