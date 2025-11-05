@@ -175,23 +175,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - Chain validation (hashes, signatures, integrity)
   - Query methods (GetBlockByIndex, GetTransactionById, etc.)
 
-**Consensus Engine** (NEW):
-- `IConsensusEngine` - Interface for consensus mechanisms
-- `ProofOfAuthorityConsensusEngine` - PoA consensus implementation with:
-  - Automated block creation with validator selection
-  - Round-robin block proposer selection from active validators
-  - Validator signature-based block validation
-  - Private key decryption for secure block signing
-  - Validator statistics tracking (blocks created, timestamps)
-  - Integration with validator repository and key management
-
-**Dependency Injection**:
-- `DependencyInjection` - Service registration extensions:
-  - `AddBlockchain()` - Registers blockchain as singleton
-  - `AddProofOfAuthorityConsensus()` - Registers PoA consensus engine
-  - `AddBlockchainWithPoAConsensus()` - Registers both blockchain and consensus
-
-**Test Coverage**: 72 unit tests (42 blockchain + 30 consensus, 100% passing)
+**Test Coverage**: 42 unit tests (100% passing)
 
 ### ✅ DataAccess Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.DataAccess/`
@@ -260,9 +244,19 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `UnauthorizedException` - Authentication/authorization failures
 - `NotFoundException` - Resource not found errors
 
+**Consensus Engine** (NEW):
+- `IConsensusEngine` - Interface for consensus mechanisms
+- `ProofOfAuthorityConsensusEngine` - PoA consensus implementation with:
+  - Automated block creation with validator selection
+  - Round-robin block proposer selection from active validators
+  - Validator signature-based block validation
+  - Private key decryption for secure block signing
+  - Validator statistics tracking (blocks created, timestamps)
+  - Integration with validator repository and key management
+
 **Configuration**:
 - `JwtSettings` - JWT token configuration (secret key, issuer, audience, expiration times)
-- `DependencyInjection` - Service registration extension methods
+- `DependencyInjection` - Service registration extension methods (includes AddProofOfAuthorityConsensus)
 
 **Key Features**:
 - JWT-based authentication with access tokens (60 min) and refresh tokens (7 days)
@@ -298,7 +292,7 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - System.IdentityModel.Tokens.Jwt 8.2.1
 - Microsoft.IdentityModel.Tokens 8.2.1
 
-**Test Coverage**: 123 unit tests (100% passing)
+**Test Coverage**: 153 unit tests (123 services + 30 consensus, 100% passing)
 
 ### ✅ API Module (95% - Authentication, Shipments, User Management, Blockchain Query, Smart Contracts & Validators Complete)
 **Location**: `src/BlockchainAidTracker.Api/`
@@ -464,10 +458,18 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 ### ✅ Test Suite (556 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
-- Cryptography tests: 31 tests
-- **Blockchain tests: 72 tests** (42 blockchain + 30 consensus) NEW
-  - Blockchain engine tests: 42 tests
+- **Services tests: 153 tests** (123 services + 30 consensus) NEW
+  - PasswordService tests: 13 tests
+  - TokenService tests: 17 tests
+  - AuthenticationService tests: 21 tests
+  - UserService tests: 16 tests
+  - QrCodeService tests: 14 tests
+  - ShipmentService tests: 42 tests
   - **ProofOfAuthorityConsensusEngine tests: 30 tests** NEW
+- **SmartContracts tests: 90 tests**
+  - SmartContractEngine tests: 24 tests
+  - DeliveryVerificationContract tests: 15 tests
+  - ShipmentTrackingContract tests: 51 tests
 - Core model tests: 75 tests
   - Shipment/ShipmentItem tests: 53 tests
   - Validator tests: 22 tests
@@ -476,14 +478,8 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - ShipmentRepository tests: 32 tests
   - ValidatorRepository tests: 8 tests
   - ApplicationDbContext tests: 20 tests
-- **Services tests: 123 tests**
-  - PasswordService tests: 13 tests
-  - TokenService tests: 17 tests
-  - AuthenticationService tests: 21 tests
-  - UserService tests: 16 tests
-  - QrCodeService tests: 14 tests
-  - ShipmentService tests: 42 tests
-- **SmartContracts tests: 90 tests**
+- Blockchain tests: 42 tests
+- Cryptography tests: 31 tests
   - SmartContractEngine tests: 24 tests
   - DeliveryVerificationContract tests: 15 tests
   - ShipmentTrackingContract tests: 51 tests
