@@ -4,4 +4,8 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 .idea/
-null
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal

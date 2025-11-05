@@ -121,6 +121,30 @@ dotnet ef migrations list --project src/BlockchainAidTracker.DataAccess
 
 **Database file location:** `src/BlockchainAidTracker.DataAccess/blockchain-aid-tracker.db`
 
+#### Troubleshooting Database Migrations
+
+**Error: "SQLite Error 1: 'table already exists'"**
+
+This occurs when the database schema is out of sync with the migration history. To fix:
+
+```bash
+# Option 1: Delete the database and reapply migrations (RECOMMENDED for development)
+# This will reset all data but ensure a clean state
+rm src/BlockchainAidTracker.DataAccess/blockchain-aid-tracker.db
+dotnet ef database update --project src/BlockchainAidTracker.DataAccess
+
+# Option 2: Remove last migration and recreate (if you just added a migration)
+dotnet ef migrations remove --project src/BlockchainAidTracker.DataAccess
+dotnet ef migrations add YourMigrationName --project src/BlockchainAidTracker.DataAccess
+dotnet ef database update --project src/BlockchainAidTracker.DataAccess
+
+# Option 3: Drop and recreate database (for production with data preservation)
+dotnet ef database drop --project src/BlockchainAidTracker.DataAccess
+dotnet ef database update --project src/BlockchainAidTracker.DataAccess
+```
+
+**Note:** The database file (*.db, *.db-shm, *.db-wal) should NOT be committed to version control. These files are now excluded in `.gitignore`.
+
 ### Docker
 
 ```bash
