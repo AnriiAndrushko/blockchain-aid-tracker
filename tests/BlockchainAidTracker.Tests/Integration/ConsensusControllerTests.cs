@@ -240,6 +240,11 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await CreateUserAndGetTokenAsync($"admin_{uniqueId}", UserRole.Administrator);
         await CreateTestValidatorAsync();
 
+        // Clear any pending transactions from previous tests (blockchain is shared across tests)
+        using var scope = _factory.Services.CreateScope();
+        var blockchain = scope.ServiceProvider.GetRequiredService<BlockchainAidTracker.Blockchain.Blockchain>();
+        blockchain.PendingTransactions.Clear();
+
         var request = new CreateBlockRequest
         {
             ValidatorPassword = "TestValidatorPassword123!"

@@ -201,7 +201,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
 
         // Act
         await service.StartAsync(cts.Token);
-        await Task.Delay(2000); // Wait for at least one block creation cycle
+        await Task.Delay(2500); // Wait longer: interval (1s) + execution time + buffer
         await service.StopAsync(cts.Token);
 
         // Assert
