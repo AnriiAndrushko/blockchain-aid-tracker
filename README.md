@@ -4,12 +4,13 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation, Business Logic, Authentication, Shipment, User Management & Blockchain Query APIs, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, cryptography services, key management, data access layer, services layer, and authentication/shipment/user management/blockchain query endpoints are fully implemented and tested.
+**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, smart contracts, cryptography services, key management, data access layer, services layer, and API endpoints are fully implemented and tested.
 
 **Current Metrics:**
--  **395 tests passing** (100% success rate: 312 unit + 83 integration)
+-  **485 tests passing** (100% success rate: 402 unit + 83 integration)
 -  Authentication, Shipment, User Management & Blockchain Query API endpoints operational with Swagger UI
 -  7 core business services fully implemented (including key management)
+-  **Smart contract framework with 2 built-in contracts (DeliveryVerification, ShipmentTracking)**
 -  **Blockchain engine with real ECDSA signature validation ENABLED**
 -  **AES-256 private key encryption with user passwords**
 -  JWT authentication with BCrypt password hashing
@@ -20,7 +21,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
 
-**Next:** Smart contract framework and Proof-of-Authority consensus
+**Next:** Integrate smart contracts with API endpoints and implement Proof-of-Authority consensus
 
 ## Quick Start
 
@@ -118,15 +119,17 @@ blockchain-aid-tracker/
 │   ├── BlockchainAidTracker.Cryptography/ # Cryptographic utilities ✅
 │   ├── BlockchainAidTracker.DataAccess/   # Entity Framework Core ✅
 │   ├── BlockchainAidTracker.Services/     # Business logic (7 services + key mgmt) ✅
-│   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment + user mgmt) ✅
+│   ├── BlockchainAidTracker.SmartContracts/ # Smart contract framework ✅
+│   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment + user mgmt + blockchain) ✅
 │   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
 ├── tests/                                  # Test projects
-│   └── BlockchainAidTracker.Tests/        # 395 tests (312 unit + 83 integration) ✅
+│   └── BlockchainAidTracker.Tests/        # 485 tests (402 unit + 83 integration) ✅
 │       ├── Blockchain/                    # 42 blockchain tests
 │       ├── Cryptography/                  # 31 crypto tests
 │       ├── Models/                        # 53 model tests
 │       ├── DataAccess/                    # 63 database tests
 │       ├── Services/                      # 123 services tests
+│       ├── SmartContracts/                # 90 smart contract tests ✅
 │       ├── Integration/                   # 83 API integration tests (auth + shipments + users + blockchain) ✅
 │       └── Infrastructure/                # Test helpers & builders
 ├── blockchain-aid-tracker/                # Demo console app
@@ -158,14 +161,17 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 - ✅ Role-based authorization for API endpoints (Admin/Coordinator/User permissions)
 - ✅ Swagger/OpenAPI documentation with JWT support
 - ✅ Integration test infrastructure with WebApplicationFactory
-- ✅ **395 tests passing with real cryptographic signature validation**
+- ✅ **Smart contract framework with execution engine**
+- ✅ **DeliveryVerificationContract for delivery confirmation validation**
+- ✅ **ShipmentTrackingContract for automated shipment lifecycle**
+- ✅ **485 tests passing with real cryptographic signature validation**
 
 ### In Progress 🔨
-- 🔨 Smart contract framework
+- 🔨 Smart contract API integration with endpoints
 
 ### Planned 📋
 - 📋 Proof-of-Authority consensus with validator nodes
-- 📋 Smart contracts for automated state transitions
+- 📋 Auto-execution of smart contracts on transactions
 - 📋 Real-time blockchain explorer UI
 - 📋 Blazor web application interface
 - 📋 Transparent donation tracking dashboard
@@ -191,20 +197,21 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 | 1. Core Architecture Setup | ✅ Complete | Database, repositories, models |
 | 2. Blockchain Core Implementation | ✅ Complete | Engine, real signatures, validation |
 | 3. **Cryptographic Key Management** | ✅ Complete | AES-256 encryption, ECDSA signing |
-| 4. Testing Infrastructure | ✅ Complete | 395 tests (312 unit + 83 integration) |
+| 4. Testing Infrastructure | ✅ Complete | 485 tests (402 unit + 83 integration) |
 | 5. User Management System | ✅ Complete | Authentication, JWT, key management, APIs |
 | 6. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
 | 7. Services Layer | ✅ Complete | 7 services, DTOs, validation, encryption |
 | 8. API Endpoints | ✅ Complete (85%) | Auth + Shipment + User Mgmt + Blockchain Query, Swagger UI |
-| 9. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
-| 10. Smart Contracts | 📋 Planned | Automated workflows |
-| 11. Web Application UI | 📋 Planned | Blazor dashboard |
+| 9. **Smart Contracts** | ✅ Complete | Framework, DeliveryVerification, ShipmentTracking |
+| 10. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
+| 11. Smart Contract API Integration | 🔨 In Progress | Auto-execution, API endpoints |
+| 12. Web Application UI | 📋 Planned | Blazor dashboard |
 
 **Legend:** ✅ Complete | 🔨 In Progress | 📋 Planned
 
 ## Testing
 
-The project has a comprehensive test suite with **395 passing tests** (100% success rate):
+The project has a comprehensive test suite with **485 passing tests** (100% success rate):
 
 ### Test Coverage
 
@@ -214,6 +221,7 @@ dotnet test
 
 # Run specific test category
 dotnet test --filter "FullyQualifiedName~Services"
+dotnet test --filter "FullyQualifiedName~SmartContracts"
 dotnet test --filter "FullyQualifiedName~DataAccess"
 dotnet test --filter "FullyQualifiedName~Blockchain"
 dotnet test --filter "FullyQualifiedName~Cryptography"
@@ -225,6 +233,7 @@ dotnet test --filter "FullyQualifiedName~Integration"
 | Category | Tests | Description |
 |----------|-------|-------------|
 | **Services** | 123 | Business logic, key management, authentication, shipment lifecycle |
+| **SmartContracts** | 90 | Contract engine, delivery verification, shipment tracking |
 | **Database** | 63 | Repository tests with in-memory DB, automatic cleanup |
 | **Models** | 53 | Domain entities (User, Shipment, Block, Transaction) |
 | **Blockchain** | 42 | Chain validation, block creation, real signature verification |
