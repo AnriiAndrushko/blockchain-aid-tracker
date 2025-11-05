@@ -227,7 +227,8 @@ public class ConsensusController : ControllerBase
                 return Ok(new ValidationResultDto
                 {
                     IsValid = true,
-                    Message = "Genesis block is valid"
+                    BlockCount = _blockchain.Chain.Count,
+                    ValidatedAt = DateTime.UtcNow
                 });
             }
 
@@ -237,7 +238,9 @@ public class ConsensusController : ControllerBase
                 return Ok(new ValidationResultDto
                 {
                     IsValid = false,
-                    Message = "Previous block not found"
+                    BlockCount = _blockchain.Chain.Count,
+                    Errors = new List<string> { "Previous block not found" },
+                    ValidatedAt = DateTime.UtcNow
                 });
             }
 
@@ -246,7 +249,9 @@ public class ConsensusController : ControllerBase
             var result = new ValidationResultDto
             {
                 IsValid = isValid,
-                Message = isValid ? "Block is valid according to consensus rules" : "Block validation failed"
+                BlockCount = _blockchain.Chain.Count,
+                Errors = isValid ? new List<string>() : new List<string> { "Block validation failed according to consensus rules" },
+                ValidatedAt = DateTime.UtcNow
             };
 
             _logger.LogInformation("Block {Index} validation result: {IsValid}", index, isValid);
@@ -288,8 +293,8 @@ public class ConsensusController : ControllerBase
                 v.Name,
                 v.PublicKey,
                 v.Priority,
-                v.BlocksCreated,
-                v.LastBlockCreatedAt
+                v.TotalBlocksCreated,
+                v.LastBlockCreatedTimestamp
             }).ToList();
 
             _logger.LogInformation("Retrieved {Count} active validators", validatorList.Count);

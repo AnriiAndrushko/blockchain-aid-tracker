@@ -86,12 +86,12 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
             Name = $"Test Validator {Guid.NewGuid().ToString("N")[..8]}",
             PublicKey = publicKey,
             EncryptedPrivateKey = encryptedPrivateKey,
-            NetworkAddress = "http://localhost:5000",
+            Address = "http://localhost:5000",
             Priority = 1,
             IsActive = true,
-            BlocksCreated = 0,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            TotalBlocksCreated = 0,
+            CreatedTimestamp = DateTime.UtcNow,
+            UpdatedTimestamp = DateTime.UtcNow
         };
 
         await dbContext.Validators.AddAsync(validator);

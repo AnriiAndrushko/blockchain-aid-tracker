@@ -341,12 +341,12 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             Name = "Test Validator",
             PublicKey = publicKey,
             EncryptedPrivateKey = "encrypted-private-key",
-            NetworkAddress = "http://localhost:5000",
+            Address = "http://localhost:5000",
             Priority = 1,
             IsActive = true,
-            BlocksCreated = 0,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            TotalBlocksCreated = 0,
+            CreatedTimestamp = DateTime.UtcNow,
+            UpdatedTimestamp = DateTime.UtcNow
         };
     }
 
