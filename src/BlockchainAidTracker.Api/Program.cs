@@ -150,6 +150,9 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// Deploy smart contracts after building the app
+app.Services.DeployContracts();
+
 // Apply database migrations in development (but not in testing)
 if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {

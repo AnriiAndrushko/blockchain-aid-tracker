@@ -26,26 +26,26 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// Adds smart contract services and automatically deploys registered contracts
+    /// Adds smart contract services (call DeployContracts separately after building the service provider)
     /// </summary>
     public static IServiceCollection AddSmartContractsWithAutoDeployment(this IServiceCollection services)
     {
+        // Just add the services - deployment will happen in Program.cs after building the app
         services.AddSmartContracts();
-
-        // Register a hosted service or startup action to deploy contracts
-        services.AddSingleton(sp =>
-        {
-            var engine = sp.GetRequiredService<SmartContractEngine>();
-            var contracts = sp.GetServices<ISmartContract>();
-
-            foreach (var contract in contracts)
-            {
-                engine.DeployContract(contract);
-            }
-
-            return engine;
-        });
-
         return services;
+    }
+
+    /// <summary>
+    /// Deploys all registered smart contracts to the engine
+    /// </summary>
+    public static void DeployContracts(this IServiceProvider serviceProvider)
+    {
+        var engine = serviceProvider.GetRequiredService<SmartContractEngine>();
+        var contracts = serviceProvider.GetServices<ISmartContract>();
+
+        foreach (var contract in contracts)
+        {
+            engine.DeployContract(contract);
+        }
     }
 }
