@@ -4,16 +4,18 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, smart contracts, smart contract API, cryptography services, key management, data access layer, services layer, and API endpoints are fully implemented and tested.
+**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, and API endpoints are fully implemented and tested.
 
 **Current Metrics:**
--  **496 tests passing** (100% success rate: 402 unit + 94 integration)
--  Authentication, Shipment, User Management, Blockchain Query & Smart Contract API endpoints operational with Swagger UI
--  7 core business services fully implemented (including key management)
+-  **526 tests passing** (100% success rate: 432 unit + 94 integration) NEW
+-  Authentication, Shipment, User Management, Blockchain Query, Smart Contract & Validator API endpoints operational with Swagger UI NEW
+-  8 core business services fully implemented (including key management & validator service) NEW
+-  **Validator node system with 6 API endpoints** NEW
 -  **Smart contract framework with 2 built-in contracts (DeliveryVerification, ShipmentTracking)**
 -  **Smart contract API integration with 4 endpoints (list, get, execute, get state)**
 -  **Blockchain engine with real ECDSA signature validation ENABLED**
 -  **AES-256 private key encryption with user passwords**
+-  **Round-robin validator selection for block proposer (PoA foundation)** NEW
 -  JWT authentication with BCrypt password hashing
 -  QR code generation for shipment tracking
 -  Complete data access layer with EF Core
@@ -22,7 +24,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
 
-**Next:** Implement Proof-of-Authority consensus mechanism and begin Blazor UI development
+**Next:** Implement Consensus Engine with PoA block creation algorithm, then begin Blazor UI development
 
 ## Quick Start
 
@@ -87,6 +89,15 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 - `GET /api/contracts/{contractId}/state` - Get contract state
 - `POST /api/contracts/execute` - Execute contract for a transaction (requires authentication)
 
+**Validator Management Endpoints (6 endpoints):** NEW
+- `POST /api/validators` - Register new validator with key pair generation (Admin only)
+- `GET /api/validators` - List all validators (Admin/Validator roles)
+- `GET /api/validators/{id}` - Get validator by ID (Admin/Validator roles)
+- `PUT /api/validators/{id}` - Update validator details (Admin only)
+- `POST /api/validators/{id}/activate` - Activate validator (Admin only)
+- `POST /api/validators/{id}/deactivate` - Deactivate validator (Admin only)
+- `GET /api/validators/next` - Get next validator for block creation (consensus use)
+
 **System Endpoints:**
 - `GET /health` - Health check endpoint with database monitoring
 
@@ -125,12 +136,12 @@ blockchain-aid-tracker/
 │   ├── BlockchainAidTracker.Blockchain/   # Blockchain engine ✅
 │   ├── BlockchainAidTracker.Cryptography/ # Cryptographic utilities ✅
 │   ├── BlockchainAidTracker.DataAccess/   # Entity Framework Core ✅
-│   ├── BlockchainAidTracker.Services/     # Business logic (7 services + key mgmt) ✅
+│   ├── BlockchainAidTracker.Services/     # Business logic (8 services + key mgmt) ✅
 │   ├── BlockchainAidTracker.SmartContracts/ # Smart contract framework ✅
-│   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment + user mgmt + blockchain) ✅
+│   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment + user mgmt + blockchain + validators) ✅
 │   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
 ├── tests/                                  # Test projects
-│   └── BlockchainAidTracker.Tests/        # 485 tests (402 unit + 83 integration) ✅
+│   └── BlockchainAidTracker.Tests/        # 526 tests (432 unit + 94 integration) ✅
 │       ├── Blockchain/                    # 42 blockchain tests
 │       ├── Cryptography/                  # 31 crypto tests
 │       ├── Models/                        # 53 model tests
@@ -159,26 +170,29 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 - ✅ QR code generation for shipment verification (Base64 and PNG)
 - ✅ Shipment lifecycle management (Created → Validated → InTransit → Delivered → Confirmed)
 - ✅ User profile management with role assignment
-- ✅ Business logic services layer (7 services including key management)
+- ✅ Business logic services layer (8 services including key management & validator service) NEW
 - ✅ Authentication REST API endpoints (register, login, refresh, logout, validate)
 - ✅ **Shipment REST API endpoints (create, list, get, update, confirm, history, qrcode)**
 - ✅ **User Management REST API endpoints (profile, update, get user, list, assign role, activate, deactivate)**
 - ✅ **Blockchain Query REST API endpoints (chain, block, transaction, validate, pending)**
+- ✅ **Validator Management REST API endpoints (register, list, get, update, activate, deactivate)** NEW
 - ✅ JWT Bearer authentication middleware for ASP.NET Core
-- ✅ Role-based authorization for API endpoints (Admin/Coordinator/User permissions)
+- ✅ Role-based authorization for API endpoints (Admin/Coordinator/Validator/User permissions)
 - ✅ Swagger/OpenAPI documentation with JWT support
 - ✅ Integration test infrastructure with WebApplicationFactory
 - ✅ **Smart contract framework with execution engine**
 - ✅ **DeliveryVerificationContract for delivery confirmation validation**
 - ✅ **ShipmentTrackingContract for automated shipment lifecycle**
-- ✅ **485 tests passing with real cryptographic signature validation**
+- ✅ **Validator node system with round-robin block proposer selection** NEW
+- ✅ **ECDSA key pair generation for validators** NEW
+- ✅ **526 tests passing with real cryptographic signature validation** NEW
 
 ### In Progress 🔨
-- 🔨 Smart contract API integration with endpoints
+- 🔨 Consensus Engine with PoA block creation algorithm
 
 ### Planned 📋
-- 📋 Proof-of-Authority consensus with validator nodes
-- 📋 Auto-execution of smart contracts on transactions
+- 📋 Proof-of-Authority consensus block validation and confirmation
+- 📋 Multi-node validator network communication
 - 📋 Real-time blockchain explorer UI
 - 📋 Blazor web application interface
 - 📋 Transparent donation tracking dashboard
@@ -204,15 +218,16 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 | 1. Core Architecture Setup | ✅ Complete | Database, repositories, models |
 | 2. Blockchain Core Implementation | ✅ Complete | Engine, real signatures, validation |
 | 3. **Cryptographic Key Management** | ✅ Complete | AES-256 encryption, ECDSA signing |
-| 4. Testing Infrastructure | ✅ Complete | 485 tests (402 unit + 83 integration) |
+| 4. Testing Infrastructure | ✅ Complete | 526 tests (432 unit + 94 integration) |
 | 5. User Management System | ✅ Complete | Authentication, JWT, key management, APIs |
 | 6. Supply Chain Operations | ✅ Complete | Shipment services, QR codes, lifecycle |
-| 7. Services Layer | ✅ Complete | 7 services, DTOs, validation, encryption |
-| 8. API Endpoints | ✅ Complete (85%) | Auth + Shipment + User Mgmt + Blockchain Query, Swagger UI |
+| 7. Services Layer | ✅ Complete | 8 services, DTOs, validation, encryption |
+| 8. API Endpoints | ✅ Complete (95%) | Auth + Shipment + User Mgmt + Blockchain + Smart Contracts + Validators, Swagger UI |
 | 9. **Smart Contracts** | ✅ Complete | Framework, DeliveryVerification, ShipmentTracking |
-| 10. Proof-of-Authority Consensus | 📋 Planned | Validator nodes, P2P |
-| 11. Smart Contract API Integration | 🔨 In Progress | Auto-execution, API endpoints |
-| 12. Web Application UI | 📋 Planned | Blazor dashboard |
+| 10. **Smart Contract API Integration** | ✅ Complete | Auto-execution, API endpoints |
+| 11. **Validator Node System** | ✅ Complete | Validator management, round-robin selection |
+| 12. Consensus Engine | 🔨 In Progress | PoA block creation algorithm |
+| 13. Web Application UI | 📋 Planned | Blazor dashboard |
 
 **Legend:** ✅ Complete | 🔨 In Progress | 📋 Planned
 
