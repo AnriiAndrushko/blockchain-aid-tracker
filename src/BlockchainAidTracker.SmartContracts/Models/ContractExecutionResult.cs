@@ -50,12 +50,13 @@ public class ContractExecutionResult
         };
     }
 
-    public static ContractExecutionResult FailureResult(string errorMessage)
+    public static ContractExecutionResult FailureResult(string errorMessage, List<ContractEvent>? events = null)
     {
         return new ContractExecutionResult
         {
             Success = false,
-            ErrorMessage = errorMessage
+            ErrorMessage = errorMessage,
+            Events = events ?? new List<ContractEvent>()
         };
     }
 }

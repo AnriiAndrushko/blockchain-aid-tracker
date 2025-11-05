@@ -165,7 +165,7 @@ public class ShipmentTrackingContract : SmartContract
             }));
 
             return ContractExecutionResult.FailureResult(
-                $"Invalid state transition from {currentStatus} to {newStatus}");
+                $"Invalid state transition from {currentStatus} to {newStatus}", events);
         }
 
         // Update state

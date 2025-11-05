@@ -222,7 +222,10 @@ public class ShipmentTrackingContractTests
         var createTransaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
             JsonSerializer.Serialize(createPayload));
         var createContext = new ContractExecutionContext(createTransaction);
-        await _contract.ExecuteAsync(createContext);
+        var createResult = await _contract.ExecuteAsync(createContext);
+
+        // Apply state changes from creation
+        _contract.UpdateState(createResult.StateChanges);
 
         // Now update the status
         var updatePayload = new Dictionary<string, object>
@@ -262,7 +265,10 @@ public class ShipmentTrackingContractTests
         var createTransaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
             JsonSerializer.Serialize(createPayload));
         var createContext = new ContractExecutionContext(createTransaction);
-        await _contract.ExecuteAsync(createContext);
+        var createResult = await _contract.ExecuteAsync(createContext);
+
+        // Apply state changes from creation
+        _contract.UpdateState(createResult.StateChanges);
 
         // Try to update directly to Delivered (invalid transition from Created)
         var updatePayload = new Dictionary<string, object>
@@ -320,7 +326,8 @@ public class ShipmentTrackingContractTests
         };
         var createTransaction = new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
             JsonSerializer.Serialize(createPayload));
-        await _contract.ExecuteAsync(new ContractExecutionContext(createTransaction));
+        var createResult = await _contract.ExecuteAsync(new ContractExecutionContext(createTransaction));
+        _contract.UpdateState(createResult.StateChanges);
 
         // Validated
         var validatedPayload = new Dictionary<string, object>
@@ -328,9 +335,10 @@ public class ShipmentTrackingContractTests
             { "shipmentId", shipmentId },
             { "newStatus", ShipmentStatus.Validated.ToString() }
         };
-        await _contract.ExecuteAsync(new ContractExecutionContext(
+        var validatedResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
                 JsonSerializer.Serialize(validatedPayload))));
+        _contract.UpdateState(validatedResult.StateChanges);
 
         // InTransit
         var inTransitPayload = new Dictionary<string, object>
@@ -338,9 +346,10 @@ public class ShipmentTrackingContractTests
             { "shipmentId", shipmentId },
             { "newStatus", ShipmentStatus.InTransit.ToString() }
         };
-        await _contract.ExecuteAsync(new ContractExecutionContext(
+        var inTransitResult = await _contract.ExecuteAsync(new ContractExecutionContext(
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
                 JsonSerializer.Serialize(inTransitPayload))));
+        _contract.UpdateState(inTransitResult.StateChanges);
 
         // Delivered
         var deliveredPayload = new Dictionary<string, object>
@@ -413,6 +422,7 @@ public class ShipmentTrackingContractTests
             new Transaction(TransactionType.ShipmentCreated, "coordinator-key",
                 JsonSerializer.Serialize(createPayload))));
         createResult.Success.Should().BeTrue();
+        _contract.UpdateState(createResult.StateChanges);
 
         // Validated
         var validatedPayload = new Dictionary<string, object>
@@ -424,6 +434,7 @@ public class ShipmentTrackingContractTests
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
                 JsonSerializer.Serialize(validatedPayload))));
         validatedResult.Success.Should().BeTrue();
+        _contract.UpdateState(validatedResult.StateChanges);
 
         // InTransit
         var inTransitPayload = new Dictionary<string, object>
@@ -435,6 +446,7 @@ public class ShipmentTrackingContractTests
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
                 JsonSerializer.Serialize(inTransitPayload))));
         inTransitResult.Success.Should().BeTrue();
+        _contract.UpdateState(inTransitResult.StateChanges);
 
         // Delivered
         var deliveredPayload = new Dictionary<string, object>
@@ -446,6 +458,7 @@ public class ShipmentTrackingContractTests
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
                 JsonSerializer.Serialize(deliveredPayload))));
         deliveredResult.Success.Should().BeTrue();
+        _contract.UpdateState(deliveredResult.StateChanges);
 
         // Confirmed
         var confirmedPayload = new Dictionary<string, object>
@@ -457,6 +470,7 @@ public class ShipmentTrackingContractTests
             new Transaction(TransactionType.StatusUpdated, "coordinator-key",
                 JsonSerializer.Serialize(confirmedPayload))));
         confirmedResult.Success.Should().BeTrue();
+        _contract.UpdateState(confirmedResult.StateChanges);
 
         // Verify final state
         var state = _contract.GetState();

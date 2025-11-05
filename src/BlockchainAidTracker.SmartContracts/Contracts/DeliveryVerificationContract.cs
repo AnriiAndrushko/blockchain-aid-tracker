@@ -61,7 +61,7 @@ public class DeliveryVerificationContract : SmartContract
                     { "actualSender", context.Transaction.SenderPublicKey }
                 }));
 
-                return ContractExecutionResult.FailureResult("Delivery can only be confirmed by the assigned recipient");
+                return ContractExecutionResult.FailureResult("Delivery can only be confirmed by the assigned recipient", events);
             }
 
             // Verify QR code data if provided
@@ -80,7 +80,7 @@ public class DeliveryVerificationContract : SmartContract
                         { "providedQrCode", qrCodeData }
                     }));
 
-                    return ContractExecutionResult.FailureResult("QR code verification failed");
+                    return ContractExecutionResult.FailureResult("QR code verification failed", events);
                 }
 
                 output["qrCodeVerified"] = true;
