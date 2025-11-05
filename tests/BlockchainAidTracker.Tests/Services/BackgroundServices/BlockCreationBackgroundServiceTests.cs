@@ -5,6 +5,7 @@ using BlockchainAidTracker.DataAccess.Repositories;
 using BlockchainAidTracker.Services.BackgroundServices;
 using BlockchainAidTracker.Services.Configuration;
 using BlockchainAidTracker.Services.Consensus;
+using BlockchainAidTracker.Services.Interfaces;
 using BlockchainAidTracker.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
     private readonly Mock<ILogger<BlockCreationBackgroundService>> _mockLogger;
     private readonly IHashService _hashService;
     private readonly IDigitalSignatureService _signatureService;
-    private readonly Blockchain.Blockchain _blockchain;
+    private readonly BlockchainAidTracker.Blockchain.Blockchain _blockchain;
     private readonly ConsensusSettings _consensusSettings;
 
     public BlockCreationBackgroundServiceTests()
@@ -30,7 +31,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
         _mockLogger = new Mock<ILogger<BlockCreationBackgroundService>>();
         _hashService = new HashService();
         _signatureService = new DigitalSignatureService();
-        _blockchain = new Blockchain.Blockchain(_hashService, _signatureService)
+        _blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService)
         {
             ValidateTransactionSignatures = false
         };
@@ -184,7 +185,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = "test-public-key",
-            Payload = "test-payload",
+            PayloadData = "test-payload",
             Signature = "test-signature"
         };
         _blockchain.AddTransaction(transaction);
@@ -221,7 +222,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
             Type = TransactionType.ShipmentCreated,
             Timestamp = DateTime.UtcNow,
             SenderPublicKey = "test-public-key",
-            Payload = "test-payload",
+            PayloadData = "test-payload",
             Signature = "test-signature"
         };
         _blockchain.AddTransaction(transaction);
@@ -270,7 +271,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
                 Type = TransactionType.ShipmentCreated,
                 Timestamp = DateTime.UtcNow,
                 SenderPublicKey = "test-public-key",
-                Payload = $"test-payload-{i}",
+                PayloadData = $"test-payload-{i}",
                 Signature = "test-signature"
             };
             _blockchain.AddTransaction(transaction);
@@ -314,7 +315,7 @@ public class BlockCreationBackgroundServiceTests : DatabaseTestBase
         services.AddSingleton<IDigitalSignatureService>(_signatureService);
 
         // Register key management service with mock
-        var mockKeyManagement = new Mock<Services.Interfaces.IKeyManagementService>();
+        var mockKeyManagement = new Mock<IKeyManagementService>();
         mockKeyManagement
             .Setup(x => x.DecryptPrivateKey(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string encryptedKey, string password) =>

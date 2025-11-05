@@ -60,7 +60,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         var loginRequest = new LoginRequest
         {
-            Username = username,
+            UsernameOrEmail = username,
             Password = password
         };
 
@@ -152,9 +152,9 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         var status = await response.Content.ReadFromJsonAsync<ConsensusStatusDto>();
         status.Should().NotBeNull();
-        status!.ChainHeight.Should().BeGreaterOrEqualTo(1); // At least genesis block
-        status.PendingTransactionCount.Should().BeGreaterOrEqualTo(0);
-        status.ActiveValidatorCount.Should().BeGreaterOrEqualTo(1);
+        status!.ChainHeight.Should().BeGreaterThanOrEqualTo(1); // At least genesis block
+        status.PendingTransactionCount.Should().BeGreaterThanOrEqualTo(0);
+        status.ActiveValidatorCount.Should().BeGreaterThanOrEqualTo(1);
         status.LastBlockHash.Should().NotBeNullOrEmpty();
         status.LastBlockTimestamp.Should().NotBeNull();
     }
@@ -412,7 +412,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         var validators = await response.Content.ReadFromJsonAsync<List<dynamic>>();
         validators.Should().NotBeNull();
-        validators!.Count.Should().BeGreaterOrEqualTo(1);
+        validators!.Count.Should().BeGreaterThanOrEqualTo(1);
     }
 
     [Fact]
@@ -431,7 +431,7 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
 
         var validators = await response.Content.ReadFromJsonAsync<List<dynamic>>();
         validators.Should().NotBeNull();
-        validators!.Count.Should().BeGreaterOrEqualTo(3);
+        validators!.Count.Should().BeGreaterThanOrEqualTo(3);
     }
 
     #endregion
