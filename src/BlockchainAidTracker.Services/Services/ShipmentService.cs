@@ -21,6 +21,7 @@ public class ShipmentService : IShipmentService
     private readonly Blockchain.Blockchain _blockchain;
     private readonly IDigitalSignatureService _digitalSignatureService;
     private readonly TransactionSigningContext _signingContext;
+    private readonly IAuditLogService _auditLogService;
 
     public ShipmentService(
         IShipmentRepository shipmentRepository,
@@ -28,7 +29,8 @@ public class ShipmentService : IShipmentService
         IQrCodeService qrCodeService,
         Blockchain.Blockchain blockchain,
         IDigitalSignatureService digitalSignatureService,
-        TransactionSigningContext signingContext)
+        TransactionSigningContext signingContext,
+        IAuditLogService auditLogService)
     {
         _shipmentRepository = shipmentRepository ?? throw new ArgumentNullException(nameof(shipmentRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -36,6 +38,7 @@ public class ShipmentService : IShipmentService
         _blockchain = blockchain ?? throw new ArgumentNullException(nameof(blockchain));
         _digitalSignatureService = digitalSignatureService ?? throw new ArgumentNullException(nameof(digitalSignatureService));
         _signingContext = signingContext ?? throw new ArgumentNullException(nameof(signingContext));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
     }
 
     public async Task<ShipmentDto> CreateShipmentAsync(CreateShipmentRequest request, string coordinatorId)
@@ -50,74 +53,130 @@ public class ShipmentService : IShipmentService
             throw new ArgumentException("Coordinator ID cannot be null or empty", nameof(coordinatorId));
         }
 
-        // Validate coordinator exists and has appropriate role
-        var coordinator = await _userRepository.GetByIdAsync(coordinatorId);
-        if (coordinator == null)
+        try
         {
-            throw new NotFoundException($"Coordinator with ID '{coordinatorId}' not found");
-        }
-
-        if (coordinator.Role != UserRole.Coordinator && coordinator.Role != UserRole.Administrator)
-        {
-            throw new UnauthorizedException("Only coordinators and administrators can create shipments");
-        }
-
-        // Validate recipient exists
-        var recipient = await _userRepository.GetByIdAsync(request.RecipientId);
-        if (recipient == null)
-        {
-            throw new NotFoundException($"Recipient with ID '{request.RecipientId}' not found");
-        }
-
-        // Create shipment entity
-        var shipmentId = Guid.NewGuid().ToString();
-        var qrCode = _qrCodeService.GenerateQrCode(shipmentId);
-
-        // Format expected delivery as a timeframe string
-        var expectedTimeframe = $"Expected by {request.ExpectedDeliveryDate:yyyy-MM-dd}";
-
-        var shipment = new Shipment
-        {
-            Id = shipmentId,
-            Origin = request.Origin,
-            Destination = request.Destination,
-            AssignedRecipient = request.RecipientId,
-            ExpectedDeliveryTimeframe = expectedTimeframe,
-            Status = ShipmentStatus.Created,
-            QrCodeData = qrCode,
-            CoordinatorPublicKey = coordinator.PublicKey,
-            CreatedTimestamp = DateTime.UtcNow,
-            UpdatedTimestamp = DateTime.UtcNow,
-            Items = request.Items.Select(i => new ShipmentItem
+            // Validate coordinator exists and has appropriate role
+            var coordinator = await _userRepository.GetByIdAsync(coordinatorId);
+            if (coordinator == null)
             {
-                Id = Guid.NewGuid().ToString(),
-                Description = i.Description,
-                Quantity = i.Quantity,
-                Unit = i.Unit,
-                Category = "General" // Default category
-            }).ToList()
-        };
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentCreated,
+                    $"Shipment creation failed: Coordinator '{coordinatorId}' not found",
+                    "Coordinator not found",
+                    coordinatorId);
+                throw new NotFoundException($"Coordinator with ID '{coordinatorId}' not found");
+            }
 
-        // Save to database (AddAsync saves automatically)
-        await _shipmentRepository.AddAsync(shipment);
-
-        // Create blockchain transaction
-        var transactionId = await CreateBlockchainTransactionAsync(
-            TransactionType.ShipmentCreated,
-            coordinator.PublicKey,
-            new
+            if (coordinator.Role != UserRole.Coordinator && coordinator.Role != UserRole.Administrator)
             {
-                ShipmentId = shipmentId,
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentCreated,
+                    $"Shipment creation failed: User '{coordinator.Username}' lacks required role",
+                    "Insufficient permissions",
+                    coordinatorId,
+                    coordinator.Username);
+                throw new UnauthorizedException("Only coordinators and administrators can create shipments");
+            }
+
+            // Validate recipient exists
+            var recipient = await _userRepository.GetByIdAsync(request.RecipientId);
+            if (recipient == null)
+            {
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentCreated,
+                    $"Shipment creation failed: Recipient '{request.RecipientId}' not found",
+                    "Recipient not found",
+                    coordinatorId,
+                    coordinator.Username);
+                throw new NotFoundException($"Recipient with ID '{request.RecipientId}' not found");
+            }
+
+            // Create shipment entity
+            var shipmentId = Guid.NewGuid().ToString();
+            var qrCode = _qrCodeService.GenerateQrCode(shipmentId);
+
+            // Format expected delivery as a timeframe string
+            var expectedTimeframe = $"Expected by {request.ExpectedDeliveryDate:yyyy-MM-dd}";
+
+            var shipment = new Shipment
+            {
+                Id = shipmentId,
                 Origin = request.Origin,
                 Destination = request.Destination,
-                RecipientId = request.RecipientId,
-                Items = request.Items,
-                CreatedBy = coordinatorId,
-                CreatedAt = shipment.CreatedTimestamp
-            },
-            coordinatorId);
+                AssignedRecipient = request.RecipientId,
+                ExpectedDeliveryTimeframe = expectedTimeframe,
+                Status = ShipmentStatus.Created,
+                QrCodeData = qrCode,
+                CoordinatorPublicKey = coordinator.PublicKey,
+                CreatedTimestamp = DateTime.UtcNow,
+                UpdatedTimestamp = DateTime.UtcNow,
+                Items = request.Items.Select(i => new ShipmentItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Description = i.Description,
+                    Quantity = i.Quantity,
+                    Unit = i.Unit,
+                    Category = "General" // Default category
+                }).ToList()
+            };
 
-        return MapToDto(shipment, new List<string> { transactionId });
+            // Save to database (AddAsync saves automatically)
+            await _shipmentRepository.AddAsync(shipment);
+
+            // Create blockchain transaction
+            var transactionId = await CreateBlockchainTransactionAsync(
+                TransactionType.ShipmentCreated,
+                coordinator.PublicKey,
+                new
+                {
+                    ShipmentId = shipmentId,
+                    Origin = request.Origin,
+                    Destination = request.Destination,
+                    RecipientId = request.RecipientId,
+                    Items = request.Items,
+                    CreatedBy = coordinatorId,
+                    CreatedAt = shipment.CreatedTimestamp
+                },
+                coordinatorId);
+
+            // Log successful shipment creation
+            await _auditLogService.LogAsync(
+                AuditLogCategory.Shipment,
+                AuditLogAction.ShipmentCreated,
+                $"Shipment '{shipmentId}' created by '{coordinator.Username}' from {request.Origin} to {request.Destination}",
+                coordinatorId,
+                coordinator.Username,
+                shipmentId,
+                "Shipment",
+                $"{{\"origin\":\"{request.Origin}\",\"destination\":\"{request.Destination}\",\"recipientId\":\"{request.RecipientId}\",\"itemCount\":{request.Items.Count}}}");
+
+            return MapToDto(shipment, new List<string> { transactionId });
+        }
+        catch (BusinessException)
+        {
+            throw; // Re-throw business exceptions (already logged)
+        }
+        catch (UnauthorizedException)
+        {
+            throw; // Re-throw unauthorized exceptions (already logged)
+        }
+        catch (NotFoundException)
+        {
+            throw; // Re-throw not found exceptions (already logged)
+        }
+        catch (Exception ex)
+        {
+            await _auditLogService.LogFailureAsync(
+                AuditLogCategory.Shipment,
+                AuditLogAction.ShipmentCreated,
+                $"Shipment creation failed for coordinator '{coordinatorId}'",
+                ex.Message,
+                coordinatorId);
+            throw;
+        }
     }
 
     public async Task<ShipmentDto?> GetShipmentByIdAsync(string shipmentId)
@@ -183,46 +242,101 @@ public class ShipmentService : IShipmentService
             throw new ArgumentException("Updated by user ID cannot be null or empty", nameof(updatedBy));
         }
 
-        var shipment = await _shipmentRepository.GetByIdWithItemsAsync(shipmentId);
-        if (shipment == null)
+        try
         {
-            throw new NotFoundException($"Shipment with ID '{shipmentId}' not found");
-        }
-
-        var user = await _userRepository.GetByIdAsync(updatedBy);
-        if (user == null)
-        {
-            throw new NotFoundException($"User with ID '{updatedBy}' not found");
-        }
-
-        // Validate status transition
-        if (!shipment.CanTransitionTo(newStatus))
-        {
-            throw new BusinessException($"Cannot transition shipment from {shipment.Status} to {newStatus}");
-        }
-
-        var oldStatus = shipment.Status;
-        shipment.UpdateStatus(newStatus);
-
-        _shipmentRepository.Update(shipment);
-
-        // Create blockchain transaction
-        var transactionId = await CreateBlockchainTransactionAsync(
-            TransactionType.StatusUpdated,
-            user.PublicKey,
-            new
+            var shipment = await _shipmentRepository.GetByIdWithItemsAsync(shipmentId);
+            if (shipment == null)
             {
-                ShipmentId = shipmentId,
-                OldStatus = oldStatus.ToString(),
-                NewStatus = newStatus.ToString(),
-                UpdatedBy = updatedBy,
-                UpdatedAt = shipment.UpdatedTimestamp
-            },
-            updatedBy);
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentStatusUpdated,
+                    $"Status update failed: Shipment '{shipmentId}' not found",
+                    "Shipment not found",
+                    updatedBy);
+                throw new NotFoundException($"Shipment with ID '{shipmentId}' not found");
+            }
 
-        // Use private method since we already have the shipment (no need to check existence)
-        var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
-        return MapToDto(shipment, transactionIds);
+            var user = await _userRepository.GetByIdAsync(updatedBy);
+            if (user == null)
+            {
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentStatusUpdated,
+                    $"Status update failed: User '{updatedBy}' not found",
+                    "User not found",
+                    updatedBy);
+                throw new NotFoundException($"User with ID '{updatedBy}' not found");
+            }
+
+            // Validate status transition
+            if (!shipment.CanTransitionTo(newStatus))
+            {
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentStatusUpdated,
+                    $"Invalid status transition for shipment '{shipmentId}' from {shipment.Status} to {newStatus}",
+                    "Invalid status transition",
+                    updatedBy,
+                    user.Username,
+                    shipmentId,
+                    "Shipment");
+                throw new BusinessException($"Cannot transition shipment from {shipment.Status} to {newStatus}");
+            }
+
+            var oldStatus = shipment.Status;
+            shipment.UpdateStatus(newStatus);
+
+            _shipmentRepository.Update(shipment);
+
+            // Create blockchain transaction
+            var transactionId = await CreateBlockchainTransactionAsync(
+                TransactionType.StatusUpdated,
+                user.PublicKey,
+                new
+                {
+                    ShipmentId = shipmentId,
+                    OldStatus = oldStatus.ToString(),
+                    NewStatus = newStatus.ToString(),
+                    UpdatedBy = updatedBy,
+                    UpdatedAt = shipment.UpdatedTimestamp
+                },
+                updatedBy);
+
+            // Log successful status update
+            await _auditLogService.LogAsync(
+                AuditLogCategory.Shipment,
+                AuditLogAction.ShipmentStatusUpdated,
+                $"Shipment '{shipmentId}' status updated from {oldStatus} to {newStatus} by '{user.Username}'",
+                updatedBy,
+                user.Username,
+                shipmentId,
+                "Shipment",
+                $"{{\"oldStatus\":\"{oldStatus}\",\"newStatus\":\"{newStatus}\"}}");
+
+            // Use private method since we already have the shipment (no need to check existence)
+            var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
+            return MapToDto(shipment, transactionIds);
+        }
+        catch (BusinessException)
+        {
+            throw; // Re-throw business exceptions (already logged)
+        }
+        catch (NotFoundException)
+        {
+            throw; // Re-throw not found exceptions (already logged)
+        }
+        catch (Exception ex)
+        {
+            await _auditLogService.LogFailureAsync(
+                AuditLogCategory.Shipment,
+                AuditLogAction.ShipmentStatusUpdated,
+                $"Status update failed for shipment '{shipmentId}'",
+                ex.Message,
+                updatedBy,
+                entityId: shipmentId,
+                entityType: "Shipment");
+            throw;
+        }
     }
 
     public async Task<ShipmentDto> ConfirmDeliveryAsync(string shipmentId, string recipientId)
@@ -237,48 +351,115 @@ public class ShipmentService : IShipmentService
             throw new ArgumentException("Recipient ID cannot be null or empty", nameof(recipientId));
         }
 
-        var shipment = await _shipmentRepository.GetByIdWithItemsAsync(shipmentId);
-        if (shipment == null)
+        try
         {
-            throw new NotFoundException($"Shipment with ID '{shipmentId}' not found");
-        }
-
-        if (shipment.AssignedRecipient != recipientId)
-        {
-            throw new UnauthorizedException("Only the assigned recipient can confirm delivery");
-        }
-
-        var recipient = await _userRepository.GetByIdAsync(recipientId);
-        if (recipient == null)
-        {
-            throw new NotFoundException($"Recipient with ID '{recipientId}' not found");
-        }
-
-        if (!shipment.CanTransitionTo(ShipmentStatus.Confirmed))
-        {
-            throw new BusinessException($"Cannot confirm delivery for shipment in {shipment.Status} status");
-        }
-
-        shipment.ConfirmDelivery(); // Uses the method from Core model
-
-        _shipmentRepository.Update(shipment);
-
-        // Create blockchain transaction
-        var transactionId = await CreateBlockchainTransactionAsync(
-            TransactionType.DeliveryConfirmed,
-            recipient.PublicKey,
-            new
+            var shipment = await _shipmentRepository.GetByIdWithItemsAsync(shipmentId);
+            if (shipment == null)
             {
-                ShipmentId = shipmentId,
-                RecipientId = recipientId,
-                ConfirmedAt = shipment.UpdatedTimestamp,
-                ActualDeliveryDate = shipment.ActualDeliveryDate
-            },
-            recipientId);
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentDeliveryConfirmed,
+                    $"Delivery confirmation failed: Shipment '{shipmentId}' not found",
+                    "Shipment not found",
+                    recipientId);
+                throw new NotFoundException($"Shipment with ID '{shipmentId}' not found");
+            }
 
-        // Use private method since we already have the shipment (no need to check existence)
-        var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
-        return MapToDto(shipment, transactionIds);
+            if (shipment.AssignedRecipient != recipientId)
+            {
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentDeliveryConfirmed,
+                    $"Delivery confirmation failed: User '{recipientId}' is not the assigned recipient",
+                    "Unauthorized recipient",
+                    recipientId,
+                    entityId: shipmentId,
+                    entityType: "Shipment");
+                throw new UnauthorizedException("Only the assigned recipient can confirm delivery");
+            }
+
+            var recipient = await _userRepository.GetByIdAsync(recipientId);
+            if (recipient == null)
+            {
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentDeliveryConfirmed,
+                    $"Delivery confirmation failed: Recipient '{recipientId}' not found",
+                    "Recipient not found",
+                    recipientId);
+                throw new NotFoundException($"Recipient with ID '{recipientId}' not found");
+            }
+
+            if (!shipment.CanTransitionTo(ShipmentStatus.Confirmed))
+            {
+                await _auditLogService.LogFailureAsync(
+                    AuditLogCategory.Shipment,
+                    AuditLogAction.ShipmentDeliveryConfirmed,
+                    $"Delivery confirmation failed: Shipment '{shipmentId}' in invalid status {shipment.Status}",
+                    "Invalid shipment status",
+                    recipientId,
+                    recipient.Username,
+                    shipmentId,
+                    "Shipment");
+                throw new BusinessException($"Cannot confirm delivery for shipment in {shipment.Status} status");
+            }
+
+            shipment.ConfirmDelivery(); // Uses the method from Core model
+
+            _shipmentRepository.Update(shipment);
+
+            // Create blockchain transaction
+            var transactionId = await CreateBlockchainTransactionAsync(
+                TransactionType.DeliveryConfirmed,
+                recipient.PublicKey,
+                new
+                {
+                    ShipmentId = shipmentId,
+                    RecipientId = recipientId,
+                    ConfirmedAt = shipment.UpdatedTimestamp,
+                    ActualDeliveryDate = shipment.ActualDeliveryDate
+                },
+                recipientId);
+
+            // Log successful delivery confirmation
+            await _auditLogService.LogAsync(
+                AuditLogCategory.Shipment,
+                AuditLogAction.ShipmentDeliveryConfirmed,
+                $"Delivery confirmed for shipment '{shipmentId}' by recipient '{recipient.Username}'",
+                recipientId,
+                recipient.Username,
+                shipmentId,
+                "Shipment",
+                $"{{\"actualDeliveryDate\":\"{shipment.ActualDeliveryDate:yyyy-MM-dd HH:mm:ss}\"}}");
+
+            // Use private method since we already have the shipment (no need to check existence)
+            var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
+            return MapToDto(shipment, transactionIds);
+        }
+        catch (BusinessException)
+        {
+            throw; // Re-throw business exceptions (already logged)
+        }
+        catch (UnauthorizedException)
+        {
+            throw; // Re-throw unauthorized exceptions (already logged)
+        }
+        catch (NotFoundException)
+        {
+            throw; // Re-throw not found exceptions (already logged)
+        }
+        catch (Exception ex)
+        {
+            await _auditLogService.LogFailureAsync(
+                AuditLogCategory.Shipment,
+                AuditLogAction.ShipmentDeliveryConfirmed,
+                $"Delivery confirmation failed for shipment '{shipmentId}'",
+                ex.Message,
+                recipientId,
+                entityId: shipmentId,
+                entityType: "Shipment");
+            throw;
+        }
     }
 
     public async Task<List<string>> GetShipmentBlockchainHistoryAsync(string shipmentId)
