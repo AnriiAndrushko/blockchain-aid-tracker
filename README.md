@@ -8,7 +8,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 **Current Metrics:**
 -  **638 tests passing** (100% success rate: 520 unit + 118 integration) NEW
--  **Audit logging system with 7 API endpoints for tracking all operations** NEWEST
+-  **Audit logging system with 7 API endpoints and full integration across all services** NEWEST
 -  **Blockchain persistence with automatic save/load and backup rotation**
 -  **Consensus API with 4 endpoints for block creation and validation**
 -  **Automated background service creating blocks every 30 seconds**
@@ -28,7 +28,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
 
-**Next:** Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Consider implementing additional security features (rate limiting) or API enhancements. Optionally integrate audit logging into existing services for automated event tracking.
+**Next:** Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Consider implementing additional security features (rate limiting) or API enhancements.
 
 ## Quick Start
 
@@ -108,7 +108,7 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 - `POST /api/consensus/validate-block/{index}` - Validate block by consensus rules (Admin/Validator only)
 - `GET /api/consensus/validators` - Get all active validators
 
-**Audit Logging Endpoints (7 endpoints):** NEWEST
+**Audit Logging Endpoints (7 endpoints):** NEWEST - Fully integrated across all services
 - `GET /api/audit-logs` - Get recent audit logs with pagination (Admin only)
 - `POST /api/audit-logs/filter` - Get filtered audit logs (Admin only)
 - `GET /api/audit-logs/category/{category}` - Get logs by category (Admin only)
@@ -116,6 +116,13 @@ dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.cspro
 - `GET /api/audit-logs/entity/{entityId}` - Get logs for specific entity (Admin only)
 - `GET /api/audit-logs/failed` - Get failed operation logs (Admin only)
 - `GET /api/audit-logs/category/{category}/count` - Get count by category (Admin only)
+
+**Audit Logging Integration:**
+- AuthenticationService: Tracks registration, login, token refresh (success/failure)
+- UserService: Tracks profile updates, role assignments, activation/deactivation
+- ShipmentService: Tracks shipment creation, status updates, delivery confirmations
+- ValidatorService: Tracks validator registration, updates, activation/deactivation
+- All operations include rich metadata and comprehensive error tracking
 
 **Background Services:**
 - `BlockCreationBackgroundService` - Automated block creation every 30 seconds (configurable)
