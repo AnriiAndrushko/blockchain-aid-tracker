@@ -30,7 +30,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <select class="form-select" @bind="statusFilter" @bind:event="onchange" @onchange="FilterShipments">
+            <select class="form-select" @bind="statusFilter" @bind:after="FilterShipments">
                 <option value="">All Statuses</option>
                 <option value="Created">Created</option>
                 <option value="Validated">Validated</option>

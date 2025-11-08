@@ -1,6 +1,8 @@
 @using BlockchainAidTracker.Web.Services
 @inject CustomAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
+@implements IDisposable
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -48,7 +50,7 @@
                 <div class="nav-item px-3">
                     <div class="nav-link text-muted small">
                         <i class="bi bi-person-circle me-2"></i>
-                        @context.User.Identity?.Name
+                        @username
                     </div>
                 </div>
 
@@ -75,10 +77,47 @@
 </div>
 
 @code {
+    private string username = "User";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            username = user.Identity.Name ?? "User";
+        }
+
+        AuthProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            username = user.Identity.Name ?? "User";
+        }
+        else
+        {
+            username = "User";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task HandleLogout()
     {
         await AuthStateProvider.MarkUserAsLoggedOut();
         Navigation.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        AuthProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 }
 
