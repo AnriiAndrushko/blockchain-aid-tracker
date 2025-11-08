@@ -125,6 +125,9 @@ public class BlockCreationBackgroundService : BackgroundService
             // Add the block to the blockchain
             _blockchain.AddBlock(newBlock);
 
+            // Save blockchain to persistence if configured
+            await _blockchain.SaveToPersistenceAsync(cancellationToken);
+
             // Note: Validator statistics are already saved by the consensusEngine.CreateBlockAsync
             // which calls validatorRepository.Update() that automatically saves changes
 
