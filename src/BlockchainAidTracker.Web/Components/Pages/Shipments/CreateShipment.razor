@@ -1,0 +1,217 @@
+@page "/shipments/create"
+@using BlockchainAidTracker.Web.Services
+@attribute [Authorize(Roles = "Coordinator")]
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Create Shipment - Blockchain Aid Tracker</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Create New Shipment</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            @errorMessage
+                            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                        </div>
+                    }
+
+                    <EditForm Model="shipmentModel" OnValidSubmit="HandleCreate">
+                        <DataAnnotationsValidator />
+
+                        <h5 class="mb-3">Location Details</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="origin" class="form-label">Origin Location *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-geo-alt-fill text-success"></i></span>
+                                    <InputText id="origin" class="form-control" @bind-Value="shipmentModel.OriginLocation" placeholder="e.g., Warehouse A, City X" />
+                                </div>
+                                <ValidationMessage For="@(() => shipmentModel.OriginLocation)" class="text-danger" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="destination" class="form-label">Destination Location *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-geo-alt-fill text-danger"></i></span>
+                                    <InputText id="destination" class="form-control" @bind-Value="shipmentModel.DestinationLocation" placeholder="e.g., Relief Camp, City Y" />
+                                </div>
+                                <ValidationMessage For="@(() => shipmentModel.DestinationLocation)" class="text-danger" />
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3">Recipient Information</h5>
+                        <div class="mb-3">
+                            <label for="recipient" class="form-label">Assigned Recipient ID *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <InputText id="recipient" class="form-control" @bind-Value="shipmentModel.AssignedRecipientId" placeholder="Enter recipient user ID" />
+                            </div>
+                            <ValidationMessage For="@(() => shipmentModel.AssignedRecipientId)" class="text-danger" />
+                            <small class="form-text text-muted">Enter the UUID of the assigned recipient</small>
+                        </div>
+
+                        <h5 class="mb-3">Delivery Timeframe</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="expectedDeliveryStart" class="form-label">Expected Start Date</label>
+                                <InputDate id="expectedDeliveryStart" class="form-control" @bind-Value="shipmentModel.ExpectedDeliveryStart" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="expectedDeliveryEnd" class="form-label">Expected End Date</label>
+                                <InputDate id="expectedDeliveryEnd" class="form-control" @bind-Value="shipmentModel.ExpectedDeliveryEnd" />
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3">Shipment Items</h5>
+                        <div class="mb-3">
+                            @foreach (var item in shipmentModel.Items)
+                            {
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Item Name</label>
+                                                <input type="text" class="form-control" @bind="item.Name" placeholder="e.g., Rice Bags" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Quantity</label>
+                                                <input type="number" class="form-control" @bind="item.Quantity" min="1" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Unit</label>
+                                                <input type="text" class="form-control" @bind="item.Unit" placeholder="e.g., kg, boxes" />
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-end">
+                                                <button type="button" class="btn btn-danger w-100" @onclick="() => RemoveItem(item)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddItem">
+                                <i class="bi bi-plus-circle me-2"></i>Add Item
+                            </button>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Creating...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <span>Create Shipment</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateShipmentModel shipmentModel = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override void OnInitialized()
+    {
+        // Add one item by default
+        shipmentModel.Items.Add(new ShipmentItemModel());
+    }
+
+    private async Task HandleCreate()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            var response = await ApiClient.PostAsync<CreateShipmentModel, ShipmentResponseDto>(
+                "/api/shipments",
+                shipmentModel
+            );
+
+            if (response != null)
+            {
+                Navigation.NavigateTo($"/shipments/{response.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to create shipment: {ex.Message}";
+            Console.WriteLine($"Create shipment error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddItem()
+    {
+        shipmentModel.Items.Add(new ShipmentItemModel());
+    }
+
+    private void RemoveItem(ShipmentItemModel item)
+    {
+        if (shipmentModel.Items.Count > 1)
+        {
+            shipmentModel.Items.Remove(item);
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/shipments");
+    }
+
+    private class CreateShipmentModel
+    {
+        [Required(ErrorMessage = "Origin location is required")]
+        public string OriginLocation { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Destination location is required")]
+        public string DestinationLocation { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Recipient ID is required")]
+        public string AssignedRecipientId { get; set; } = string.Empty;
+
+        public DateTime? ExpectedDeliveryStart { get; set; }
+        public DateTime? ExpectedDeliveryEnd { get; set; }
+
+        public List<ShipmentItemModel> Items { get; set; } = new();
+    }
+
+    private class ShipmentItemModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Quantity { get; set; } = 1;
+        public string Unit { get; set; } = string.Empty;
+    }
+
+    private class ShipmentResponseDto
+    {
+        public Guid Id { get; set; }
+    }
+}

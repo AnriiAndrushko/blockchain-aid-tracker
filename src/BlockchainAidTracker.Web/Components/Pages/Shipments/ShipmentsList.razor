@@ -1,0 +1,218 @@
+@page "/shipments"
+@using BlockchainAidTracker.Web.Services
+@attribute [Authorize]
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Shipments - Blockchain Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-box-seam me-2"></i>Shipments</h2>
+            <p class="text-muted">View and manage all aid shipments</p>
+        </div>
+        <div class="col-auto">
+            <AuthorizeView Roles="Coordinator">
+                <a href="/shipments/create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Create Shipment
+                </a>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search shipments..." @bind="searchText" @bind:event="oninput" @onkeyup="FilterShipments" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="statusFilter" @bind:event="onchange" @onchange="FilterShipments">
+                <option value="">All Statuses</option>
+                <option value="Created">Created</option>
+                <option value="Validated">Validated</option>
+                <option value="InTransit">In Transit</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Confirmed">Confirmed</option>
+            </select>
+        </div>
+        <div class="col-md-auto">
+            <button class="btn btn-outline-secondary" @onclick="LoadShipments">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading shipments...</p>
+        </div>
+    }
+    else if (filteredShipments.Any())
+    {
+        <div class="row g-3">
+            @foreach (var shipment in filteredShipments)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <span class="badge bg-@GetStatusColor(shipment.Status)">@shipment.Status</span>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar me-1"></i>
+                                @shipment.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                            </small>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <code class="text-primary">@shipment.Id.ToString().Substring(0, 8)</code>
+                            </h5>
+                            <div class="mb-2">
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-geo-alt-fill text-success me-1"></i>
+                                    From: <strong>@shipment.OriginLocation</strong>
+                                </small>
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                    To: <strong>@shipment.DestinationLocation</strong>
+                                </small>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-box me-1"></i>
+                                    @shipment.ItemsCount item(s)
+                                </small>
+                            </div>
+                            @if (!string.IsNullOrEmpty(shipment.AssignedRecipientName))
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-person me-1"></i>
+                                        Recipient: <strong>@shipment.AssignedRecipientName</strong>
+                                    </small>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer bg-white">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => ViewShipment(shipment.Id)">
+                                    <i class="bi bi-eye me-2"></i>View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (filteredShipments.Count > 0)
+        {
+            <div class="mt-3 text-muted text-center">
+                Showing @filteredShipments.Count of @allShipments.Count shipments
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">No shipments found</h4>
+                <p class="text-muted">
+                    @if (!string.IsNullOrEmpty(searchText) || !string.IsNullOrEmpty(statusFilter))
+                    {
+                        <span>Try adjusting your filters</span>
+                    }
+                    else
+                    {
+                        <span>No shipments have been created yet</span>
+                    }
+                </p>
+                <AuthorizeView Roles="Coordinator">
+                    <a href="/shipments/create" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Create First Shipment
+                    </a>
+                </AuthorizeView>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<ShipmentDto> allShipments = new();
+    private List<ShipmentDto> filteredShipments = new();
+    private string searchText = string.Empty;
+    private string statusFilter = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShipments();
+    }
+
+    private async Task LoadShipments()
+    {
+        try
+        {
+            isLoading = true;
+            var shipments = await ApiClient.GetAsync<List<ShipmentDto>>("/api/shipments");
+            allShipments = shipments ?? new();
+            FilterShipments();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading shipments: {ex.Message}");
+            allShipments = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterShipments()
+    {
+        filteredShipments = allShipments.Where(s =>
+            (string.IsNullOrEmpty(searchText) ||
+             s.OriginLocation.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             s.DestinationLocation.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             s.Id.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(statusFilter) || s.Status == statusFilter)
+        ).OrderByDescending(s => s.CreatedAt).ToList();
+    }
+
+    private void ViewShipment(Guid id)
+    {
+        Navigation.NavigateTo($"/shipments/{id}");
+    }
+
+    private string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Created" => "secondary",
+            "Validated" => "info",
+            "InTransit" => "warning",
+            "Delivered" => "success",
+            "Confirmed" => "success",
+            _ => "secondary"
+        };
+    }
+
+    private class ShipmentDto
+    {
+        public Guid Id { get; set; }
+        public string OriginLocation { get; set; } = string.Empty;
+        public string DestinationLocation { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? AssignedRecipientName { get; set; }
+        public int ItemsCount { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}
