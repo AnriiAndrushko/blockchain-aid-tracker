@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IValidatorRepository, ValidatorRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
         return services;
     }
@@ -58,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IValidatorRepository, ValidatorRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
         return services;
     }
@@ -81,6 +83,7 @@ public static class DependencyInjection
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IValidatorRepository, ValidatorRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
         return services;
     }

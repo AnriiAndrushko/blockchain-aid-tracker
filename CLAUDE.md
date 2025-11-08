@@ -6,10 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, **blockchain persistence**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, blockchain persistence, and all API endpoints are fully implemented and tested with 594 passing tests (487 unit + 107 integration).
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, **blockchain persistence**, **audit logging system**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, blockchain persistence, audit logging, and all API endpoints are fully implemented and tested with 638 passing tests (520 unit + 118 integration).
 
 **Recently Completed** (Latest):
-- ✅ **Blockchain Persistence** NEWEST
+- ✅ **Audit Logging System** NEWEST
+  - AuditLog entity model with category and action enums
+  - AuditLogCategory enum (Authentication, UserManagement, Shipment, Blockchain, Validator, SmartContract)
+  - AuditLogAction enum (28 actions covering all system operations)
+  - AuditLogRepository with 11 specialized query methods
+  - AuditLogService for logging and querying audit events
+  - AuditLogController with 7 API endpoints (Administrator-only access)
+  - Support for filtering by category, action, user, entity, success status, date range
+  - Pagination support for large audit log sets
+  - IP address and user agent tracking
+  - Metadata storage in JSON format
+  - Success/failure tracking with error messages
+  - Database migration with comprehensive indexing
+  - 11 unit tests for AuditLog entity (100% passing)
+  - 18 unit tests for AuditLogRepository (100% passing)
+  - 13 unit tests for AuditLogService (100% passing)
+  - 11 integration tests for AuditLogController API (100% passing)
+
+- ✅ **Blockchain Persistence**
   - IBlockchainPersistence interface for persistence operations
   - JsonBlockchainPersistence implementation with file-based JSON storage
   - BlockchainPersistenceSettings configuration class
@@ -63,7 +81,7 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - ValidatorBuilder for test data creation
 
 
-**Next Steps**: Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Consider implementing additional security features (rate limiting, audit logging) or API enhancements.
+**Next Steps**: Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Consider implementing additional security features (rate limiting) or API enhancements. Optionally integrate audit logging into existing services for automated event tracking.
 
 ## Build and Run Commands
 
@@ -170,7 +188,10 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `ShipmentStatus` - Enum (Created, Validated, InTransit, Delivered, Confirmed)
 - `User` - User entity with authentication fields and role-based access
 - `UserRole` - Enum (Recipient, Donor, Coordinator, LogisticsPartner, Validator, Administrator)
-- `Validator` - Validator node entity for PoA consensus NEW
+- `Validator` - Validator node entity for PoA consensus
+- `AuditLog` - Audit log entity for tracking system operations NEW
+- `AuditLogCategory` - Enum (Authentication, UserManagement, Shipment, Blockchain, Validator, SmartContract) NEW
+- `AuditLogAction` - Enum (28 actions covering all system operations) NEW
 
 **Interfaces**:
 - `IHashService` - SHA-256 hashing interface
@@ -219,15 +240,16 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Database Context**:
 - `ApplicationDbContext` - EF Core DbContext with:
-  - DbSets for Shipments, ShipmentItems, Users, Validators NEW
-  - Automatic timestamp updates (Shipment, User, Validator) NEW
+  - DbSets for Shipments, ShipmentItems, Users, Validators, AuditLogs NEW
+  - Automatic timestamp updates (Shipment, User, Validator)
   - Fluent API entity configurations
 
 **Entity Configurations**:
 - `ShipmentConfiguration` - Shipment table schema, indexes, relationships
 - `ShipmentItemConfiguration` - ShipmentItem with foreign key to Shipment
 - `UserConfiguration` - User table with unique constraints
-- `ValidatorConfiguration` - Validator table schema with composite indexes NEW
+- `ValidatorConfiguration` - Validator table schema with composite indexes
+- `AuditLogConfiguration` - AuditLog table schema with comprehensive indexing NEW
 
 **Repository Pattern**:
 - `IRepository<T>` - Generic repository interface (12 operations)
@@ -236,26 +258,30 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `ShipmentRepository` - Shipment repository with eager loading
 - `IUserRepository` - User-specific queries (7 methods)
 - `UserRepository` - User repository implementation
-- `IValidatorRepository` - Validator-specific queries (9 methods) NEW
-- `ValidatorRepository` - Validator repository with round-robin selection NEW
+- `IValidatorRepository` - Validator-specific queries (9 methods)
+- `ValidatorRepository` - Validator repository with round-robin selection
+- `IAuditLogRepository` - Audit log queries with filtering (11 methods) NEW
+- `AuditLogRepository` - Audit log repository with advanced filtering NEW
 
 **Dependency Injection**:
 - `DependencyInjection` class with extension methods:
-  - `AddDataAccess()` - SQLite configuration (includes ValidatorRepository) NEW
-  - `AddDataAccessWithPostgreSQL()` - PostgreSQL configuration (includes ValidatorRepository) NEW
-  - `AddDataAccessWithInMemoryDatabase()` - In-memory for testing (includes ValidatorRepository) NEW
+  - `AddDataAccess()` - SQLite configuration (includes all repositories)
+  - `AddDataAccessWithPostgreSQL()` - PostgreSQL configuration (includes all repositories)
+  - `AddDataAccessWithInMemoryDatabase()` - In-memory for testing (includes all repositories)
 - `DesignTimeDbContextFactory` - For EF Core design-time operations
 
 **Migrations**:
 - `InitialCreate` - Initial database schema with 3 tables (Users, Shipments, ShipmentItems)
-- `AddValidatorEntity` - Adds Validators table (migration ready) NEW
+- `AddValidatorEntity` - Adds Validators table
+- `AddAuditLog` - Adds AuditLogs table with comprehensive indexing NEW
 - Comprehensive indexes and foreign key constraints
 
 **Database Schema**:
 - **Users**: 14 columns, unique indexes on Username/Email/PublicKey, role-based filtering
 - **Shipments**: 11 columns, unique QR code, foreign key relationships
 - **ShipmentItems**: 7 columns, cascade delete from Shipments
-- **Validators**: 11 columns, unique indexes on Name/PublicKey, composite index on IsActive+Priority NEW
+- **Validators**: 11 columns, unique indexes on Name/PublicKey, composite index on IsActive+Priority
+- **AuditLogs**: 14 columns, indexes on Category/Action/UserId/EntityId/Timestamp, composite indexes NEW
 
 ### ✅ Services Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Services/`
@@ -269,12 +295,14 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - `UserService` - User CRUD operations, role assignment, activation/deactivation
 - `QrCodeService` - QR code generation for shipment tracking (Base64 and PNG formats)
 - `ShipmentService` - Complete shipment lifecycle with blockchain integration and real signatures
+- `AuditLogService` - Audit log creation and querying with filtering support NEW
 
 **DTOs (Data Transfer Objects)**:
 - Authentication: `RegisterRequest`, `LoginRequest`, `AuthenticationResponse`, `RefreshTokenRequest`
 - User: `UserDto`, `UpdateUserRequest`, `AssignRoleRequest`
 - Shipment: `CreateShipmentRequest`, `ShipmentDto`, `UpdateShipmentStatusRequest`, `ShipmentItemDto`
 - Blockchain: `BlockDto`, `TransactionDto`, `ValidationResultDto`
+- AuditLog: `AuditLogDto`, `AuditLogFilterRequest` NEW
 
 **Exception Classes**:
 - `BusinessException` - Business logic validation errors
@@ -376,11 +404,19 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - POST /api/validators/{id}/activate - Activate validator (Admin only)
   - POST /api/validators/{id}/deactivate - Deactivate validator (Admin only)
   - GET /api/validators/next - Get next validator for block creation
-- `ConsensusController` - Complete consensus operations endpoints (4 endpoints) NEW
+- `ConsensusController` - Complete consensus operations endpoints (4 endpoints)
   - GET /api/consensus/status - Get consensus status and chain information
   - POST /api/consensus/create-block - Manually create block (Admin/Validator only)
   - POST /api/consensus/validate-block/{index} - Validate block by consensus rules (Admin/Validator only)
   - GET /api/consensus/validators - Get all active validators
+- `AuditLogController` - Complete audit logging endpoints (7 endpoints) NEW
+  - GET /api/audit-logs - Get recent audit logs with pagination (Admin only)
+  - POST /api/audit-logs/filter - Get filtered audit logs (Admin only)
+  - GET /api/audit-logs/category/{category} - Get logs by category (Admin only)
+  - GET /api/audit-logs/user/{userId} - Get logs for specific user (Admin only)
+  - GET /api/audit-logs/entity/{entityId} - Get logs for specific entity (Admin only)
+  - GET /api/audit-logs/failed - Get failed operation logs (Admin only)
+  - GET /api/audit-logs/category/{category}/count - Get count by category (Admin only)
 
 **Background Services**:
 - `BlockCreationBackgroundService` - Automated block creation service NEW
@@ -508,9 +544,9 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 **Test Coverage**: 30 unit tests (22 entity + 8 repository)
 
-### ✅ Test Suite (594 Tests - 100% Passing)
+### ✅ Test Suite (638 Tests - 100% Passing) NEW
 **Location**: `tests/BlockchainAidTracker.Tests/`
-- **Services tests: 159 tests** (123 services + 30 consensus + 6 background service)
+- **Services tests: 172 tests** (123 services + 30 consensus + 6 background service + 13 audit log) NEW
   - PasswordService tests: 13 tests
   - TokenService tests: 17 tests
   - AuthenticationService tests: 21 tests
@@ -519,31 +555,35 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - ShipmentService tests: 42 tests
   - ProofOfAuthorityConsensusEngine tests: 30 tests
   - BlockCreationBackgroundService tests: 6 tests
+  - AuditLogService tests: 13 tests NEW
 - **SmartContracts tests: 90 tests**
   - SmartContractEngine tests: 24 tests
   - DeliveryVerificationContract tests: 15 tests
   - ShipmentTrackingContract tests: 51 tests
-- Core model tests: 75 tests
+- Core model tests: 86 tests NEW
   - Shipment/ShipmentItem tests: 53 tests
   - Validator tests: 22 tests
-- Database tests: 71 tests
+  - AuditLog tests: 11 tests NEW
+- Database tests: 89 tests NEW
   - UserRepository tests: 31 tests
   - ShipmentRepository tests: 32 tests
   - ValidatorRepository tests: 8 tests
+  - AuditLogRepository tests: 18 tests NEW
   - ApplicationDbContext tests: 20 tests
 - **Blockchain tests: 61 tests** (42 blockchain + 12 persistence + 7 persistence integration) NEW
   - Blockchain core tests: 42 tests
   - **JsonBlockchainPersistence tests: 12 tests** NEWEST
   - **Blockchain persistence integration tests: 7 tests** NEWEST
 - Cryptography tests: 31 tests
-- **Integration tests: 107 tests**
+- **Integration tests: 118 tests** NEW
   - AuthenticationController API tests: 17 tests
   - ShipmentController API tests: 22 tests
   - UserController API tests: 28 tests
   - BlockchainController API tests: 16 tests
   - ContractsController API tests: 11 tests
   - ConsensusController API tests: 13 tests
-  - Full end-to-end workflows (authentication, shipment, user management, blockchain query, smart contracts, consensus)
+  - AuditLogController API tests: 11 tests NEW
+  - Full end-to-end workflows (authentication, shipment, user management, blockchain query, smart contracts, consensus, audit logging)
   - Real ECDSA signature generation and validation in tests
   - In-memory database for test isolation
   - WebApplicationFactory for API testing

@@ -30,6 +30,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Validator> Validators { get; set; } = null!;
 
     /// <summary>
+    /// DbSet for AuditLog entities
+    /// </summary>
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+
+    /// <summary>
     /// Constructor for dependency injection
     /// </summary>
     /// <param name="options">DbContext options</param>
@@ -51,6 +56,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ShipmentItemConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new ValidatorConfiguration());
+        modelBuilder.ApplyConfiguration(new AuditLogConfiguration());
     }
 
     /// <summary>
