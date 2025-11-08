@@ -13,10 +13,12 @@ namespace BlockchainAidTracker.Services.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAuditLogService _auditLogService;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, IAuditLogService auditLogService)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
     }
 
     public async Task<UserDto?> GetUserByIdAsync(string userId)
@@ -98,6 +100,16 @@ public class UserService : IUserService
 
         _userRepository.Update(user);
 
+        // Log profile update
+        await _auditLogService.LogAsync(
+            AuditLogCategory.UserManagement,
+            AuditLogAction.UserProfileUpdated,
+            $"User profile updated for '{user.Username}'",
+            userId,
+            user.Username,
+            userId,
+            "User");
+
         return MapToDto(user);
     }
 
@@ -115,10 +127,22 @@ public class UserService : IUserService
             throw new NotFoundException($"User with ID '{userId}' not found");
         }
 
+        var oldRole = user.Role;
         user.Role = newRole;
         user.UpdatedTimestamp = DateTime.UtcNow;
 
         _userRepository.Update(user);
+
+        // Log role assignment
+        await _auditLogService.LogAsync(
+            AuditLogCategory.UserManagement,
+            AuditLogAction.UserRoleAssigned,
+            $"User '{user.Username}' role changed from {oldRole} to {newRole}",
+            userId,
+            user.Username,
+            userId,
+            "User",
+            $"{{\"oldRole\":\"{oldRole}\",\"newRole\":\"{newRole}\"}}");
 
         return MapToDto(user);
     }
@@ -146,6 +170,16 @@ public class UserService : IUserService
 
         _userRepository.Update(user);
 
+        // Log user deactivation
+        await _auditLogService.LogAsync(
+            AuditLogCategory.UserManagement,
+            AuditLogAction.UserDeactivated,
+            $"User '{user.Username}' deactivated",
+            userId,
+            user.Username,
+            userId,
+            "User");
+
         return true;
     }
 
@@ -171,6 +205,16 @@ public class UserService : IUserService
         user.Activate(); // Uses the method from Core model
 
         _userRepository.Update(user);
+
+        // Log user activation
+        await _auditLogService.LogAsync(
+            AuditLogCategory.UserManagement,
+            AuditLogAction.UserActivated,
+            $"User '{user.Username}' activated",
+            userId,
+            user.Username,
+            userId,
+            "User");
 
         return true;
     }
