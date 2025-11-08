@@ -31,12 +31,14 @@
                     </NavLink>
                 </div>
 
-                <AuthorizeView Roles="Coordinator">
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="shipments/create">
-                            <i class="bi bi-plus-circle me-2"></i> Create Shipment
-                        </NavLink>
-                    </div>
+                <AuthorizeView Roles="Coordinator" Context="coordinatorContext">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="shipments/create">
+                                <i class="bi bi-plus-circle me-2"></i> Create Shipment
+                            </NavLink>
+                        </div>
+                    </Authorized>
                 </AuthorizeView>
 
                 <div class="nav-item px-3">
