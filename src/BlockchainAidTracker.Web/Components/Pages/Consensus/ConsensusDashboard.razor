@@ -1,12 +1,14 @@
 @page "/consensus"
 @using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ApiClientService ApiClient
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Validator")]
 @rendermode InteractiveServer
 
 <PageTitle>Consensus Dashboard - Blockchain Aid Tracker</PageTitle>
 
-<div class="container-fluid">
+<AuthorizeView Roles="Administrator,Validator">
+    <Authorized>
+        <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
             <h2><i class="bi bi-diagram-3 me-2"></i>Consensus Dashboard</h2>
@@ -315,6 +317,16 @@
         </div>
     }
 </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be an Administrator or Validator to access this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private ConsensusStatusDto? consensusStatus;

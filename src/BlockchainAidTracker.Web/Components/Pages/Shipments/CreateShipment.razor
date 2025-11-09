@@ -1,13 +1,15 @@
 @page "/shipments/create"
 @using BlockchainAidTracker.Web.Services
-@attribute [Authorize(Roles = "Coordinator")]
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ApiClientService ApiClient
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <PageTitle>Create Shipment - Blockchain Aid Tracker</PageTitle>
 
-<div class="container mt-4">
+<AuthorizeView Roles="Coordinator">
+    <Authorized Context="authContext">
+        <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow-sm">
@@ -126,6 +128,16 @@
         </div>
     </div>
 </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container mt-4">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be a Coordinator to create shipments.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private CreateShipmentModel shipmentModel = new();

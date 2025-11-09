@@ -1,12 +1,14 @@
 @page "/contracts"
 @using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ApiClientService ApiClient
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 
 <PageTitle>Smart Contracts - Blockchain Aid Tracker</PageTitle>
 
-<div class="container-fluid">
+<AuthorizeView>
+    <Authorized>
+        <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
             <h2><i class="bi bi-file-code me-2"></i>Smart Contracts</h2>
@@ -196,6 +198,16 @@
         </div>
     }
 </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be logged in to view smart contracts.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private List<ContractDto> contracts = new();

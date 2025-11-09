@@ -10,12 +10,13 @@
 @inject HttpClient HttpClient
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 
 <PageTitle>Shipment Details - Blockchain Aid Tracker</PageTitle>
 
-<div class="container-fluid">
+<AuthorizeView>
+    <Authorized Context="authContext">
+        <div class="container-fluid">
     @if (isLoading)
     {
         <div class="text-center py-5">
@@ -363,6 +364,16 @@
         </div>
     }
 </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be logged in to view shipment details.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     [Parameter]

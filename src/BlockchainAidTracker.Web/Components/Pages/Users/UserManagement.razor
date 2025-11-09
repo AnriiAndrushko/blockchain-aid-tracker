@@ -4,12 +4,13 @@
 @inject ApiClientService ApiClient
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
 @rendermode InteractiveServer
 
 <PageTitle>User Management - Blockchain Aid Tracker</PageTitle>
 
-<div class="container-fluid">
+<AuthorizeView Roles="Administrator">
+    <Authorized>
+        <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
             <h2><i class="bi bi-people me-2"></i>User Management</h2>
@@ -292,6 +293,16 @@
         </div>
     }
 </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be an Administrator to access this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private List<UserDto> users = new();
