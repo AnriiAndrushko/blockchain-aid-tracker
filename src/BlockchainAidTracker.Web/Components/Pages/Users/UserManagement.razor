@@ -266,12 +266,12 @@
                                 <label class="form-label">New Role <span class="text-danger">*</span></label>
                                 <InputSelect class="form-select" @bind-Value="assignRoleModel.Role">
                                     <option value="">-- Select Role --</option>
-                                    <option value="Recipient">Recipient</option>
-                                    <option value="Donor">Donor</option>
-                                    <option value="Coordinator">Coordinator</option>
-                                    <option value="LogisticsPartner">Logistics Partner</option>
-                                    <option value="Validator">Validator</option>
-                                    <option value="Administrator">Administrator</option>
+                                    <option value="0">Recipient</option>
+                                    <option value="1">Donor</option>
+                                    <option value="2">Coordinator</option>
+                                    <option value="3">Logistics Partner</option>
+                                    <option value="4">Validator</option>
+                                    <option value="5">Administrator</option>
                                 </InputSelect>
                                 <ValidationMessage For="@(() => assignRoleModel.Role)" />
                             </div>
@@ -509,6 +509,7 @@
         public string UserId { get; set; } = string.Empty;
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Please select a role")]
-        public string Role { get; set; } = string.Empty;
+        [System.ComponentModel.DataAnnotations.Range(0, 5, ErrorMessage = "Please select a valid role")]
+        public int Role { get; set; }
     }
 }
