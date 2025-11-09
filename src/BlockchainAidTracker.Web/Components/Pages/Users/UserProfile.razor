@@ -4,12 +4,14 @@
 @using System.Security.Claims
 @inject ApiClientService ApiClient
 @inject AuthenticationStateProvider AuthStateProvider
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <PageTitle>My Profile - Blockchain Aid Tracker</PageTitle>
 
-<div class="container-fluid">
+<AuthorizeView>
+    <Authorized>
+        <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
             <h2><i class="bi bi-person-circle me-2"></i>My Profile</h2>
@@ -212,6 +214,16 @@
         </div>
     }
 </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be logged in to view your profile.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private UserDto? user;
@@ -288,6 +300,10 @@
             updateSuccess = "Profile updated successfully!";
 
             await Task.Delay(1500);
+
+            // Refresh the authentication token to update JWT claims with new profile info
+            await RefreshAuthenticationState();
+
             await LoadProfile();
             CancelEditing();
         }
@@ -299,6 +315,20 @@
         finally
         {
             isUpdating = false;
+        }
+    }
+
+    private async Task RefreshAuthenticationState()
+    {
+        try
+        {
+            // Trigger token refresh to get updated JWT claims
+            var authStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
+            await authStateProvider.RefreshAuthenticationState();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing authentication state: {ex.Message}");
         }
     }
 

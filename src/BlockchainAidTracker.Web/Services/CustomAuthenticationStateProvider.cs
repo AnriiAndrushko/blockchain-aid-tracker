@@ -105,6 +105,20 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         NotifyAuthenticationStateChanged(authState);
     }
 
+    public async Task RefreshAuthenticationState()
+    {
+        var refreshToken = await _localStorage.GetItemAsync<string>("refreshToken");
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            var refreshed = await RefreshTokenAsync(refreshToken);
+            if (refreshed)
+            {
+                // Notify all components that authentication state has changed
+                NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            }
+        }
+    }
+
     private async Task<bool> RefreshTokenAsync(string refreshToken)
     {
         try
