@@ -51,7 +51,7 @@
                 <div class="card mb-3">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Shipment Information</h5>
-                        <span class="badge bg-@GetStatusColor(shipment.Status) fs-6">@shipment.Status</span>
+                        <span class="badge bg-@GetStatusColor(shipment.Status) fs-6">@GetStatusName(shipment.Status)</span>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
@@ -269,18 +269,18 @@
                             <div class="mb-3">
                                 <label class="form-label">Current Status</label>
                                 <p class="form-control-plaintext">
-                                    <span class="badge bg-@GetStatusColor(shipment?.Status ?? "")">@shipment?.Status</span>
+                                    <span class="badge bg-@GetStatusColor(shipment?.Status ?? 0)">@GetStatusName(shipment?.Status ?? 0)</span>
                                 </p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">New Status <span class="text-danger">*</span></label>
                                 <InputSelect class="form-select" @bind-Value="updateStatusModel.NewStatus">
                                     <option value="">-- Select Status --</option>
-                                    <option value="Created">Created</option>
-                                    <option value="Validated">Validated</option>
-                                    <option value="InTransit">In Transit</option>
-                                    <option value="Delivered">Delivered</option>
-                                    <option value="Confirmed">Confirmed</option>
+                                    <option value="0">Created</option>
+                                    <option value="1">Validated</option>
+                                    <option value="2">In Transit</option>
+                                    <option value="3">Delivered</option>
+                                    <option value="4">Confirmed</option>
                                 </InputSelect>
                                 <ValidationMessage For="@(() => updateStatusModel.NewStatus)" />
                             </div>
@@ -538,19 +538,19 @@
         if (shipment == null) return false;
 
         // Coordinators and Administrators can update status
-        // Also allow if the status is not yet "Confirmed"
+        // Also allow if the status is not yet "Confirmed" (4)
         return (currentUserRole == "Coordinator" || currentUserRole == "Administrator")
-               && shipment.Status != "Confirmed";
+               && shipment.Status != 4;
     }
 
     private bool CanConfirmDelivery()
     {
         if (shipment == null) return false;
 
-        // Recipients can confirm delivery only when status is "Delivered"
+        // Recipients can confirm delivery only when status is "Delivered" (3)
         // Check if current user is the assigned recipient
-        return (currentUserRole == "Recipient" && shipment.RecipientId == currentUserId && shipment.Status == "Delivered")
-               || (currentUserRole == "Administrator" && shipment.Status == "Delivered");
+        return (currentUserRole == "Recipient" && shipment.RecipientId == currentUserId && shipment.Status == 3)
+               || (currentUserRole == "Administrator" && shipment.Status == 3);
     }
 
     // API actions
@@ -622,15 +622,28 @@
         }
     }
 
-    private string GetStatusColor(string status)
+    private string GetStatusName(int status)
     {
         return status switch
         {
-            "Created" => "secondary",
-            "Validated" => "info",
-            "InTransit" => "warning",
-            "Delivered" => "success",
-            "Confirmed" => "success",
+            0 => "Created",
+            1 => "Validated",
+            2 => "In Transit",
+            3 => "Delivered",
+            4 => "Confirmed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusColor(int status)
+    {
+        return status switch
+        {
+            0 => "secondary",  // Created
+            1 => "info",       // Validated
+            2 => "warning",    // InTransit
+            3 => "success",    // Delivered
+            4 => "success",    // Confirmed
             _ => "secondary"
         };
     }
@@ -643,7 +656,7 @@
         public string RecipientId { get; set; } = string.Empty;
         public DateTime ExpectedDeliveryDate { get; set; }
         public DateTime? ActualDeliveryDate { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public int Status { get; set; }
         public string QrCode { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -662,6 +675,7 @@
     private class UpdateStatusModel
     {
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Please select a new status")]
-        public string NewStatus { get; set; } = string.Empty;
+        [System.ComponentModel.DataAnnotations.Range(0, 4, ErrorMessage = "Please select a valid status")]
+        public int NewStatus { get; set; }
     }
 }
