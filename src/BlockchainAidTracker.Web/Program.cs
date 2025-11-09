@@ -20,8 +20,8 @@ builder.Services.AddHttpClient<ApiClientService>();
 
 // Add Authentication
 builder.Services.AddAuthorizationCore();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<CustomAuthenticationStateProvider>());
 
 var app = builder.Build();
 
