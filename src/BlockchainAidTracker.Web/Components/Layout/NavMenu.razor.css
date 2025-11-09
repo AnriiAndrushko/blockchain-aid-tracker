@@ -103,3 +103,23 @@
         overflow-y: auto;
     }
 }
+
+/* User info panel styling */
+::deep .user-info-panel {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+::deep .user-info-panel .fw-bold {
+    color: white;
+    font-size: 0.95rem;
+}
+
+::deep .user-info-panel .text-muted {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+::deep .user-info-panel .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
