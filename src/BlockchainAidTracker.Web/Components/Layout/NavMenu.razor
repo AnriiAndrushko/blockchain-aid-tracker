@@ -6,8 +6,10 @@
 @implements IDisposable
 @rendermode InteractiveServer
 
-<CascadingValue Value="@authenticationStateTask">
-    <div class="top-row ps-3 navbar navbar-dark">
+@if (authenticationStateTask != null)
+{
+    <CascadingValue TValue="Task<AuthenticationState>" Value="@authenticationStateTask" IsFixed="false">
+        <div class="top-row ps-3 navbar navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="">
                 <i class="bi bi-box-seam me-2"></i>
@@ -88,14 +90,21 @@
         </AuthorizeView>
     </nav>
 </div>
-</CascadingValue>
+    </CascadingValue>
+}
 
 @code {
-    private Task<AuthenticationState> authenticationStateTask = null!;
+    private Task<AuthenticationState>? authenticationStateTask;
     private string username = "User";
     private string firstName = "User";
     private string lastName = "";
     private string role = "Guest";
+
+    protected override void OnInitialized()
+    {
+        // Initialize immediately (synchronously) to avoid null during first render
+        authenticationStateTask = AuthProvider.GetAuthenticationStateAsync();
+    }
 
     protected override async Task OnInitializedAsync()
     {
