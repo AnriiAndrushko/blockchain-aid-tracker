@@ -14,8 +14,10 @@ public interface ITokenService
     /// <param name="username">Username</param>
     /// <param name="email">Email address</param>
     /// <param name="role">User role</param>
+    /// <param name="firstName">First name</param>
+    /// <param name="lastName">Last name</param>
     /// <returns>Access token and expiration time</returns>
-    (string Token, DateTime ExpiresAt) GenerateAccessToken(string userId, string username, string email, string role);
+    (string Token, DateTime ExpiresAt) GenerateAccessToken(string userId, string username, string email, string role, string firstName, string lastName);
 
     /// <summary>
     /// Generates a refresh token

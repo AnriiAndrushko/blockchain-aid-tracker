@@ -31,7 +31,7 @@ public class TokenService : ITokenService
         }
     }
 
-    public (string Token, DateTime ExpiresAt) GenerateAccessToken(string userId, string username, string email, string role)
+    public (string Token, DateTime ExpiresAt) GenerateAccessToken(string userId, string username, string email, string role, string firstName, string lastName)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -46,6 +46,8 @@ public class TokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.UniqueName, username),
             new Claim(JwtRegisteredClaimNames.Email, email),
             new Claim(ClaimTypes.Role, role),
+            new Claim(JwtRegisteredClaimNames.GivenName, firstName),
+            new Claim(JwtRegisteredClaimNames.FamilyName, lastName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
         };

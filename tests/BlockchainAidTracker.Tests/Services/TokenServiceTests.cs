@@ -53,9 +53,11 @@ public class TokenServiceTests
         var username = "testuser";
         var email = "test@example.com";
         var role = "Coordinator";
+        var firstName = "Test";
+        var lastName = "User";
 
         // Act
-        var (token, expiresAt) = _tokenService.GenerateAccessToken(userId, username, email, role);
+        var (token, expiresAt) = _tokenService.GenerateAccessToken(userId, username, email, role, firstName, lastName);
 
         // Assert
         Assert.NotNull(token);
@@ -71,7 +73,7 @@ public class TokenServiceTests
     public void GenerateAccessToken_InvalidUserId_ThrowsArgumentException(string? userId, string username, string email, string role)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _tokenService.GenerateAccessToken(userId!, username, email, role));
+        Assert.Throws<ArgumentException>(() => _tokenService.GenerateAccessToken(userId!, username, email, role, "Test", "User"));
     }
 
     [Fact]
@@ -82,9 +84,11 @@ public class TokenServiceTests
         var username = "testuser";
         var email = "test@example.com";
         var role = "Coordinator";
+        var firstName = "Test";
+        var lastName = "User";
 
         // Act
-        var (token, _) = _tokenService.GenerateAccessToken(userId, username, email, role);
+        var (token, _) = _tokenService.GenerateAccessToken(userId, username, email, role, firstName, lastName);
 
         // Assert - Parse token
         var handler = new JwtSecurityTokenHandler();
@@ -94,6 +98,8 @@ public class TokenServiceTests
         Assert.Equal(username, jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.UniqueName).Value);
         Assert.Equal(email, jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.Email).Value);
         Assert.Equal(role, jwtToken.Claims.First(c => c.Type == ClaimTypes.Role).Value);
+        Assert.Equal(firstName, jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.GivenName).Value);
+        Assert.Equal(lastName, jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.FamilyName).Value);
         Assert.NotNull(jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti));
     }
 
@@ -129,7 +135,9 @@ public class TokenServiceTests
         var username = "testuser";
         var email = "test@example.com";
         var role = "Coordinator";
-        var (token, _) = _tokenService.GenerateAccessToken(userId, username, email, role);
+        var firstName = "Test";
+        var lastName = "User";
+        var (token, _) = _tokenService.GenerateAccessToken(userId, username, email, role, firstName, lastName);
 
         // Act
         var principal = _tokenService.ValidateToken(token);
@@ -143,6 +151,8 @@ public class TokenServiceTests
         Assert.Equal(username, principal.FindFirst(JwtRegisteredClaimNames.UniqueName)?.Value);
         Assert.Equal(email, principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value);
         Assert.Equal(role, principal.FindFirst(ClaimTypes.Role)?.Value);
+        Assert.Equal(firstName, principal.FindFirst(JwtRegisteredClaimNames.GivenName)?.Value);
+        Assert.Equal(lastName, principal.FindFirst(JwtRegisteredClaimNames.FamilyName)?.Value);
     }
 
     [Fact]
@@ -180,7 +190,7 @@ public class TokenServiceTests
     {
         // Arrange
         var userId = "user123";
-        var (token, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator");
+        var (token, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator", "Test", "User");
         var tamperedToken = token.Substring(0, token.Length - 5) + "AAAAA"; // Tamper with signature
 
         // Act
@@ -195,7 +205,7 @@ public class TokenServiceTests
     {
         // Arrange
         var userId = "user123";
-        var (token, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator");
+        var (token, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator", "Test", "User");
 
         // Act
         var extractedUserId = _tokenService.GetUserIdFromToken(token);
@@ -230,7 +240,7 @@ public class TokenServiceTests
     {
         // Arrange
         var userId = "user123";
-        var (token, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator");
+        var (token, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator", "Test", "User");
 
         // Act
         var handler = new JwtSecurityTokenHandler();
@@ -248,8 +258,8 @@ public class TokenServiceTests
         var userId = "user123";
 
         // Act
-        var (token1, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator");
-        var (token2, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator");
+        var (token1, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator", "Test", "User");
+        var (token2, _) = _tokenService.GenerateAccessToken(userId, "testuser", "test@example.com", "Coordinator", "Test", "User");
 
         // Assert
         Assert.NotEqual(token1, token2); // JTI claim ensures uniqueness

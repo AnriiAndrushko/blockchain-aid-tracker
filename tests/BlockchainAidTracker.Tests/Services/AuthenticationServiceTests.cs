@@ -69,7 +69,7 @@ public class AuthenticationServiceTests
             .Returns("hashedPassword");
         _keyManagementServiceMock.Setup(x => x.EncryptPrivateKey("privateKey", request.Password))
             .Returns("encryptedPrivateKey");
-        _tokenServiceMock.Setup(x => x.GenerateAccessToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _tokenServiceMock.Setup(x => x.GenerateAccessToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("accessToken", DateTime.UtcNow.AddHours(1)));
         _tokenServiceMock.Setup(x => x.GenerateRefreshToken())
             .Returns(("refreshToken", DateTime.UtcNow.AddDays(7)));
@@ -230,7 +230,7 @@ public class AuthenticationServiceTests
             .ReturnsAsync(user);
         _passwordServiceMock.Setup(x => x.VerifyPassword(request.Password, user.PasswordHash))
             .Returns(true);
-        _tokenServiceMock.Setup(x => x.GenerateAccessToken(user.Id, user.Username, user.Email, user.Role.ToString()))
+        _tokenServiceMock.Setup(x => x.GenerateAccessToken(user.Id, user.Username, user.Email, user.Role.ToString(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("accessToken", DateTime.UtcNow.AddHours(1)));
         _tokenServiceMock.Setup(x => x.GenerateRefreshToken())
             .Returns(("refreshToken", DateTime.UtcNow.AddDays(7)));
@@ -369,7 +369,7 @@ public class AuthenticationServiceTests
             .ReturnsAsync(user);
         _userRepositoryMock.Setup(x => x.GetByIdAsync(user.Id, default))
             .ReturnsAsync(user);
-        _tokenServiceMock.Setup(x => x.GenerateAccessToken(user.Id, user.Username, user.Email, user.Role.ToString()))
+        _tokenServiceMock.Setup(x => x.GenerateAccessToken(user.Id, user.Username, user.Email, user.Role.ToString(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("newAccessToken", DateTime.UtcNow.AddHours(1)));
         _tokenServiceMock.Setup(x => x.GenerateRefreshToken())
             .Returns(("newRefreshToken", DateTime.UtcNow.AddDays(7)));
