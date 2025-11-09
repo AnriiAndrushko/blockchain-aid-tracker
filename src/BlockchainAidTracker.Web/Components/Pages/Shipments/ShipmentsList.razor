@@ -31,11 +31,11 @@
         <div class="col-md-3">
             <select class="form-select" @bind="statusFilter" @bind:after="FilterShipments">
                 <option value="">All Statuses</option>
-                <option value="Created">Created</option>
-                <option value="Validated">Validated</option>
-                <option value="InTransit">In Transit</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Confirmed">Confirmed</option>
+                <option value="0">Created</option>
+                <option value="1">Validated</option>
+                <option value="2">In Transit</option>
+                <option value="3">Delivered</option>
+                <option value="4">Confirmed</option>
             </select>
         </div>
         <div class="col-md-auto">
@@ -62,7 +62,7 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 shadow-sm">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <span class="badge bg-@GetStatusColor(shipment.Status)">@shipment.Status</span>
+                            <span class="badge bg-@GetStatusColor(shipment.Status)">@GetStatusName(shipment.Status)</span>
                             <small class="text-muted">
                                 <i class="bi bi-calendar me-1"></i>
                                 @shipment.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
@@ -148,7 +148,7 @@
     private List<ShipmentDto> allShipments = new();
     private List<ShipmentDto> filteredShipments = new();
     private string searchText = string.Empty;
-    private string statusFilter = string.Empty;
+    private int? statusFilter = null;
     private bool hasLoadedData = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -188,7 +188,7 @@
              s.Origin.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
              s.Destination.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
              s.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
-            (string.IsNullOrEmpty(statusFilter) || s.Status == statusFilter)
+            (!statusFilter.HasValue || s.Status == statusFilter.Value)
         ).OrderByDescending(s => s.CreatedAt).ToList();
     }
 
@@ -197,15 +197,28 @@
         Navigation.NavigateTo($"/shipments/{id}");
     }
 
-    private string GetStatusColor(string status)
+    private string GetStatusName(int status)
     {
         return status switch
         {
-            "Created" => "secondary",
-            "Validated" => "info",
-            "InTransit" => "warning",
-            "Delivered" => "success",
-            "Confirmed" => "success",
+            0 => "Created",
+            1 => "Validated",
+            2 => "In Transit",
+            3 => "Delivered",
+            4 => "Confirmed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusColor(int status)
+    {
+        return status switch
+        {
+            0 => "secondary",  // Created
+            1 => "info",       // Validated
+            2 => "warning",    // InTransit
+            3 => "success",    // Delivered
+            4 => "success",    // Confirmed
             _ => "secondary"
         };
     }
@@ -218,7 +231,7 @@
         public string RecipientId { get; set; } = string.Empty;
         public DateTime ExpectedDeliveryDate { get; set; }
         public DateTime? ActualDeliveryDate { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public int Status { get; set; }
         public string QrCode { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
