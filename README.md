@@ -4,11 +4,12 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 ## Project Status
 
-**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, Proof-of-Authority Consensus Engine, Consensus API Integration, Automated Block Creation Background Service, Blockchain Persistence, and Cryptographic Key Management Complete** - The core blockchain engine with real ECDSA signature validation, PoA consensus, automated block creation, blockchain persistence, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, and all API endpoints are fully implemented and tested.
+**Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, Proof-of-Authority Consensus Engine, Consensus API Integration, Automated Block Creation Background Service, Blockchain Persistence, Cryptographic Key Management, and Blazor Web UI Complete** - The core blockchain engine with real ECDSA signature validation, PoA consensus, automated block creation, blockchain persistence, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, all API endpoints, and full Blazor Web UI are fully implemented and tested.
 
 **Current Metrics:**
--  **594 tests passing** (100% success rate: 487 unit + 107 integration) NEW
--  **Blockchain persistence with automatic save/load and backup rotation** NEWEST
+-  **594 tests passing** (100% success rate: 487 unit + 107 integration)
+-  **Blazor Web UI fully functional** (login, dashboard, shipments, blockchain explorer) NEWEST
+-  **Blockchain persistence with automatic save/load and backup rotation**
 -  **Consensus API with 4 endpoints for block creation and validation**
 -  **Automated background service creating blocks every 30 seconds**
 -  Authentication, Shipment, User Management, Blockchain Query, Smart Contract, Validator & Consensus API endpoints operational with Swagger UI
@@ -26,8 +27,9 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Cryptographic services (SHA-256, ECDSA) with real signatures
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
+-  **12 Blazor components with authentication, role-based access, and responsive UI**
 
-**Next:** Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Consider implementing additional security features (rate limiting, audit logging) or API enhancements.
+**Next:** Consider implementing Blazor component tests (bUnit), real-time updates with SignalR, advanced analytics, additional security features (rate limiting, audit logging), or mobile app development with .NET MAUI.
 
 ## Quick Start
 
@@ -50,6 +52,62 @@ dotnet run --project blockchain-aid-tracker
 
 # Run the API with Swagger UI (available at https://localhost:5001 or http://localhost:5000)
 dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+
+# Run the Blazor Web UI (available at https://localhost:5003 or http://localhost:5002)
+dotnet run --project src/BlockchainAidTracker.Web/BlockchainAidTracker.Web.csproj
+
+# RECOMMENDED: Run both API and Web UI simultaneously
+# Terminal 1:
+dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+
+# Terminal 2 (after API is running):
+dotnet run --project src/BlockchainAidTracker.Web/BlockchainAidTracker.Web.csproj
+```
+
+### Using the Blazor Web UI
+
+1. **Start the API** (Terminal 1):
+   ```bash
+   dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+   ```
+   Wait for "Now listening on: https://localhost:5001"
+
+2. **Start the Web UI** (Terminal 2):
+   ```bash
+   dotnet run --project src/BlockchainAidTracker.Web/BlockchainAidTracker.Web.csproj
+   ```
+   Open your browser to the URL shown (typically https://localhost:5003)
+
+3. **Register a New User:**
+   - Click "Create an account" on the login page
+   - Fill in your details (First name, Last name, Username, Email, Password)
+   - Select a role (Coordinator, Recipient, Donor, or Logistics Partner)
+   - Click "Create Account"
+   - You'll be automatically logged in and redirected to the dashboard
+
+4. **Explore Features:**
+   - **Dashboard**: View statistics, recent shipments, and blockchain status
+   - **Shipments**: Browse all shipments with filtering and search
+   - **Create Shipment** (Coordinator role only): Create new aid shipments with items
+   - **Shipment Details**: View detailed information, QR codes, and blockchain history
+   - **Blockchain Explorer**: Browse blocks, view transactions, and verify hashes
+
+5. **Role-Based Access:**
+   - **Coordinator**: Can create shipments and update status
+   - **Recipient**: Can confirm delivery of assigned shipments
+   - **Donor**: Can view shipment transparency and blockchain history
+   - **Logistics Partner**: Can update shipment status during transit
+
+**API Configuration:**
+- The Web UI connects to the API at `https://localhost:5001` by default
+- To change the API URL, edit `src/BlockchainAidTracker.Web/appsettings.json`:
+  ```json
+  {
+    "ApiSettings": {
+      "BaseUrl": "https://localhost:5001"
+    }
+  }
+  ```
 ```
 
 ### API Endpoints

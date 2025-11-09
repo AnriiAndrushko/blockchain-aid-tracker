@@ -53,7 +53,8 @@ public class UserServiceTests
         Assert.NotNull(result);
         Assert.Equal(userId, result.Id);
         Assert.Equal(user.Username, result.Username);
-        Assert.Equal("Test User", result.FullName);
+        Assert.Equal("Test", result.FirstName);
+        Assert.Equal("User", result.LastName);
     }
 
     [Fact]
@@ -196,7 +197,8 @@ public class UserServiceTests
 
         var request = new UpdateUserRequest
         {
-            FullName = "New Name",
+            FirstName = "New",
+            LastName = "Name",
             Email = "new@example.com",
             Organization = "New Org"
         };
@@ -211,7 +213,8 @@ public class UserServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("New Name", result.FullName);
+        Assert.Equal("New", result.FirstName);
+        Assert.Equal("Name", result.LastName);
         Assert.Equal("new@example.com", result.Email);
         Assert.Equal("New Org", result.Organization);
         _userRepositoryMock.Verify(x => x.Update(It.IsAny<User>()), Times.Once);
@@ -221,7 +224,7 @@ public class UserServiceTests
     public async Task UpdateUserProfileAsync_UserNotFound_ThrowsNotFoundException()
     {
         // Arrange
-        var request = new UpdateUserRequest { FullName = "New Name" };
+        var request = new UpdateUserRequest { FirstName = "New", LastName = "Name" };
         _userRepositoryMock.Setup(x => x.GetByIdAsync("nonexistent", default))
             .ReturnsAsync((User?)null);
 
