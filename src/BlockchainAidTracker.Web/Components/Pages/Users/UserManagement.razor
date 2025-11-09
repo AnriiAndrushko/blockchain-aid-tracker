@@ -386,7 +386,7 @@
     private void ShowAssignRoleModal(UserDto user)
     {
         selectedUser = user;
-        assignRoleModel = new AssignRoleModel { UserId = user.Id, Role = GetRoleName(user.Role) };
+        assignRoleModel = new AssignRoleModel { UserId = user.Id, Role = user.Role };
         assignRoleError = string.Empty;
         assignRoleSuccess = string.Empty;
         showAssignRoleModal = true;
