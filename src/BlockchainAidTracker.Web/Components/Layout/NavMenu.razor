@@ -4,7 +4,6 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
 @implements IDisposable
-@rendermode InteractiveServer
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -19,76 +18,76 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        @if (isAuthenticated)
-        {
+        <AuthorizeView>
+            <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
                         <i class="bi bi-speedometer2 me-2"></i> Dashboard
                     </NavLink>
                 </div>
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="shipments">
-                    <i class="bi bi-box-seam me-2"></i> Shipments
-                </NavLink>
-            </div>
-
-            @if (role == "Coordinator")
-            {
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="shipments/create">
-                        <i class="bi bi-plus-circle me-2"></i> Create Shipment
+                    <NavLink class="nav-link" href="shipments">
+                        <i class="bi bi-box-seam me-2"></i> Shipments
                     </NavLink>
                 </div>
-            }
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="blockchain">
-                    <i class="bi bi-diagram-3 me-2"></i> Blockchain Explorer
-                </NavLink>
-            </div>
+                <AuthorizeView Roles="Coordinator" Context="coordinatorContext">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="shipments/create">
+                                <i class="bi bi-plus-circle me-2"></i> Create Shipment
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
 
-            <hr class="my-2" />
+                    <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="blockchain">
+                        <i class="bi bi-diagram-3 me-2"></i> Blockchain Explorer
+                    </NavLink>
+                </div>
 
-            <div class="nav-item px-3">
-                <div class="user-info-panel p-3 bg-light rounded">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-person-circle fs-3 me-2"></i>
-                        <div>
-                            <div class="fw-bold">@firstName @lastName</div>
-                            <div class="small text-muted">@("@" + username)</div>
+                <hr class="my-2" />
+
+                <div class="nav-item px-3">
+                    <div class="user-info-panel p-3 bg-light rounded">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-person-circle fs-3 me-2"></i>
+                            <div>
+                                <div class="fw-bold">@firstName @lastName</div>
+                                <div class="small text-muted">@("@" + username)</div>
+                            </div>
+                        </div>
+                        <div class="small">
+                            <span class="badge bg-primary">@role</span>
                         </div>
                     </div>
-                    <div class="small">
-                        <span class="badge bg-primary">@role</span>
-                    </div>
                 </div>
-            </div>
 
-            <div class="nav-item px-3 mt-2">
-                <button class="nav-link btn btn-link text-danger w-100 text-start" @onclick="HandleLogout">
-                    <i class="bi bi-box-arrow-right me-2"></i> Logout
-                </button>
-            </div>
-        }
-        else
-        {
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="login">
-                    <i class="bi bi-box-arrow-in-right me-2"></i> Login
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="register">
-                    <i class="bi bi-person-plus me-2"></i> Register
-                </NavLink>
-            </div>
-        }
+                <div class="nav-item px-3 mt-2">
+                    <button class="nav-link btn btn-link text-danger w-100 text-start" @onclick="HandleLogout">
+                        <i class="bi bi-box-arrow-right me-2"></i> Logout
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Login
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="register">
+                        <i class="bi bi-person-plus me-2"></i> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
 
 @code {
-    private bool isAuthenticated = false;
     private string username = "User";
     private string firstName = "User";
     private string lastName = "";
@@ -101,7 +100,6 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            isAuthenticated = true;
             UpdateUserInfo(user);
         }
 
@@ -115,12 +113,10 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            isAuthenticated = true;
             UpdateUserInfo(user);
         }
         else
         {
-            isAuthenticated = false;
             username = "User";
             firstName = "User";
             lastName = "";
