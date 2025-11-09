@@ -1,0 +1,284 @@
+@page "/contracts"
+@using BlockchainAidTracker.Web.Services
+@inject ApiClientService ApiClient
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
+
+<PageTitle>Smart Contracts - Blockchain Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-file-code me-2"></i>Smart Contracts</h2>
+            <p class="text-muted">View and manage deployed smart contracts</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading smart contracts...</p>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Total Contracts</h6>
+                                <h3 class="mb-0 text-primary">@contracts.Count</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-file-code-fill" style="font-size: 2rem; color: #0d6efd;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Enabled Contracts</h6>
+                                <h3 class="mb-0 text-success">@contracts.Count(c => c.Enabled)</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-check-circle-fill" style="font-size: 2rem; color: #198754;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            @foreach (var contract in contracts)
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">@contract.Name</h5>
+                            @if (contract.Enabled)
+                            {
+                                <span class="badge bg-success">Enabled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Disabled</span>
+                            }
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label text-muted"><strong>Contract ID</strong></label>
+                                <p><code>@contract.Id</code></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted"><strong>Type</strong></label>
+                                <p><code class="text-primary">@contract.Type</code></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted"><strong>Deployed At</strong></label>
+                                <p class="text-muted">@contract.DeployedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss")</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted"><strong>Description</strong></label>
+                                <p class="text-muted">@GetContractDescription(contract.Type)</p>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary" @onclick="() => ViewContractState(contract.Id)">
+                                    <i class="bi bi-eye me-2"></i>View State
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!contracts.Any())
+            {
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="bi bi-file-code" style="font-size: 3rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">No smart contracts deployed</p>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Contract State Modal -->
+    @if (showStateModal && selectedContract != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-database me-2"></i>Contract State - @selectedContract.Name</h5>
+                        <button type="button" class="btn-close" @onclick="HideStateModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (isLoadingState)
+                        {
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading contract state...</p>
+                            </div>
+                        }
+                        else if (contractState.Any())
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Contract State</strong>
+                                <p class="mb-0 mt-2">This is the current state stored by the smart contract. State is updated when transactions are executed.</p>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 30%;">Key</th>
+                                            <th style="width: 70%;">Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var kvp in contractState.OrderBy(x => x.Key))
+                                        {
+                                            <tr>
+                                                <td><code class="text-primary">@kvp.Key</code></td>
+                                                <td>
+                                                    @if (kvp.Value.ToString()?.Length > 100)
+                                                    {
+                                                        <details>
+                                                            <summary class="text-muted" style="cursor: pointer;">@kvp.Value.ToString()?.Substring(0, 100)...</summary>
+                                                            <pre class="mt-2 mb-0"><code>@kvp.Value</code></pre>
+                                                        </details>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">@kvp.Value</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Total state entries: @contractState.Count
+                                </small>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No state data available</p>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="HideStateModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ContractDto> contracts = new();
+    private bool isLoading = true;
+    private bool showStateModal = false;
+    private bool isLoadingState = false;
+    private ContractDto? selectedContract = null;
+    private Dictionary<string, object> contractState = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadContracts();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadContracts()
+    {
+        try
+        {
+            isLoading = true;
+            contracts = await ApiClient.GetAsync<List<ContractDto>>("/api/contracts") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading contracts: {ex.Message}");
+            contracts = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ViewContractState(string contractId)
+    {
+        try
+        {
+            selectedContract = contracts.FirstOrDefault(c => c.Id == contractId);
+            if (selectedContract == null) return;
+
+            showStateModal = true;
+            isLoadingState = true;
+            contractState = new();
+
+            contractState = await ApiClient.GetAsync<Dictionary<string, object>>($"/api/contracts/{contractId}/state") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading contract state: {ex.Message}");
+            contractState = new();
+        }
+        finally
+        {
+            isLoadingState = false;
+        }
+    }
+
+    private void HideStateModal()
+    {
+        showStateModal = false;
+        selectedContract = null;
+        contractState = new();
+    }
+
+    private string GetContractDescription(string type)
+    {
+        return type switch
+        {
+            "ShipmentTrackingContract" => "Manages shipment lifecycle with automatic state transitions and validation rules. Ensures proper status progression from creation to confirmation.",
+            "DeliveryVerificationContract" => "Validates delivery confirmations with recipient verification and QR code scanning. Tracks delivery timeframes and generates verification events.",
+            _ => "Smart contract for automated blockchain operations"
+        };
+    }
+
+    private class ContractDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public DateTime DeployedAt { get; set; }
+        public bool Enabled { get; set; }
+    }
+}

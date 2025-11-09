@@ -1,0 +1,500 @@
+@page "/users"
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
+@rendermode InteractiveServer
+
+<PageTitle>User Management - Blockchain Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-people me-2"></i>User Management</h2>
+            <p class="text-muted">Manage users, assign roles, and control access</p>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search by username or email..."
+                       @bind="searchQuery" @bind:event="oninput" @onkeyup="FilterUsers" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="roleFilter" @bind:after="LoadUsers">
+                <option value="">All Roles</option>
+                <option value="Recipient">Recipient</option>
+                <option value="Donor">Donor</option>
+                <option value="Coordinator">Coordinator</option>
+                <option value="LogisticsPartner">Logistics Partner</option>
+                <option value="Validator">Validator</option>
+                <option value="Administrator">Administrator</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="statusFilter" @bind:after="FilterUsers">
+                <option value="">All Status</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100" @onclick="LoadUsers">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading users...</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Users (@filteredUsers.Count)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (filteredUsers.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Organization</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var user in filteredUsers)
+                                        {
+                                            <tr>
+                                                <td>@user.FirstName @user.LastName</td>
+                                                <td><code class="text-primary">@user.Username</code></td>
+                                                <td>@user.Email</td>
+                                                <td>
+                                                    <span class="badge bg-@GetRoleColor(user.Role)">@user.Role</span>
+                                                </td>
+                                                <td>@(string.IsNullOrEmpty(user.Organization) ? "-" : user.Organization)</td>
+                                                <td>
+                                                    @if (user.IsActive)
+                                                    {
+                                                        <span class="badge bg-success">Active</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">Inactive</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary" @onclick="() => ShowUserDetails(user)">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning" @onclick="() => ShowAssignRoleModal(user)">
+                                                            <i class="bi bi-shield"></i>
+                                                        </button>
+                                                        @if (user.IsActive)
+                                                        {
+                                                            <button class="btn btn-outline-danger" @onclick="() => DeactivateUser(user.Id)">
+                                                                <i class="bi bi-x-circle"></i>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-outline-success" @onclick="() => ActivateUser(user.Id)">
+                                                                <i class="bi bi-check-circle"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-people" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No users found</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- User Details Modal -->
+    @if (showUserDetailsModal && selectedUser != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-person-circle me-2"></i>User Details</h5>
+                        <button type="button" class="btn-close" @onclick="HideUserDetailsModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>First Name</strong></label>
+                                <p class="text-muted">@selectedUser.FirstName</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Last Name</strong></label>
+                                <p class="text-muted">@selectedUser.LastName</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Username</strong></label>
+                                <p><code class="text-primary">@selectedUser.Username</code></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Email</strong></label>
+                                <p class="text-muted">@selectedUser.Email</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Role</strong></label>
+                                <p><span class="badge bg-@GetRoleColor(selectedUser.Role)">@selectedUser.Role</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Status</strong></label>
+                                <p>
+                                    @if (selectedUser.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Organization</strong></label>
+                                <p class="text-muted">@(string.IsNullOrEmpty(selectedUser.Organization) ? "Not specified" : selectedUser.Organization)</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>User ID</strong></label>
+                                <p><code>@selectedUser.Id</code></p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Created At</strong></label>
+                                <p class="text-muted">@selectedUser.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Updated At</strong></label>
+                                <p class="text-muted">@selectedUser.UpdatedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="HideUserDetailsModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Assign Role Modal -->
+    @if (showAssignRoleModal && selectedUser != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-shield me-2"></i>Assign Role</h5>
+                        <button type="button" class="btn-close" @onclick="HideAssignRoleModal"></button>
+                    </div>
+                    <EditForm Model="@assignRoleModel" OnValidSubmit="AssignRole">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            @if (!string.IsNullOrEmpty(assignRoleError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    @assignRoleError
+                                    <button type="button" class="btn-close" @onclick="() => assignRoleError = string.Empty"></button>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(assignRoleSuccess))
+                            {
+                                <div class="alert alert-success alert-dismissible fade show">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    @assignRoleSuccess
+                                    <button type="button" class="btn-close" @onclick="() => assignRoleSuccess = string.Empty"></button>
+                                </div>
+                            }
+                            <div class="mb-3">
+                                <label class="form-label"><strong>User</strong></label>
+                                <p class="text-muted">@selectedUser.FirstName @selectedUser.LastName (@selectedUser.Username)</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Current Role</label>
+                                <p><span class="badge bg-@GetRoleColor(selectedUser.Role)">@selectedUser.Role</span></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Role <span class="text-danger">*</span></label>
+                                <InputSelect class="form-select" @bind-Value="assignRoleModel.Role">
+                                    <option value="">-- Select Role --</option>
+                                    <option value="Recipient">Recipient</option>
+                                    <option value="Donor">Donor</option>
+                                    <option value="Coordinator">Coordinator</option>
+                                    <option value="LogisticsPartner">Logistics Partner</option>
+                                    <option value="Validator">Validator</option>
+                                    <option value="Administrator">Administrator</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => assignRoleModel.Role)" />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="HideAssignRoleModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isAssigningRole">
+                                @if (isAssigningRole)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-save me-2"></i>Assign Role
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<UserDto> users = new();
+    private List<UserDto> filteredUsers = new();
+    private bool isLoading = true;
+    private string searchQuery = string.Empty;
+    private string roleFilter = string.Empty;
+    private string statusFilter = string.Empty;
+
+    // Modal states
+    private bool showUserDetailsModal = false;
+    private bool showAssignRoleModal = false;
+    private bool isAssigningRole = false;
+    private UserDto? selectedUser = null;
+    private string assignRoleError = string.Empty;
+    private string assignRoleSuccess = string.Empty;
+    private AssignRoleModel assignRoleModel = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadUsers();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            isLoading = true;
+            var endpoint = string.IsNullOrEmpty(roleFilter)
+                ? "/api/users"
+                : $"/api/users?role={roleFilter}";
+
+            users = await ApiClient.GetAsync<List<UserDto>>(endpoint) ?? new();
+            FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading users: {ex.Message}");
+            users = new();
+            filteredUsers = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterUsers()
+    {
+        filteredUsers = users;
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filteredUsers = filteredUsers.Where(u =>
+                u.Username.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                u.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                u.FirstName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                u.LastName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+
+        // Apply status filter
+        if (statusFilter == "active")
+        {
+            filteredUsers = filteredUsers.Where(u => u.IsActive).ToList();
+        }
+        else if (statusFilter == "inactive")
+        {
+            filteredUsers = filteredUsers.Where(u => !u.IsActive).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    private void ShowUserDetails(UserDto user)
+    {
+        selectedUser = user;
+        showUserDetailsModal = true;
+    }
+
+    private void HideUserDetailsModal()
+    {
+        showUserDetailsModal = false;
+        selectedUser = null;
+    }
+
+    private void ShowAssignRoleModal(UserDto user)
+    {
+        selectedUser = user;
+        assignRoleModel = new AssignRoleModel { UserId = user.Id, Role = user.Role };
+        assignRoleError = string.Empty;
+        assignRoleSuccess = string.Empty;
+        showAssignRoleModal = true;
+    }
+
+    private void HideAssignRoleModal()
+    {
+        showAssignRoleModal = false;
+        selectedUser = null;
+    }
+
+    private async Task AssignRole()
+    {
+        try
+        {
+            isAssigningRole = true;
+            assignRoleError = string.Empty;
+            assignRoleSuccess = string.Empty;
+
+            await ApiClient.PostAsync<AssignRoleModel, object>(
+                "/api/users/assign-role",
+                assignRoleModel
+            );
+
+            assignRoleSuccess = "Role assigned successfully!";
+
+            await Task.Delay(1500);
+            await LoadUsers();
+            HideAssignRoleModal();
+        }
+        catch (Exception ex)
+        {
+            assignRoleError = $"Error assigning role: {ex.Message}";
+            Console.WriteLine($"Error assigning role: {ex.Message}");
+        }
+        finally
+        {
+            isAssigningRole = false;
+        }
+    }
+
+    private async Task ActivateUser(string userId)
+    {
+        try
+        {
+            await ApiClient.PostAsync<object, object>(
+                $"/api/users/{userId}/activate",
+                new { }
+            );
+
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error activating user: {ex.Message}");
+        }
+    }
+
+    private async Task DeactivateUser(string userId)
+    {
+        try
+        {
+            await ApiClient.PostAsync<object, object>(
+                $"/api/users/{userId}/deactivate",
+                new { }
+            );
+
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deactivating user: {ex.Message}");
+        }
+    }
+
+    private string GetRoleColor(string role)
+    {
+        return role switch
+        {
+            "Administrator" => "danger",
+            "Coordinator" => "primary",
+            "Validator" => "success",
+            "Donor" => "info",
+            "Recipient" => "warning",
+            "LogisticsPartner" => "secondary",
+            _ => "secondary"
+        };
+    }
+
+    private class UserDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Organization { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    private class AssignRoleModel
+    {
+        public string UserId { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Please select a role")]
+        public string Role { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,349 @@
+@page "/profile"
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject ApiClientService ApiClient
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
+
+<PageTitle>My Profile - Blockchain Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-person-circle me-2"></i>My Profile</h2>
+            <p class="text-muted">View and manage your account information</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading profile...</p>
+        </div>
+    }
+    else if (user == null)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Profile not found
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card mb-3">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-person-circle" style="font-size: 6rem; color: #0d6efd;"></i>
+                        </div>
+                        <h4>@user.FirstName @user.LastName</h4>
+                        <p class="text-muted">@@@user.Username</p>
+                        <span class="badge bg-@GetRoleColor(user.Role) fs-6">@user.Role</span>
+                        <hr />
+                        <div class="d-grid gap-2">
+                            @if (!isEditing)
+                            {
+                                <button class="btn btn-primary" @onclick="StartEditing">
+                                    <i class="bi bi-pencil me-2"></i>Edit Profile
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-secondary" @onclick="CancelEditing">
+                                    <i class="bi bi-x me-2"></i>Cancel Edit
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Account Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Status:</strong>
+                            @if (user.IsActive)
+                            {
+                                <span class="badge bg-success ms-2">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary ms-2">Inactive</span>
+                            }
+                        </div>
+                        <div class="mb-2">
+                            <strong>Member Since:</strong>
+                            <p class="text-muted small mb-0">@user.CreatedAt.ToLocalTime().ToString("MMMM dd, yyyy")</p>
+                        </div>
+                        <div>
+                            <strong>Last Updated:</strong>
+                            <p class="text-muted small mb-0">@user.UpdatedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                @if (!isEditing)
+                {
+                    <!-- View Mode -->
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Profile Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label"><strong>First Name</strong></label>
+                                    <p class="text-muted">@user.FirstName</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label"><strong>Last Name</strong></label>
+                                    <p class="text-muted">@user.LastName</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label"><strong>Username</strong></label>
+                                    <p><code class="text-primary">@user.Username</code></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label"><strong>Email Address</strong></label>
+                                    <p class="text-muted">@user.Email</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label"><strong>Organization</strong></label>
+                                    <p class="text-muted">@(string.IsNullOrEmpty(user.Organization) ? "Not specified" : user.Organization)</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label"><strong>Role</strong></label>
+                                    <p><span class="badge bg-@GetRoleColor(user.Role)">@user.Role</span></p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="form-label"><strong>User ID</strong></label>
+                                    <p><code class="small">@user.Id</code></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Edit Mode -->
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-pencil me-2"></i>Edit Profile</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(updateError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    @updateError
+                                    <button type="button" class="btn-close" @onclick="() => updateError = string.Empty"></button>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(updateSuccess))
+                            {
+                                <div class="alert alert-success alert-dismissible fade show">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    @updateSuccess
+                                    <button type="button" class="btn-close" @onclick="() => updateSuccess = string.Empty"></button>
+                                </div>
+                            }
+
+                            <EditForm Model="@updateModel" OnValidSubmit="UpdateProfile">
+                                <DataAnnotationsValidator />
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">First Name <span class="text-danger">*</span></label>
+                                        <InputText class="form-control" @bind-Value="updateModel.FirstName" />
+                                        <ValidationMessage For="@(() => updateModel.FirstName)" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                                        <InputText class="form-control" @bind-Value="updateModel.LastName" />
+                                        <ValidationMessage For="@(() => updateModel.LastName)" />
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                                        <InputText type="email" class="form-control" @bind-Value="updateModel.Email" />
+                                        <ValidationMessage For="@(() => updateModel.Email)" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Organization</label>
+                                        <InputText class="form-control" @bind-Value="updateModel.Organization" placeholder="Optional" />
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <small><i class="bi bi-info-circle me-1"></i>Username and role cannot be changed. Contact an administrator if you need to change your role.</small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary" disabled="@isUpdating">
+                                        @if (isUpdating)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="bi bi-save me-2"></i>Save Changes
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" @onclick="CancelEditing">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private UserDto? user;
+    private bool isLoading = true;
+    private bool isEditing = false;
+    private bool isUpdating = false;
+    private string updateError = string.Empty;
+    private string updateSuccess = string.Empty;
+    private UpdateProfileModel updateModel = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadProfile();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadProfile()
+    {
+        try
+        {
+            isLoading = true;
+            user = await ApiClient.GetAsync<UserDto>("/api/users/profile");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading profile: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void StartEditing()
+    {
+        if (user != null)
+        {
+            updateModel = new UpdateProfileModel
+            {
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Organization = user.Organization
+            };
+            updateError = string.Empty;
+            updateSuccess = string.Empty;
+            isEditing = true;
+        }
+    }
+
+    private void CancelEditing()
+    {
+        isEditing = false;
+        updateError = string.Empty;
+        updateSuccess = string.Empty;
+    }
+
+    private async Task UpdateProfile()
+    {
+        try
+        {
+            isUpdating = true;
+            updateError = string.Empty;
+            updateSuccess = string.Empty;
+
+            await ApiClient.PutAsync<UpdateProfileModel, object>(
+                "/api/users/profile",
+                updateModel
+            );
+
+            updateSuccess = "Profile updated successfully!";
+
+            await Task.Delay(1500);
+            await LoadProfile();
+            CancelEditing();
+        }
+        catch (Exception ex)
+        {
+            updateError = $"Error updating profile: {ex.Message}";
+            Console.WriteLine($"Error updating profile: {ex.Message}");
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private string GetRoleColor(string role)
+    {
+        return role switch
+        {
+            "Administrator" => "danger",
+            "Coordinator" => "primary",
+            "Validator" => "success",
+            "Donor" => "info",
+            "Recipient" => "warning",
+            "LogisticsPartner" => "secondary",
+            _ => "secondary"
+        };
+    }
+
+    private class UserDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Organization { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    private class UpdateProfileModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "First name is required")]
+        [System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "First name cannot exceed 50 characters")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Last name is required")]
+        [System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters")]
+        public string LastName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email is required")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Invalid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        public string Organization { get; set; } = string.Empty;
+    }
+}
