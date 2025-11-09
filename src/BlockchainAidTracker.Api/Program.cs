@@ -198,6 +198,7 @@ if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing")
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
     // Apply any pending migrations to keep database schema up to date
+    dbContext.Database.EnsureDeleted();
     dbContext.Database.Migrate();
 
     app.Logger.LogInformation("Database migrations applied successfully");
