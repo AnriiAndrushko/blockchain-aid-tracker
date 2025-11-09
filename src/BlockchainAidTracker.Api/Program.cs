@@ -198,7 +198,7 @@ if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing")
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
     // Delete existing database for demo purposes (as per CLAUDE.md - "Reset database state on application start")
-    dbContext.Database.EnsureDeleted();
+    //dbContext.Database.EnsureDeleted();
     dbContext.Database.Migrate();
 
     app.Logger.LogInformation("Database migrations applied successfully");
