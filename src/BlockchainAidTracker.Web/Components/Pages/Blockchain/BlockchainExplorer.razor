@@ -13,6 +13,9 @@
             <p class="text-muted">Explore blocks and transactions on the blockchain</p>
         </div>
         <div class="col-auto">
+            <button class="btn btn-outline-secondary me-2" @onclick="GoToDashboard">
+                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            </button>
             <button class="btn btn-outline-primary" @onclick="LoadBlockchain">
                 <i class="bi bi-arrow-clockwise me-2"></i>Refresh
             </button>
@@ -323,6 +326,11 @@
     {
         showModal = false;
         selectedBlock = null;
+    }
+
+    private void GoToDashboard()
+    {
+        Navigation.NavigateTo("/dashboard");
     }
 
     private string TruncateHash(string hash)

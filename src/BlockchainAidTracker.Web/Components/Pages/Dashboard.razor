@@ -116,9 +116,9 @@
                                         @foreach (var shipment in recentShipments.Take(5))
                                         {
                                             <tr>
-                                                <td><code>@shipment.Id.ToString().Substring(0, 8)</code></td>
-                                                <td>@shipment.OriginLocation</td>
-                                                <td>@shipment.DestinationLocation</td>
+                                                <td><code>@(shipment.Id.Length > 8 ? shipment.Id.Substring(0, 8) : shipment.Id)</code></td>
+                                                <td>@shipment.Origin</td>
+                                                <td>@shipment.Destination</td>
                                                 <td><span class="badge bg-@GetStatusColor(shipment.Status)">@shipment.Status</span></td>
                                                 <td>@shipment.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</td>
                                                 <td>
@@ -206,8 +206,11 @@
 
             // Calculate stats
             stats.TotalShipments = allShipments.Count;
-            stats.DeliveredShipments = allShipments.Count(s => s.Status == "Delivered" || s.Status == "Confirmed");
-            stats.InTransitShipments = allShipments.Count(s => s.Status == "InTransit");
+            stats.DeliveredShipments = allShipments.Count(s =>
+                s.Status.Equals("Delivered", StringComparison.OrdinalIgnoreCase) ||
+                s.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase));
+            stats.InTransitShipments = allShipments.Count(s =>
+                s.Status.Equals("InTransit", StringComparison.OrdinalIgnoreCase));
             stats.BlockchainHeight = chainData?.Count ?? 0;
             stats.PendingTransactions = 0; // You can get this from API
             stats.IsChainValid = validation?.IsValid ?? false;
@@ -247,11 +250,26 @@
 
     private class ShipmentDto
     {
-        public Guid Id { get; set; }
-        public string OriginLocation { get; set; } = string.Empty;
-        public string DestinationLocation { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string RecipientId { get; set; } = string.Empty;
+        public DateTime ExpectedDeliveryDate { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string QrCode { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public List<ShipmentItemDto> Items { get; set; } = new();
+        public List<string> TransactionIds { get; set; } = new();
+    }
+
+    private class ShipmentItemDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
     }
 
     private class BlockDto
