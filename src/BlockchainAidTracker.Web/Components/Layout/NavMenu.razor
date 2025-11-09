@@ -6,7 +6,7 @@
 @implements IDisposable
 @rendermode InteractiveServer
 
-<CascadingAuthenticationState>
+<CascadingValue Value="@authenticationStateTask">
     <div class="top-row ps-3 navbar navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="">
@@ -88,9 +88,10 @@
         </AuthorizeView>
     </nav>
 </div>
-</CascadingAuthenticationState>
+</CascadingValue>
 
 @code {
+    private Task<AuthenticationState> authenticationStateTask = null!;
     private string username = "User";
     private string firstName = "User";
     private string lastName = "";
@@ -98,7 +99,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        // Set the authentication state task for cascading to child components
+        authenticationStateTask = AuthProvider.GetAuthenticationStateAsync();
+
+        var authState = await authenticationStateTask;
         var user = authState.User;
 
         if (user.Identity?.IsAuthenticated == true)
@@ -111,6 +115,9 @@
 
     private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
     {
+        // Update the cascaded authentication state task
+        authenticationStateTask = task;
+
         var authState = await task;
         var user = authState.User;
 
