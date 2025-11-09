@@ -201,14 +201,14 @@
             recentShipments = allShipments.OrderByDescending(s => s.CreatedAt).ToList();
 
             // Load blockchain data
-            var chainData = await ApiClient.GetAsync<BlockchainDto>("/api/blockchain/chain");
+            var chainData = await ApiClient.GetAsync<List<BlockDto>>("/api/blockchain/chain");
             var validation = await ApiClient.GetAsync<ValidationResultDto>("/api/blockchain/validate");
 
             // Calculate stats
             stats.TotalShipments = allShipments.Count;
             stats.DeliveredShipments = allShipments.Count(s => s.Status == "Delivered" || s.Status == "Confirmed");
             stats.InTransitShipments = allShipments.Count(s => s.Status == "InTransit");
-            stats.BlockchainHeight = chainData?.Blocks?.Count ?? 0;
+            stats.BlockchainHeight = chainData?.Count ?? 0;
             stats.PendingTransactions = 0; // You can get this from API
             stats.IsChainValid = validation?.IsValid ?? false;
         }
@@ -252,11 +252,6 @@
         public string DestinationLocation { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
-    }
-
-    private class BlockchainDto
-    {
-        public List<BlockDto>? Blocks { get; set; }
     }
 
     private class BlockDto
