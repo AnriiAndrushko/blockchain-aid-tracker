@@ -148,7 +148,7 @@
     private List<ShipmentDto> allShipments = new();
     private List<ShipmentDto> filteredShipments = new();
     private string searchText = string.Empty;
-    private int? statusFilter = null;
+    private string statusFilter = string.Empty;
     private bool hasLoadedData = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -188,7 +188,7 @@
              s.Origin.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
              s.Destination.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
              s.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
-            (!statusFilter.HasValue || s.Status == statusFilter.Value)
+            (string.IsNullOrEmpty(statusFilter) || s.Status == int.Parse(statusFilter))
         ).OrderByDescending(s => s.CreatedAt).ToList();
     }
 
