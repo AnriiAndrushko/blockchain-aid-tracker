@@ -6,9 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking system. The project demonstrates a decentralized system for controlling humanitarian aid supply chains using blockchain technology, .NET ecosystem, and Proof-of-Authority consensus.
 
-**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, **blockchain persistence**, and cryptographic key management complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, blockchain persistence, and all API endpoints are fully implemented and tested with 594 passing tests (487 unit + 107 integration).
+**Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, **blockchain persistence**, cryptographic key management, and **Blazor Web UI** complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, blockchain persistence, and all API endpoints are fully implemented and tested with 594 passing tests (487 unit + 107 integration). The Blazor Web UI is fully functional with authentication, dashboard, shipment management, and blockchain explorer.
 
 **Recently Completed** (Latest):
+- ✅ **Blazor Web UI** NEWEST
+  - Complete authentication system (login, registration, JWT token management)
+  - CustomAuthenticationStateProvider with automatic token refresh
+  - Dashboard with statistics and recent shipments
+  - Shipment management (list with filtering, create form, detail view with timeline)
+  - QR code display integration for shipments
+  - Blockchain explorer (block list, block details, transaction viewing)
+  - Modal-based block and transaction detail views
+  - Hash and signature verification display
+  - Responsive Bootstrap 5 UI with Bootstrap Icons
+  - Role-based navigation and access control
+  - API client service for backend communication
+  - Blazored.LocalStorage for client-side token storage
+  - 12 Blazor pages and components (Auth, Dashboard, Shipments, Blockchain)
+
+
 - ✅ **Blockchain Persistence** NEWEST
   - IBlockchainPersistence interface for persistence operations
   - JsonBlockchainPersistence implementation with file-based JSON storage
@@ -63,7 +79,7 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - ValidatorBuilder for test data creation
 
 
-**Next Steps**: Begin Blazor UI development for shipment management, blockchain explorer, and dashboard. Consider implementing additional security features (rate limiting, audit logging) or API enhancements.
+**Next Steps**: Consider implementing additional features such as Blazor component unit tests (bUnit), advanced UI features (real-time updates with SignalR, advanced analytics), additional security features (rate limiting, audit logging), or mobile app development with .NET MAUI.
 
 ## Build and Run Commands
 
@@ -74,6 +90,15 @@ dotnet build blockchain-aid-tracker.sln
 
 # Run the API (Swagger available at http://localhost:5000 or https://localhost:5001)
 dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+
+# Run the Blazor Web UI (http://localhost:5002 or https://localhost:5003)
+dotnet run --project src/BlockchainAidTracker.Web/BlockchainAidTracker.Web.csproj
+
+# Run both API and Web UI simultaneously (recommended)
+# Terminal 1:
+dotnet run --project src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+# Terminal 2:
+dotnet run --project src/BlockchainAidTracker.Web/BlockchainAidTracker.Web.csproj
 
 # Run the demo console application
 dotnet run --project blockchain-aid-tracker/blockchain-aid-tracker.csproj
@@ -131,8 +156,8 @@ dotnet test --filter "FullyQualifiedName!~Integration"
   - **BlockchainAidTracker.DataAccess/** - Entity Framework Core data access layer
   - **BlockchainAidTracker.Services/** - Business logic services (complete with 7 services)
   - **BlockchainAidTracker.SmartContracts/** - Smart contract framework and built-in contracts
-  - **BlockchainAidTracker.Api/** - ASP.NET Core Web API project (authentication endpoints functional)
-  - **BlockchainAidTracker.Web/** - Blazor Server web application (referenced)
+  - **BlockchainAidTracker.Api/** - ASP.NET Core Web API project (all endpoints functional)
+  - **BlockchainAidTracker.Web/** - Blazor Server web application (fully functional with auth, dashboard, shipments, blockchain explorer)
 - **tests/** - Test projects
   - **BlockchainAidTracker.Tests/** - xUnit test project (485 passing tests: 402 unit + 83 integration)
 - **blockchain-aid-tracker/** - Main console application/demo project
@@ -411,6 +436,103 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 **Configuration Files**:
 - `appsettings.json` - Production configuration
 - `appsettings.Testing.json` - Test environment configuration
+
+### ✅ Web Module (100% Complete)
+**Location**: `src/BlockchainAidTracker.Web/`
+
+**Pages & Components**:
+- **Authentication Pages** (`Components/Pages/Auth/`)
+  - `Login.razor` - User login with JWT authentication
+  - `Register.razor` - User registration with role selection
+  - Form validation with DataAnnotations
+  - Error handling and user feedback
+
+- **Dashboard** (`Components/Pages/`)
+  - `Dashboard.razor` - Main dashboard with statistics cards
+  - Total shipments, delivered, in-transit, blockchain height
+  - Recent shipments table with status badges
+  - Blockchain status indicators (chain height, pending transactions, validity)
+  - Quick navigation to shipments and blockchain explorer
+
+- **Shipment Management** (`Components/Pages/Shipments/`)
+  - `ShipmentsList.razor` - Shipment list with filtering and search
+    - Real-time search by location or shipment ID
+    - Status filtering (Created, Validated, InTransit, Delivered, Confirmed)
+    - Card-based responsive layout
+    - Pagination support
+  - `CreateShipment.razor` - Shipment creation form (Coordinator role only)
+    - Multi-section form (location, recipient, timeframe, items)
+    - Dynamic item list management (add/remove items)
+    - Form validation with error messages
+    - Navigation after successful creation
+  - `ShipmentDetail.razor` - Detailed shipment view
+    - Complete shipment information display
+    - Shipment items table
+    - QR code display with image rendering
+    - Blockchain transaction timeline with timestamps
+    - Quick action buttons (view on blockchain, back to list)
+
+- **Blockchain Explorer** (`Components/Pages/Blockchain/`)
+  - `BlockchainExplorer.razor` - Blockchain block list and viewer
+    - Statistics cards (chain height, total transactions, pending, validity)
+    - Block list table with hash, timestamp, transaction count
+    - Block detail modal with complete block information
+    - Transaction list within blocks
+    - Hash and signature verification display
+    - Visual transaction type badges
+
+- **Layout Components** (`Components/Layout/`)
+  - `MainLayout.razor` - Main application layout
+  - `NavMenu.razor` - Navigation menu with role-based display
+    - Conditional navigation items based on authentication
+    - Role-based menu items (Coordinator-only create shipment)
+    - User profile display with username
+    - Logout functionality
+
+**Services** (`Services/`)
+- `CustomAuthenticationStateProvider` - Authentication state management
+  - JWT token storage in local storage
+  - Automatic token refresh on expiration
+  - Authentication state change notifications
+  - Secure logout with token cleanup
+- `ApiClientService` - HTTP client wrapper for API calls
+  - Generic GET/POST/PUT/DELETE methods
+  - Centralized error handling
+  - JSON serialization with case-insensitive options
+  - Base URL configuration from appsettings
+- `ApiSettings` - Configuration class for API base URL
+
+**Configuration** (Program.cs):
+- Blazor Server with Interactive Server render mode
+- Blazored.LocalStorage for token persistence
+- Microsoft.AspNetCore.Components.Authorization for auth
+- HttpClient configuration with ApiClientService
+- CascadingAuthenticationState for auth context
+- Authorization core services
+
+**NuGet Packages**:
+- Blazored.LocalStorage 4.5.0
+- Microsoft.AspNetCore.Components.Authorization 9.0.0
+- System.IdentityModel.Tokens.Jwt (for token parsing)
+
+**Features**:
+- JWT-based authentication with automatic refresh
+- Role-based access control (Coordinator, Recipient, Donor, etc.)
+- Responsive Bootstrap 5 UI with Bootstrap Icons
+- Real-time data fetching from API
+- Client-side filtering and search
+- Modal dialogs for detailed views
+- Form validation with user feedback
+- Loading states and error handling
+- QR code image display from API
+- Timeline visualization for blockchain transactions
+- Hash and signature display with truncation
+- Breadcrumb navigation
+- Status badge color coding
+
+**Configuration Files**:
+- `appsettings.json` - API base URL configuration
+- `appsettings.Development.json` - Development settings
 
 ### ✅ SmartContracts Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.SmartContracts/`

@@ -1,0 +1,385 @@
+@page "/blockchain"
+@using BlockchainAidTracker.Web.Services
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Blockchain Explorer - Blockchain Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-diagram-3 me-2"></i>Blockchain Explorer</h2>
+            <p class="text-muted">Explore blocks and transactions on the blockchain</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary me-2" @onclick="GoToDashboard">
+                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            </button>
+            <button class="btn btn-outline-primary" @onclick="LoadBlockchain">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading blockchain...</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Chain Height</h6>
+                        <h3 class="mb-0">@blocks.Count</h3>
+                        <small class="text-muted">blocks</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Total Transactions</h6>
+                        <h3 class="mb-0">@totalTransactions</h3>
+                        <small class="text-muted">transactions</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Pending Transactions</h6>
+                        <h3 class="mb-0">@pendingTransactions</h3>
+                        <small class="text-muted">in pool</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Chain Status</h6>
+                        <h3 class="mb-0">
+                            @if (isValid)
+                            {
+                                <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
+                            }
+                            else
+                            {
+                                <span class="text-danger"><i class="bi bi-x-circle-fill"></i></span>
+                            }
+                        </h3>
+                        <small class="text-muted">@(isValid ? "Valid" : "Invalid")</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (blocks.Any())
+        {
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Blocks</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Index</th>
+                                    <th>Timestamp</th>
+                                    <th>Transactions</th>
+                                    <th>Hash</th>
+                                    <th>Previous Hash</th>
+                                    <th>Validator</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var block in blocks.OrderByDescending(b => b.Index))
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-primary">@block.Index</span>
+                                        </td>
+                                        <td>
+                                            <small>@block.Timestamp.ToLocalTime().ToString("MMM dd, HH:mm:ss")</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">@block.Transactions.Count</span>
+                                        </td>
+                                        <td>
+                                            <code class="small">@TruncateHash(block.Hash)</code>
+                                        </td>
+                                        <td>
+                                            <code class="small">@TruncateHash(block.PreviousHash)</code>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(block.ValidatorPublicKey))
+                                            {
+                                                <code class="small">@TruncateHash(block.ValidatorPublicKey)</code>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Genesis</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewBlock(block.Index)">
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                    <h4 class="mt-3">No blocks found</h4>
+                    <p class="text-muted">The blockchain appears to be empty</p>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Block Detail Modal -->
+@if (selectedBlock != null && showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Block #@selectedBlock.Index</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Block Information</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Index:</th>
+                            <td>@selectedBlock.Index</td>
+                        </tr>
+                        <tr>
+                            <th>Timestamp:</th>
+                            <td>@selectedBlock.Timestamp.ToLocalTime().ToString("MMMM dd, yyyy HH:mm:ss")</td>
+                        </tr>
+                        <tr>
+                            <th>Hash:</th>
+                            <td><code class="small">@selectedBlock.Hash</code></td>
+                        </tr>
+                        <tr>
+                            <th>Previous Hash:</th>
+                            <td><code class="small">@selectedBlock.PreviousHash</code></td>
+                        </tr>
+                        <tr>
+                            <th>Validator:</th>
+                            <td>
+                                @if (!string.IsNullOrEmpty(selectedBlock.ValidatorPublicKey))
+                                {
+                                    <code class="small">@selectedBlock.ValidatorPublicKey</code>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Genesis Block</span>
+                                }
+                            </td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(selectedBlock.ValidatorSignature))
+                        {
+                            <tr>
+                                <th>Signature:</th>
+                                <td><code class="small">@selectedBlock.ValidatorSignature</code></td>
+                            </tr>
+                        }
+                    </table>
+
+                    <h6 class="mt-4">Transactions (@(selectedBlock.Transactions?.Count ?? 0))</h6>
+                    @if (selectedBlock.Transactions != null && selectedBlock.Transactions.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var tx in selectedBlock.Transactions)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">@tx.Type</h6>
+                                            <p class="mb-1 small"><strong>ID:</strong> <code>@tx.Id</code></p>
+                                            <p class="mb-1 small"><strong>Timestamp:</strong> @tx.Timestamp.ToLocalTime().ToString("HH:mm:ss")</p>
+                                            @if (!string.IsNullOrEmpty(tx.SenderPublicKey))
+                                            {
+                                                <p class="mb-0 small"><strong>Sender:</strong> <code>@TruncateHash(tx.SenderPublicKey)</code></p>
+                                            }
+                                        </div>
+                                        <span class="badge bg-@GetTransactionTypeColor(tx.Type)">@tx.Type</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No transactions in this block</p>
+                    }
+
+                    <h6 class="mt-4">Hash Verification</h6>
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Hash verification ensures block integrity. Each block's hash is calculated from its contents.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool showModal = false;
+    private List<BlockDto> blocks = new();
+    private BlockDto? selectedBlock;
+    private int totalTransactions = 0;
+    private int pendingTransactions = 0;
+    private bool isValid = true;
+    private bool hasLoadedData = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasLoadedData)
+        {
+            hasLoadedData = true;
+            await LoadBlockchain();
+            await LoadPendingTransactions();
+            await ValidateChain();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadBlockchain()
+    {
+        try
+        {
+            isLoading = true;
+            blocks = await ApiClient.GetAsync<List<BlockDto>>("/api/blockchain/chain") ?? new();
+            totalTransactions = blocks.Sum(b => b.Transactions?.Count ?? 0);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading blockchain: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadPendingTransactions()
+    {
+        try
+        {
+            var response = await ApiClient.GetAsync<List<TransactionDto>>("/api/blockchain/pending");
+            pendingTransactions = response?.Count ?? 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading pending transactions: {ex.Message}");
+        }
+    }
+
+    private async Task ValidateChain()
+    {
+        try
+        {
+            var response = await ApiClient.PostAsync<object, ValidationResponse>("/api/blockchain/validate", new { });
+            isValid = response?.IsValid ?? false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error validating chain: {ex.Message}");
+        }
+    }
+
+    private async Task ViewBlock(int index)
+    {
+        try
+        {
+            selectedBlock = await ApiClient.GetAsync<BlockDto>($"/api/blockchain/blocks/{index}");
+            showModal = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading block: {ex.Message}");
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedBlock = null;
+    }
+
+    private void GoToDashboard()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+
+    private string TruncateHash(string hash)
+    {
+        if (string.IsNullOrEmpty(hash)) return "N/A";
+        return hash.Length > 16 ? $"{hash.Substring(0, 8)}...{hash.Substring(hash.Length - 8)}" : hash;
+    }
+
+    private string GetTransactionTypeColor(string type)
+    {
+        return type switch
+        {
+            "ShipmentCreated" => "success",
+            "StatusUpdated" => "warning",
+            "DeliveryConfirmed" => "info",
+            _ => "secondary"
+        };
+    }
+
+    private class BlockDto
+    {
+        public int Index { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Hash { get; set; } = string.Empty;
+        public string PreviousHash { get; set; } = string.Empty;
+        public long Nonce { get; set; }
+        public string ValidatorPublicKey { get; set; } = string.Empty;
+        public string ValidatorSignature { get; set; } = string.Empty;
+        public List<TransactionDto> Transactions { get; set; } = new();
+    }
+
+    private class TransactionDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string SenderPublicKey { get; set; } = string.Empty;
+        public string PayloadData { get; set; } = string.Empty;
+        public string Signature { get; set; } = string.Empty;
+    }
+
+    private class ValidationResponse
+    {
+        public bool IsValid { get; set; }
+    }
+}

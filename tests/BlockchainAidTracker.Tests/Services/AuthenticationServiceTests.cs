@@ -50,11 +50,13 @@ public class AuthenticationServiceTests
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "testuser",
             Email = "test@example.com",
             Password = "Password123!",
-            FullName = "Test User",
-            Organization = "Test Org"
+            Organization = "Test Org",
+            Role = "Recipient"
         };
 
         _userRepositoryMock.Setup(x => x.UsernameExistsAsync(request.Username, default))
@@ -95,20 +97,23 @@ public class AuthenticationServiceTests
     }
 
     [Theory]
-    [InlineData("", "test@example.com", "Password123!", "Test User")]
-    [InlineData("testuser", "", "Password123!", "Test User")]
-    [InlineData("testuser", "test@example.com", "", "Test User")]
-    [InlineData("testuser", "test@example.com", "Password123!", "")]
+    [InlineData("", "User", "test@example.com", "Password123!", "Recipient")]
+    [InlineData("Test", "", "test@example.com", "Password123!", "Recipient")]
+    [InlineData("Test", "User", "", "Password123!", "Recipient")]
+    [InlineData("Test", "User", "test@example.com", "", "Recipient")]
+    [InlineData("Test", "User", "test@example.com", "Password123!", "")]
     public async Task RegisterAsync_MissingRequiredFields_ThrowsBusinessException(
-        string username, string email, string password, string fullName)
+        string firstName, string lastName, string email, string password, string role)
     {
         // Arrange
         var request = new RegisterRequest
         {
-            Username = username,
+            FirstName = firstName,
+            LastName = lastName,
+            Username = "testuser",
             Email = email,
             Password = password,
-            FullName = fullName
+            Role = role
         };
 
         // Act & Assert
@@ -121,10 +126,12 @@ public class AuthenticationServiceTests
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "testuser",
             Email = "test@example.com",
             Password = "Pass1!",  // Less than 8 characters
-            FullName = "Test User"
+            Role = "Recipient"
         };
 
         // Act & Assert
@@ -137,10 +144,12 @@ public class AuthenticationServiceTests
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "testuser",
             Email = "notanemail",  // No @ symbol
             Password = "Password123!",
-            FullName = "Test User"
+            Role = "Recipient"
         };
 
         // Act & Assert
@@ -153,10 +162,12 @@ public class AuthenticationServiceTests
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "existinguser",
             Email = "test@example.com",
             Password = "Password123!",
-            FullName = "Test User"
+            Role = "Recipient"
         };
 
         _userRepositoryMock.Setup(x => x.UsernameExistsAsync(request.Username, default))
@@ -173,10 +184,12 @@ public class AuthenticationServiceTests
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "testuser",
             Email = "existing@example.com",
             Password = "Password123!",
-            FullName = "Test User"
+            Role = "Recipient"
         };
 
         _userRepositoryMock.Setup(x => x.UsernameExistsAsync(request.Username, default))

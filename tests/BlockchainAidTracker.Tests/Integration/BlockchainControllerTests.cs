@@ -73,11 +73,13 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
 
         var registerRequest = new RegisterRequest
         {
+            FirstName = username,
+            LastName = "User",
             Username = username,
             Email = $"{username}@example.com",
             Password = password,
-            FullName = $"{username} User",
-            Organization = "Test Organization"
+            Organization = "Test Organization",
+            Role = "Recipient"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);

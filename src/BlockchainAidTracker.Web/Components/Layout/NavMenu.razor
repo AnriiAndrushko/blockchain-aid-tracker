@@ -1,6 +1,16 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">BlockchainAidTracker.Web</a>
+        <a class="navbar-brand" href="">
+            <i class="bi bi-box-seam me-2"></i>
+            Aid Tracker
+        </a>
     </div>
 </div>
 
@@ -8,23 +18,109 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="shipments">
+                        <i class="bi bi-box-seam me-2"></i> Shipments
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+                <AuthorizeView Roles="Coordinator" Context="coordinatorContext">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="shipments/create">
+                                <i class="bi bi-plus-circle me-2"></i> Create Shipment
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="blockchain">
+                        <i class="bi bi-diagram-3 me-2"></i> Blockchain Explorer
+                    </NavLink>
+                </div>
+
+                <hr class="my-2" />
+
+                <div class="nav-item px-3">
+                    <div class="nav-link text-muted small">
+                        <i class="bi bi-person-circle me-2"></i>
+                        @username
+                    </div>
+                </div>
+
+                <div class="nav-item px-3">
+                    <button class="nav-link btn btn-link text-danger" @onclick="HandleLogout">
+                        <i class="bi bi-box-arrow-right me-2"></i> Logout
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Login
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="register">
+                        <i class="bi bi-person-plus me-2"></i> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
+
+@code {
+    private string username = "User";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            username = user.Identity.Name ?? "User";
+        }
+
+        AuthProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            username = user.Identity.Name ?? "User";
+        }
+        else
+        {
+            username = "User";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthStateProvider.MarkUserAsLoggedOut();
+        Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        AuthProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}
 

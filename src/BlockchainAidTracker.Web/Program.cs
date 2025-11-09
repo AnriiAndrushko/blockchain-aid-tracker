@@ -1,10 +1,27 @@
 using BlockchainAidTracker.Web.Components;
+using BlockchainAidTracker.Web.Services;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure API settings
+builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add Blazored LocalStorage
+builder.Services.AddBlazoredLocalStorage();
+
+// Add HttpClient
+builder.Services.AddHttpClient<ApiClientService>();
+
+// Add Authentication
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 
 var app = builder.Build();
 

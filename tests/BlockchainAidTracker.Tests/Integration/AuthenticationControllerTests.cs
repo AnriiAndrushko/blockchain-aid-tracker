@@ -24,11 +24,13 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "testuser",
             Email = "testuser@example.com",
             Password = "SecurePassword123!",
-            FullName = "Test User",
-            Organization = "Test Organization"
+            Organization = "Test Organization",
+            Role = "Recipient"
         };
 
         // Act
@@ -53,10 +55,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "User",
+            LastName = "One",
             Username = "duplicateuser",
             Email = "user1@example.com",
             Password = "SecurePassword123!",
-            FullName = "User One"
+            Role = "Recipient"
         };
 
         // Register first user
@@ -65,10 +69,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Try to register with same username but different email
         var duplicateRequest = new RegisterRequest
         {
+            FirstName = "User",
+            LastName = "Two",
             Username = "duplicateuser",
             Email = "user2@example.com",
             Password = "SecurePassword123!",
-            FullName = "User Two"
+            Role = "Recipient"
         };
 
         // Act
@@ -84,10 +90,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "User",
+            LastName = "One",
             Username = "user1",
             Email = "duplicate@example.com",
             Password = "SecurePassword123!",
-            FullName = "User One"
+            Role = "Recipient"
         };
 
         // Register first user
@@ -96,10 +104,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Try to register with different username but same email
         var duplicateRequest = new RegisterRequest
         {
+            FirstName = "User",
+            LastName = "Two",
             Username = "user2",
             Email = "duplicate@example.com",
             Password = "SecurePassword123!",
-            FullName = "User Two"
+            Role = "Recipient"
         };
 
         // Act
@@ -115,10 +125,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "",
             Email = "test@example.com",
             Password = "SecurePassword123!",
-            FullName = "Test User"
+            Role = "Recipient"
         };
 
         // Act
@@ -134,10 +146,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var request = new RegisterRequest
         {
+            FirstName = "Test",
+            LastName = "User",
             Username = "testuser",
             Email = "test@example.com",
             Password = "short",
-            FullName = "Test User"
+            Role = "Recipient"
         };
 
         // Act
@@ -153,10 +167,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange - Register a user first
         var registerRequest = new RegisterRequest
         {
+            FirstName = "Login",
+            LastName = "User",
             Username = "loginuser",
             Email = "loginuser@example.com",
             Password = "SecurePassword123!",
-            FullName = "Login User"
+            Role = "Recipient"
         };
         await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
 
@@ -184,10 +200,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange - Register a user first
         var registerRequest = new RegisterRequest
         {
+            FirstName = "Email",
+            LastName = "User",
             Username = "emailuser",
             Email = "emaillogin@example.com",
             Password = "SecurePassword123!",
-            FullName = "Email User"
+            Role = "Recipient"
         };
         await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
 
@@ -213,10 +231,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange - Register a user first
         var registerRequest = new RegisterRequest
         {
+            FirstName = "Password",
+            LastName = "Test",
             Username = "passwordtest",
             Email = "passwordtest@example.com",
             Password = "SecurePassword123!",
-            FullName = "Password Test"
+            Role = "Recipient"
         };
         await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
 
@@ -256,10 +276,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange - Register and login to get tokens
         var registerRequest = new RegisterRequest
         {
+            FirstName = "Refresh",
+            LastName = "User",
             Username = "refreshuser",
             Email = "refreshuser@example.com",
             Password = "SecurePassword123!",
-            FullName = "Refresh User"
+            Role = "Recipient"
         };
         var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
         var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
@@ -303,10 +325,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange - Register and login to get token
         var registerRequest = new RegisterRequest
         {
+            FirstName = "Logout",
+            LastName = "User",
             Username = "logoutuser",
             Email = "logoutuser@example.com",
             Password = "SecurePassword123!",
-            FullName = "Logout User"
+            Role = "Recipient"
         };
         var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
         var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
@@ -337,10 +361,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange - Register to get token
         var registerRequest = new RegisterRequest
         {
+            FirstName = "Validate",
+            LastName = "User",
             Username = "validateuser",
             Email = "validateuser@example.com",
             Password = "SecurePassword123!",
-            FullName = "Validate User"
+            Role = "Recipient"
         };
         var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
         var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthenticationResponse>();
@@ -385,10 +411,12 @@ public class AuthenticationControllerTests : IClassFixture<CustomWebApplicationF
         // 1. Register
         var registerRequest = new RegisterRequest
         {
+            FirstName = "Flow",
+            LastName = "User",
             Username = "flowuser",
             Email = "flowuser@example.com",
             Password = "SecurePassword123!",
-            FullName = "Flow User"
+            Role = "Recipient"
         };
         var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
