@@ -1,7 +1,11 @@
-@page "/shipments/{id:guid}"
+@page "/shipments/{id}"
 @using BlockchainAidTracker.Web.Services
+@using System.Net.Http.Headers
+@using Blazored.LocalStorage
 @inject ApiClientService ApiClient
 @inject NavigationManager Navigation
+@inject HttpClient HttpClient
+@inject ILocalStorageService LocalStorage
 @rendermode InteractiveServer
 
 <PageTitle>Shipment Details - Blockchain Aid Tracker</PageTitle>
@@ -30,7 +34,7 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="/shipments">Shipments</a></li>
-                        <li class="breadcrumb-item active">@shipment.Id.ToString().Substring(0, 8)</li>
+                        <li class="breadcrumb-item active">@(shipment.Id.Length > 8 ? shipment.Id.Substring(0, 8) : shipment.Id)</li>
                     </ol>
                 </nav>
                 <h2><i class="bi bi-box-seam me-2"></i>Shipment Details</h2>
@@ -59,11 +63,11 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <p class="mb-1"><strong><i class="bi bi-geo-alt-fill text-success"></i> Origin:</strong></p>
-                                <p class="text-muted">@shipment.OriginLocation</p>
+                                <p class="text-muted">@shipment.Origin</p>
                             </div>
                             <div class="col-md-6">
                                 <p class="mb-1"><strong><i class="bi bi-geo-alt-fill text-danger"></i> Destination:</strong></p>
-                                <p class="text-muted">@shipment.DestinationLocation</p>
+                                <p class="text-muted">@shipment.Destination</p>
                             </div>
                         </div>
 
@@ -78,23 +82,24 @@
                             </div>
                         </div>
 
-                        @if (shipment.ExpectedDeliveryStart.HasValue && shipment.ExpectedDeliveryEnd.HasValue)
-                        {
-                            <div class="row mb-3">
-                                <div class="col-12">
-                                    <p class="mb-1"><strong>Expected Delivery:</strong></p>
-                                    <p class="text-muted">
-                                        @shipment.ExpectedDeliveryStart.Value.ToLocalTime().ToString("MMM dd, yyyy")
-                                        - @shipment.ExpectedDeliveryEnd.Value.ToLocalTime().ToString("MMM dd, yyyy")
-                                    </p>
-                                </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Expected Delivery:</strong></p>
+                                <p class="text-muted">@shipment.ExpectedDeliveryDate.ToLocalTime().ToString("MMM dd, yyyy")</p>
                             </div>
-                        }
+                            @if (shipment.ActualDeliveryDate.HasValue)
+                            {
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Actual Delivery:</strong></p>
+                                    <p class="text-muted">@shipment.ActualDeliveryDate.Value.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</p>
+                                </div>
+                            }
+                        </div>
 
                         <div class="row">
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Assigned Recipient:</strong></p>
-                                <p class="text-muted">@(shipment.AssignedRecipientName ?? "Not assigned")</p>
+                                <p class="mb-1"><strong>Recipient ID:</strong></p>
+                                <p class="text-muted">@(shipment.RecipientId.Length > 8 ? shipment.RecipientId.Substring(0, 8) + "..." : shipment.RecipientId)</p>
                             </div>
                         </div>
                     </div>
@@ -120,7 +125,7 @@
                                         @foreach (var item in shipment.Items)
                                         {
                                             <tr>
-                                                <td>@item.Name</td>
+                                                <td>@item.Description</td>
                                                 <td>@item.Quantity</td>
                                                 <td>@item.Unit</td>
                                             </tr>
@@ -141,34 +146,28 @@
                         <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Blockchain History</h5>
                     </div>
                     <div class="card-body">
-                        @if (transactions.Any())
+                        @if (transactionIds.Any())
                         {
-                            <div class="timeline">
-                                @foreach (var tx in transactions.OrderByDescending(t => t.Timestamp))
+                            <div class="list-group">
+                                @foreach (var txId in transactionIds)
                                 {
-                                    <div class="timeline-item mb-3">
-                                        <div class="d-flex">
-                                            <div class="timeline-marker me-3">
-                                                <i class="bi bi-circle-fill text-primary"></i>
-                                            </div>
+                                    <div class="list-group-item">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-receipt text-primary me-2"></i>
                                             <div class="flex-grow-1">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <div>
-                                                        <strong>@tx.Type</strong>
-                                                        <br />
-                                                        <small class="text-muted">
-                                                            @tx.Timestamp.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss")
-                                                        </small>
-                                                    </div>
-                                                    <span class="badge bg-secondary">Block @tx.BlockIndex</span>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <small><strong>TX ID:</strong> <code>@tx.Id.Substring(0, 16)...</code></small>
-                                                </div>
+                                                <small><strong>Transaction ID:</strong></small>
+                                                <br />
+                                                <code class="small">@txId</code>
                                             </div>
                                         </div>
                                     </div>
                                 }
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Total: @transactionIds.Count transaction(s)
+                                </small>
                             </div>
                         }
                         else
@@ -224,12 +223,12 @@
 
 @code {
     [Parameter]
-    public Guid Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     private bool isLoading = true;
     private bool isLoadingQr = false;
-    private ShipmentDetailDto? shipment;
-    private List<TransactionDto> transactions = new();
+    private ShipmentDto? shipment;
+    private List<string> transactionIds = new();
     private string qrCodeImage = string.Empty;
 
     protected override async Task OnInitializedAsync()
@@ -244,7 +243,7 @@
         try
         {
             isLoading = true;
-            shipment = await ApiClient.GetAsync<ShipmentDetailDto>($"/api/shipments/{Id}");
+            shipment = await ApiClient.GetAsync<ShipmentDto>($"/api/shipments/{Id}");
         }
         catch (Exception ex)
         {
@@ -260,7 +259,7 @@
     {
         try
         {
-            transactions = await ApiClient.GetAsync<List<TransactionDto>>($"/api/shipments/{Id}/history") ?? new();
+            transactionIds = await ApiClient.GetAsync<List<string>>($"/api/shipments/{Id}/history") ?? new();
         }
         catch (Exception ex)
         {
@@ -273,10 +272,22 @@
         try
         {
             isLoadingQr = true;
-            var response = await ApiClient.GetAsync<QrCodeResponse>($"/api/shipments/{Id}/qrcode");
-            if (response != null)
+
+            // Get the QR code image as PNG bytes from the API
+            var apiBaseUrl = HttpClient.BaseAddress?.ToString().TrimEnd('/') ?? "http://localhost:5000";
+            var token = await GetTokenAsync();
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{apiBaseUrl}/api/shipments/{Id}/qrcode");
+            if (!string.IsNullOrEmpty(token))
             {
-                qrCodeImage = response.QrCodeBase64;
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await HttpClient.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var imageBytes = await response.Content.ReadAsByteArrayAsync();
+                qrCodeImage = Convert.ToBase64String(imageBytes);
             }
         }
         catch (Exception ex)
@@ -286,6 +297,18 @@
         finally
         {
             isLoadingQr = false;
+        }
+    }
+
+    private async Task<string?> GetTokenAsync()
+    {
+        try
+        {
+            return await LocalStorage.GetItemAsync<string>("accessToken");
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -312,38 +335,27 @@
         };
     }
 
-    private class ShipmentDetailDto
+    private class ShipmentDto
     {
-        public Guid Id { get; set; }
-        public string OriginLocation { get; set; } = string.Empty;
-        public string DestinationLocation { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string RecipientId { get; set; } = string.Empty;
+        public DateTime ExpectedDeliveryDate { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public string QrCode { get; set; } = string.Empty;
-        public string? AssignedRecipientName { get; set; }
-        public DateTime? ExpectedDeliveryStart { get; set; }
-        public DateTime? ExpectedDeliveryEnd { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<ShipmentItemDto> Items { get; set; } = new();
+        public List<string> TransactionIds { get; set; } = new();
     }
 
     private class ShipmentItemDto
     {
-        public string Name { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public string Unit { get; set; } = string.Empty;
-    }
-
-    private class TransactionDto
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public DateTime Timestamp { get; set; }
-        public int BlockIndex { get; set; }
-    }
-
-    private class QrCodeResponse
-    {
-        public string QrCodeBase64 { get; set; } = string.Empty;
     }
 }

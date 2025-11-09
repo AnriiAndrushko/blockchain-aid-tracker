@@ -204,7 +204,7 @@
                         }
                     </table>
 
-                    <h6 class="mt-4">Transactions (@selectedBlock.TransactionCount)</h6>
+                    <h6 class="mt-4">Transactions (@(selectedBlock.Transactions?.Count ?? 0))</h6>
                     @if (selectedBlock.Transactions != null && selectedBlock.Transactions.Any())
                     {
                         <div class="list-group">
@@ -216,9 +216,9 @@
                                             <h6 class="mb-1">@tx.Type</h6>
                                             <p class="mb-1 small"><strong>ID:</strong> <code>@tx.Id</code></p>
                                             <p class="mb-1 small"><strong>Timestamp:</strong> @tx.Timestamp.ToLocalTime().ToString("HH:mm:ss")</p>
-                                            @if (!string.IsNullOrEmpty(tx.Sender))
+                                            @if (!string.IsNullOrEmpty(tx.SenderPublicKey))
                                             {
-                                                <p class="mb-0 small"><strong>Sender:</strong> <code>@TruncateHash(tx.Sender)</code></p>
+                                                <p class="mb-0 small"><strong>Sender:</strong> <code>@TruncateHash(tx.SenderPublicKey)</code></p>
                                             }
                                         </div>
                                         <span class="badge bg-@GetTransactionTypeColor(tx.Type)">@tx.Type</span>
@@ -267,12 +267,8 @@
         try
         {
             isLoading = true;
-            var response = await ApiClient.GetAsync<BlockchainResponse>("/api/blockchain/chain");
-            if (response != null)
-            {
-                blocks = response.Blocks ?? new();
-                totalTransactions = blocks.Sum(b => b.TransactionCount);
-            }
+            blocks = await ApiClient.GetAsync<List<BlockDto>>("/api/blockchain/chain") ?? new();
+            totalTransactions = blocks.Sum(b => b.Transactions?.Count ?? 0);
         }
         catch (Exception ex)
         {
@@ -346,21 +342,16 @@
         };
     }
 
-    private class BlockchainResponse
-    {
-        public List<BlockDto>? Blocks { get; set; }
-    }
-
     private class BlockDto
     {
         public int Index { get; set; }
         public DateTime Timestamp { get; set; }
         public string Hash { get; set; } = string.Empty;
         public string PreviousHash { get; set; } = string.Empty;
-        public string? ValidatorPublicKey { get; set; }
-        public string? ValidatorSignature { get; set; }
-        public int TransactionCount { get; set; }
-        public List<TransactionDto>? Transactions { get; set; }
+        public long Nonce { get; set; }
+        public string ValidatorPublicKey { get; set; } = string.Empty;
+        public string ValidatorSignature { get; set; } = string.Empty;
+        public List<TransactionDto> Transactions { get; set; } = new();
     }
 
     private class TransactionDto
@@ -368,7 +359,9 @@
         public string Id { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
-        public string? Sender { get; set; }
+        public string SenderPublicKey { get; set; } = string.Empty;
+        public string PayloadData { get; set; } = string.Empty;
+        public string Signature { get; set; } = string.Empty;
     }
 
     private class ValidationResponse

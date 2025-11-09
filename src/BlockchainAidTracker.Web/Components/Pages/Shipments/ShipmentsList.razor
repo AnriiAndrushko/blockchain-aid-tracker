@@ -70,30 +70,30 @@
                         </div>
                         <div class="card-body">
                             <h5 class="card-title">
-                                <code class="text-primary">@shipment.Id.ToString().Substring(0, 8)</code>
+                                <code class="text-primary">@(shipment.Id.Length > 8 ? shipment.Id.Substring(0, 8) : shipment.Id)</code>
                             </h5>
                             <div class="mb-2">
                                 <small class="text-muted d-block">
                                     <i class="bi bi-geo-alt-fill text-success me-1"></i>
-                                    From: <strong>@shipment.OriginLocation</strong>
+                                    From: <strong>@shipment.Origin</strong>
                                 </small>
                                 <small class="text-muted d-block">
                                     <i class="bi bi-geo-alt-fill text-danger me-1"></i>
-                                    To: <strong>@shipment.DestinationLocation</strong>
+                                    To: <strong>@shipment.Destination</strong>
                                 </small>
                             </div>
                             <div class="mb-2">
                                 <small class="text-muted">
                                     <i class="bi bi-box me-1"></i>
-                                    @shipment.ItemsCount item(s)
+                                    @shipment.Items.Count item(s)
                                 </small>
                             </div>
-                            @if (!string.IsNullOrEmpty(shipment.AssignedRecipientName))
+                            @if (!string.IsNullOrEmpty(shipment.RecipientId))
                             {
                                 <div class="mb-2">
                                     <small class="text-muted">
                                         <i class="bi bi-person me-1"></i>
-                                        Recipient: <strong>@shipment.AssignedRecipientName</strong>
+                                        Recipient ID: <strong>@(shipment.RecipientId.Length > 8 ? shipment.RecipientId.Substring(0, 8) : shipment.RecipientId)</strong>
                                     </small>
                                 </div>
                             }
@@ -179,14 +179,14 @@
     {
         filteredShipments = allShipments.Where(s =>
             (string.IsNullOrEmpty(searchText) ||
-             s.OriginLocation.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-             s.DestinationLocation.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-             s.Id.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+             s.Origin.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             s.Destination.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             s.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
             (string.IsNullOrEmpty(statusFilter) || s.Status == statusFilter)
         ).OrderByDescending(s => s.CreatedAt).ToList();
     }
 
-    private void ViewShipment(Guid id)
+    private void ViewShipment(string id)
     {
         Navigation.NavigateTo($"/shipments/{id}");
     }
@@ -206,12 +206,25 @@
 
     private class ShipmentDto
     {
-        public Guid Id { get; set; }
-        public string OriginLocation { get; set; } = string.Empty;
-        public string DestinationLocation { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string RecipientId { get; set; } = string.Empty;
+        public DateTime ExpectedDeliveryDate { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
         public string Status { get; set; } = string.Empty;
-        public string? AssignedRecipientName { get; set; }
-        public int ItemsCount { get; set; }
+        public string QrCode { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public List<ShipmentItemDto> Items { get; set; } = new();
+        public List<string> TransactionIds { get; set; } = new();
+    }
+
+    private class ShipmentItemDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
     }
 }
