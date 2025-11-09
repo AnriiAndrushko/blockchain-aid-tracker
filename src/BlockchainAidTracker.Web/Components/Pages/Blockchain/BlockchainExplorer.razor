@@ -300,7 +300,7 @@
     {
         try
         {
-            var response = await ApiClient.GetAsync<ValidationResponse>("/api/blockchain/validate");
+            var response = await ApiClient.PostAsync<object, ValidationResponse>("/api/blockchain/validate", new { });
             isValid = response?.IsValid ?? false;
         }
         catch (Exception ex)

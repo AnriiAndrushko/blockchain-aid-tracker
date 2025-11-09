@@ -202,7 +202,7 @@
 
             // Load blockchain data
             var chainData = await ApiClient.GetAsync<List<BlockDto>>("/api/blockchain/chain");
-            var validation = await ApiClient.GetAsync<ValidationResultDto>("/api/blockchain/validate");
+            var validation = await ApiClient.PostAsync<object, ValidationResultDto>("/api/blockchain/validate", new { });
 
             // Calculate stats
             stats.TotalShipments = allShipments.Count;

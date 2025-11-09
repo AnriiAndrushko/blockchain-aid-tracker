@@ -26,10 +26,18 @@ public class ApiClientService
 
     private async Task AddAuthorizationHeaderAsync()
     {
-        var token = await _localStorage.GetItemAsync<string>("accessToken");
-        if (!string.IsNullOrEmpty(token))
+        try
         {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var token = await _localStorage.GetItemAsync<string>("accessToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // JavaScript interop not available during server-side prerendering
+            // This is expected - continue without token
         }
     }
 
