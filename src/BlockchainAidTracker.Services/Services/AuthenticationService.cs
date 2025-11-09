@@ -66,10 +66,11 @@ public class AuthenticationService : IAuthenticationService
         // Encrypt the private key with the user's password
         var encryptedPrivateKey = _keyManagementService.EncryptPrivateKey(privateKey, request.Password);
 
-        // Parse full name into first and last name
-        var nameParts = request.FullName.Trim().Split(' ', 2);
-        var firstName = nameParts[0];
-        var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
+        // Parse the role from request
+        if (!Enum.TryParse<UserRole>(request.Role, out var userRole))
+        {
+            throw new BusinessException($"Invalid role: {request.Role}");
+        }
 
         // Create user entity
         var user = new User
@@ -78,10 +79,10 @@ public class AuthenticationService : IAuthenticationService
             Username = request.Username,
             Email = request.Email,
             PasswordHash = passwordHash,
-            FirstName = firstName,
-            LastName = lastName,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
             Organization = request.Organization,
-            Role = UserRole.Recipient, // Default role
+            Role = userRole,
             PublicKey = publicKey,
             EncryptedPrivateKey = encryptedPrivateKey,
             RefreshToken = null,
@@ -263,6 +264,16 @@ public class AuthenticationService : IAuthenticationService
 
     private void ValidateRegisterRequest(RegisterRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.FirstName))
+        {
+            throw new BusinessException("First name is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.LastName))
+        {
+            throw new BusinessException("Last name is required");
+        }
+
         if (string.IsNullOrWhiteSpace(request.Username))
         {
             throw new BusinessException("Username is required");
@@ -283,9 +294,15 @@ public class AuthenticationService : IAuthenticationService
             throw new BusinessException("Password must be at least 8 characters long");
         }
 
-        if (string.IsNullOrWhiteSpace(request.FullName))
+        if (string.IsNullOrWhiteSpace(request.Role))
         {
-            throw new BusinessException("Full name is required");
+            throw new BusinessException("Role is required");
+        }
+
+        // Validate role
+        if (!Enum.TryParse<UserRole>(request.Role, out _))
+        {
+            throw new BusinessException($"Invalid role: {request.Role}. Valid roles are: {string.Join(", ", Enum.GetNames(typeof(UserRole)))}");
         }
 
         // Basic email validation

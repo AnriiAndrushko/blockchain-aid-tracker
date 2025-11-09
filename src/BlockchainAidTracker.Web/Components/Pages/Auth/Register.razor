@@ -39,19 +39,23 @@
                     <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
                         <DataAnnotationsValidator />
 
-                        <div class="mb-3">
-                            <label for="fullName" class="form-label">Full Name</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                <InputText id="fullName" class="form-control" @bind-Value="registerModel.FullName" placeholder="Enter your full name" />
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="firstName" class="form-label">First Name</label>
+                                <InputText id="firstName" class="form-control" @bind-Value="registerModel.FirstName" placeholder="First name" />
+                                <ValidationMessage For="@(() => registerModel.FirstName)" class="text-danger" />
                             </div>
-                            <ValidationMessage For="@(() => registerModel.FullName)" class="text-danger" />
+                            <div class="col-md-6">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <InputText id="lastName" class="form-control" @bind-Value="registerModel.LastName" placeholder="Last name" />
+                                <ValidationMessage For="@(() => registerModel.LastName)" class="text-danger" />
+                            </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-at"></i></span>
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
                                 <InputText id="username" class="form-control" @bind-Value="registerModel.Username" placeholder="Choose a username" />
                             </div>
                             <ValidationMessage For="@(() => registerModel.Username)" class="text-danger" />
@@ -93,6 +97,8 @@
                                     <option value="Donor">Donor</option>
                                     <option value="Coordinator">Coordinator</option>
                                     <option value="LogisticsPartner">Logistics Partner</option>
+                                    <option value="Validator">Validator</option>
+                                    <option value="Administrator">Administrator (Testing)</option>
                                 </InputSelect>
                             </div>
                             <ValidationMessage For="@(() => registerModel.Role)" class="text-danger" />
@@ -174,8 +180,11 @@
 
     private class RegisterModel
     {
-        [Required(ErrorMessage = "Full name is required")]
-        public string FullName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "First name is required")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required")]
+        public string LastName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Username is required")]
         [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
