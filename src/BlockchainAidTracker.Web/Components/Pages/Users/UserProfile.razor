@@ -44,7 +44,7 @@
                         </div>
                         <h4>@user.FirstName @user.LastName</h4>
                         <p class="text-muted">@@@user.Username</p>
-                        <span class="badge bg-@GetRoleColor(user.Role) fs-6">@user.Role</span>
+                        <span class="badge bg-@GetRoleColor(user.Role) fs-6">@GetRoleName(user.Role)</span>
                         <hr />
                         <div class="d-grid gap-2">
                             @if (!isEditing)
@@ -127,7 +127,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label"><strong>Role</strong></label>
-                                    <p><span class="badge bg-@GetRoleColor(user.Role)">@user.Role</span></p>
+                                    <p><span class="badge bg-@GetRoleColor(user.Role)">@GetRoleName(user.Role)</span></p>
                                 </div>
                             </div>
                             <div class="row">
@@ -302,16 +302,30 @@
         }
     }
 
-    private string GetRoleColor(string role)
+    private string GetRoleName(int role)
     {
         return role switch
         {
-            "Administrator" => "danger",
-            "Coordinator" => "primary",
-            "Validator" => "success",
-            "Donor" => "info",
-            "Recipient" => "warning",
-            "LogisticsPartner" => "secondary",
+            0 => "Recipient",
+            1 => "Donor",
+            2 => "Coordinator",
+            3 => "Logistics Partner",
+            4 => "Validator",
+            5 => "Administrator",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetRoleColor(int role)
+    {
+        return role switch
+        {
+            5 => "danger",      // Administrator
+            2 => "primary",     // Coordinator
+            4 => "success",     // Validator
+            1 => "info",        // Donor
+            0 => "warning",     // Recipient
+            3 => "secondary",   // LogisticsPartner
             _ => "secondary"
         };
     }
@@ -324,7 +338,7 @@
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string Organization { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
+        public int Role { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

@@ -92,7 +92,7 @@
                                                 <td><code class="text-primary">@user.Username</code></td>
                                                 <td>@user.Email</td>
                                                 <td>
-                                                    <span class="badge bg-@GetRoleColor(user.Role)">@user.Role</span>
+                                                    <span class="badge bg-@GetRoleColor(user.Role)">@GetRoleName(user.Role)</span>
                                                 </td>
                                                 <td>@(string.IsNullOrEmpty(user.Organization) ? "-" : user.Organization)</td>
                                                 <td>
@@ -180,7 +180,7 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label"><strong>Role</strong></label>
-                                <p><span class="badge bg-@GetRoleColor(selectedUser.Role)">@selectedUser.Role</span></p>
+                                <p><span class="badge bg-@GetRoleColor(selectedUser.Role)">@GetRoleName(selectedUser.Role)</span></p>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label"><strong>Status</strong></label>
@@ -260,7 +260,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Current Role</label>
-                                <p><span class="badge bg-@GetRoleColor(selectedUser.Role)">@selectedUser.Role</span></p>
+                                <p><span class="badge bg-@GetRoleColor(selectedUser.Role)">@GetRoleName(selectedUser.Role)</span></p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">New Role <span class="text-danger">*</span></label>
@@ -386,7 +386,7 @@
     private void ShowAssignRoleModal(UserDto user)
     {
         selectedUser = user;
-        assignRoleModel = new AssignRoleModel { UserId = user.Id, Role = user.Role };
+        assignRoleModel = new AssignRoleModel { UserId = user.Id, Role = GetRoleName(user.Role) };
         assignRoleError = string.Empty;
         assignRoleSuccess = string.Empty;
         showAssignRoleModal = true;
@@ -462,16 +462,30 @@
         }
     }
 
-    private string GetRoleColor(string role)
+    private string GetRoleName(int role)
     {
         return role switch
         {
-            "Administrator" => "danger",
-            "Coordinator" => "primary",
-            "Validator" => "success",
-            "Donor" => "info",
-            "Recipient" => "warning",
-            "LogisticsPartner" => "secondary",
+            0 => "Recipient",
+            1 => "Donor",
+            2 => "Coordinator",
+            3 => "Logistics Partner",
+            4 => "Validator",
+            5 => "Administrator",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetRoleColor(int role)
+    {
+        return role switch
+        {
+            5 => "danger",      // Administrator
+            2 => "primary",     // Coordinator
+            4 => "success",     // Validator
+            1 => "info",        // Donor
+            0 => "warning",     // Recipient
+            3 => "secondary",   // LogisticsPartner
             _ => "secondary"
         };
     }
@@ -484,7 +498,7 @@
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string Organization { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
+        public int Role { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
