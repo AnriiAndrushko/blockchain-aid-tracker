@@ -70,12 +70,14 @@ public class UserService : IUserService
         }
 
         // Update fields if provided
-        if (!string.IsNullOrWhiteSpace(request.FullName))
+        if (!string.IsNullOrWhiteSpace(request.FirstName))
         {
-            // Parse full name into first and last name
-            var nameParts = request.FullName.Trim().Split(' ', 2);
-            user.FirstName = nameParts[0];
-            user.LastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
+            user.FirstName = request.FirstName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.LastName))
+        {
+            user.LastName = request.LastName.Trim();
         }
 
         if (!string.IsNullOrWhiteSpace(request.Email))
@@ -182,7 +184,8 @@ public class UserService : IUserService
             Id = user.Id,
             Username = user.Username,
             Email = user.Email,
-            FullName = user.GetFullName(), // Uses GetFullName() method from Core model
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Organization = user.Organization,
             Role = user.Role,
             PublicKey = user.PublicKey,

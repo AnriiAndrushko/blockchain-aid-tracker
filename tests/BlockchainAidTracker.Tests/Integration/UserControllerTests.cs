@@ -32,11 +32,13 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
     {
         var registerRequest = new RegisterRequest
         {
+            FirstName = username,
+            LastName = "User",
             Username = username,
             Email = email,
             Password = password,
-            FullName = $"{username} User",
-            Organization = "Test Organization"
+            Organization = "Test Organization",
+            Role = "Recipient"
         };
 
         var response = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
@@ -53,11 +55,13 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
         // Create user via registration (default role is Recipient)
         var registerRequest = new RegisterRequest
         {
+            FirstName = username,
+            LastName = "User",
             Username = username,
             Email = email,
             Password = password,
-            FullName = $"{username} User",
-            Organization = "Test Organization"
+            Organization = "Test Organization",
+            Role = "Recipient"
         };
 
         var registerResponse = await _client.PostAsJsonAsync("/api/authentication/register", registerRequest);
@@ -111,7 +115,8 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
         userDto!.Id.Should().Be(userId);
         userDto.Username.Should().Be("profileuser");
         userDto.Email.Should().Be("profileuser@example.com");
-        userDto.FullName.Should().Be("profileuser User");
+        userDto.FirstName.Should().Be("profileuser");
+        userDto.LastName.Should().Be("User");
         userDto.Organization.Should().Be("Test Organization");
         userDto.IsActive.Should().BeTrue();
     }
@@ -139,7 +144,8 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
 
         var updateRequest = new UpdateUserRequest
         {
-            FullName = "Updated Name",
+            FirstName = "Updated",
+            LastName = "Name",
             Email = "updated@example.com",
             Organization = "Updated Organization"
         };
@@ -151,7 +157,8 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var userDto = await response.Content.ReadFromJsonAsync<UserDto>();
         userDto.Should().NotBeNull();
-        userDto!.FullName.Should().Be("Updated Name");
+        userDto!.FirstName.Should().Be("Updated");
+        userDto.LastName.Should().Be("Name");
         userDto.Email.Should().Be("updated@example.com");
         userDto.Organization.Should().Be("Updated Organization");
         userDto.Username.Should().Be("updateuser"); // Username should not change
@@ -187,7 +194,8 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
         // Arrange
         var updateRequest = new UpdateUserRequest
         {
-            FullName = "New Name"
+            FirstName = "New",
+            LastName = "Name"
         };
 
         // Act
@@ -609,13 +617,15 @@ public class UserControllerTests : IClassFixture<CustomWebApplicationFactory>
         // Step 3: Update profile (as the user)
         var updateRequest = new UpdateUserRequest
         {
-            FullName = "Updated Workflow User",
+            FirstName = "Updated",
+            LastName = "Workflow",
             Organization = "Workflow Org"
         };
         var updateResponse = await _client.PutAsJsonAsync("/api/users/profile", updateRequest);
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updatedProfile = await updateResponse.Content.ReadFromJsonAsync<UserDto>();
-        updatedProfile!.FullName.Should().Be("Updated Workflow User");
+        updatedProfile!.FirstName.Should().Be("Updated");
+        updatedProfile.LastName.Should().Be("Workflow");
         updatedProfile.Organization.Should().Be("Workflow Org");
 
         // Step 4: Assign role (as admin)
