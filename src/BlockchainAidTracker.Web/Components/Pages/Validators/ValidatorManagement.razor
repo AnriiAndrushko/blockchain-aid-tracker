@@ -155,7 +155,7 @@
                                                     <span class="badge bg-primary">@validator.Priority</span>
                                                 </td>
                                                 <td>
-                                                    <code class="small">@(string.IsNullOrEmpty(validator.NetworkAddress) ? "Not set" : validator.NetworkAddress)</code>
+                                                    <code class="small">@(string.IsNullOrEmpty(validator.Address) ? "Not set" : validator.Address)</code>
                                                 </td>
                                                 <td>@validator.TotalBlocksCreated</td>
                                                 <td>
@@ -267,7 +267,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Network Address</label>
-                                <InputText class="form-control" @bind-Value="registerModel.NetworkAddress" placeholder="e.g., http://validator1:5000" />
+                                <InputText class="form-control" @bind-Value="registerModel.Address" placeholder="e.g., http://validator1:5000" />
                                 <small class="text-muted">Optional - validator node endpoint</small>
                             </div>
                         </div>
@@ -324,7 +324,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label"><strong>Network Address</strong></label>
-                                <p><code>@(string.IsNullOrEmpty(selectedValidator.NetworkAddress) ? "Not set" : selectedValidator.NetworkAddress)</code></p>
+                                <p><code>@(string.IsNullOrEmpty(selectedValidator.Address) ? "Not set" : selectedValidator.Address)</code></p>
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -411,7 +411,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Network Address</label>
-                                <InputText class="form-control" @bind-Value="updateModel.NetworkAddress" />
+                                <InputText class="form-control" @bind-Value="updateModel.Address" />
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -490,7 +490,7 @@
         {
             filteredValidators = filteredValidators.Where(v =>
                 v.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                v.NetworkAddress.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                v.Address.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
                 v.PublicKey.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
             ).ToList();
         }
@@ -540,7 +540,7 @@
         {
             Name = validator.Name,
             Priority = validator.Priority,
-            NetworkAddress = validator.NetworkAddress
+            Address = validator.Address
         };
         updateError = string.Empty;
         updateSuccess = string.Empty;
@@ -664,7 +664,7 @@
         public string PublicKey { get; set; } = string.Empty;
         public int Priority { get; set; }
         public bool IsActive { get; set; }
-        public string NetworkAddress { get; set; } = string.Empty;
+        public string? Address { get; set; }
         public int TotalBlocksCreated { get; set; }
         public DateTime? LastBlockCreatedTimestamp { get; set; }
     }
@@ -683,7 +683,7 @@
         [System.ComponentModel.DataAnnotations.Range(1, 100, ErrorMessage = "Priority must be between 1 and 100")]
         public int Priority { get; set; } = 1;
 
-        public string NetworkAddress { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
     }
 
     private class UpdateValidatorModel
@@ -694,6 +694,6 @@
         [System.ComponentModel.DataAnnotations.Range(1, 100, ErrorMessage = "Priority must be between 1 and 100")]
         public int Priority { get; set; }
 
-        public string NetworkAddress { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
     }
 }
