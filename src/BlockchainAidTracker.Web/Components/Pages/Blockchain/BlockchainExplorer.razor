@@ -257,12 +257,18 @@
     private int totalTransactions = 0;
     private int pendingTransactions = 0;
     private bool isValid = true;
+    private bool hasLoadedData = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadBlockchain();
-        await LoadPendingTransactions();
-        await ValidateChain();
+        if (firstRender && !hasLoadedData)
+        {
+            hasLoadedData = true;
+            await LoadBlockchain();
+            await LoadPendingTransactions();
+            await ValidateChain();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadBlockchain()

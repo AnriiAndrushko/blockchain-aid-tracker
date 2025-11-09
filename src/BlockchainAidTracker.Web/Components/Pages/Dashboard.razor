@@ -184,10 +184,16 @@
     private bool isLoading = true;
     private DashboardStats stats = new();
     private List<ShipmentDto> recentShipments = new();
+    private bool hasLoadedData = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadDashboardData();
+        if (firstRender && !hasLoadedData)
+        {
+            hasLoadedData = true;
+            await LoadDashboardData();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadDashboardData()

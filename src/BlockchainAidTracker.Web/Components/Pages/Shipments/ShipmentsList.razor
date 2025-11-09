@@ -149,10 +149,16 @@
     private List<ShipmentDto> filteredShipments = new();
     private string searchText = string.Empty;
     private string statusFilter = string.Empty;
+    private bool hasLoadedData = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadShipments();
+        if (firstRender && !hasLoadedData)
+        {
+            hasLoadedData = true;
+            await LoadShipments();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadShipments()

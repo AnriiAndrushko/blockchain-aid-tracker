@@ -230,12 +230,18 @@
     private ShipmentDto? shipment;
     private List<string> transactionIds = new();
     private string qrCodeImage = string.Empty;
+    private bool hasLoadedData = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadShipmentDetails();
-        await LoadBlockchainHistory();
-        await LoadQrCode();
+        if (firstRender && !hasLoadedData)
+        {
+            hasLoadedData = true;
+            await LoadShipmentDetails();
+            await LoadBlockchainHistory();
+            await LoadQrCode();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadShipmentDetails()
