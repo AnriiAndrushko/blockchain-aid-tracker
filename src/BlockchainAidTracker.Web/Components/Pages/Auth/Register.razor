@@ -164,7 +164,7 @@
 
                 successMessage = "Account created successfully! Redirecting...";
                 await Task.Delay(1500);
-                Navigation.NavigateTo("/dashboard", forceLoad: true);
+                Navigation.NavigateTo("/dashboard");
             }
         }
         catch (Exception ex)
