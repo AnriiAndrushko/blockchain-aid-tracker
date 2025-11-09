@@ -219,7 +219,7 @@ public class AuthenticationService : IAuthenticationService
 
         // Generate new tokens
         var (accessToken, accessTokenExpiresAt) = _tokenService.GenerateAccessToken(
-            user.Id, user.Username, user.Email, user.Role.ToString());
+            user.Id, user.Username, user.Email, user.Role.ToString(), user.FirstName, user.LastName);
         var (refreshToken, refreshTokenExpiresAt) = _tokenService.GenerateRefreshToken();
 
         // Update user with new refresh token
