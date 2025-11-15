@@ -1,0 +1,2 @@
+# This file ensures the Data directory is tracked in git
+# The blockchain-data.json file and its backups are ignored via .gitignore

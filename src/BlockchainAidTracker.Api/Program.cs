@@ -42,13 +42,20 @@ var consensusSettings = new ConsensusSettings
 // Configure Blockchain Persistence settings
 var persistenceSettings = new BlockchainAidTracker.Blockchain.Configuration.BlockchainPersistenceSettings
 {
-    Enabled = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:Enabled", false),
-    FilePath = builder.Configuration["BlockchainPersistenceSettings:FilePath"] ?? "blockchain-data.json",
+    Enabled = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:Enabled", true), // Changed default to true
+    FilePath = builder.Configuration["BlockchainPersistenceSettings:FilePath"] ?? "Data/blockchain-data.json",
     AutoSaveAfterBlockCreation = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:AutoSaveAfterBlockCreation", true),
     AutoLoadOnStartup = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:AutoLoadOnStartup", true),
     CreateBackup = builder.Configuration.GetValue<bool>("BlockchainPersistenceSettings:CreateBackup", true),
     MaxBackupFiles = builder.Configuration.GetValue<int>("BlockchainPersistenceSettings:MaxBackupFiles", 5)
 };
+
+// Log persistence configuration
+builder.Services.AddLogging();
+var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder.AddConsole());
+var startupLogger = loggerFactory.CreateLogger("Startup");
+startupLogger.LogInformation("Blockchain persistence enabled: {Enabled}, file path: {FilePath}",
+    persistenceSettings.Enabled, persistenceSettings.FilePath);
 
 // Add controllers
 builder.Services.AddControllers();
@@ -209,15 +216,24 @@ if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing")
 // Load blockchain from persistence if configured
 if (persistenceSettings.Enabled && persistenceSettings.AutoLoadOnStartup && !app.Environment.IsEnvironment("Testing"))
 {
+    app.Logger.LogInformation("Attempting to load blockchain from persistence: {FilePath}", persistenceSettings.FilePath);
     try
     {
         await app.Services.LoadBlockchainFromPersistenceAsync();
+        var blockchain = app.Services.GetRequiredService<Blockchain>();
+        app.Logger.LogInformation("Blockchain loaded successfully with {BlockCount} blocks and {PendingTxCount} pending transactions",
+            blockchain.Chain.Count, blockchain.PendingTransactions.Count);
     }
     catch (Exception ex)
     {
         app.Logger.LogError(ex, "Failed to load blockchain from persistence on startup");
         // Continue without persisted data
     }
+}
+else
+{
+    app.Logger.LogWarning("Blockchain persistence loading skipped. Enabled: {Enabled}, AutoLoad: {AutoLoad}, Testing: {IsTesting}",
+        persistenceSettings.Enabled, persistenceSettings.AutoLoadOnStartup, app.Environment.IsEnvironment("Testing"));
 }
 
 // Configure the HTTP request pipeline

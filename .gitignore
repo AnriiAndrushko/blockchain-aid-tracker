@@ -9,3 +9,7 @@ riderModule.iml
 *.db
 *.db-shm
 *.db-wal
+
+# Blockchain persistence data
+**/Data/blockchain-data.json
+**/Data/blockchain-data.json.*.bak
