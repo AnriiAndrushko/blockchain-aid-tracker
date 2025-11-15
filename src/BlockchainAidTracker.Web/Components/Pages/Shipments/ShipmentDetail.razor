@@ -432,7 +432,11 @@
 
             if (user.Identity?.IsAuthenticated == true)
             {
-                currentUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                // Use "sub" claim which is the standard JWT claim for user ID
+                currentUserId = user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                    ?? user.FindFirst("sub")?.Value
+                    ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? string.Empty;
                 currentUserRole = user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
             }
         }
@@ -630,6 +634,11 @@
 
             HideConfirmDeliveryModal();
             StateHasChanged();
+        }
+        catch (HttpRequestException ex)
+        {
+            deliveryConfirmError = $"Error confirming delivery: {ex.Message}";
+            Console.WriteLine($"Error confirming delivery: {ex.Message}");
         }
         catch (Exception ex)
         {
