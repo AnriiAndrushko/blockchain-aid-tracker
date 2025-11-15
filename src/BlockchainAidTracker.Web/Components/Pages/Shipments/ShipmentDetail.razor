@@ -57,46 +57,49 @@
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <p class="mb-1"><strong>Shipment ID:</strong></p>
-                                <code class="text-primary">@shipment.Id</code>
+                                <code class="text-primary d-block text-break">@shipment.Id</code>
                             </div>
-                            <div class="col-md-6">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12">
                                 <p class="mb-1"><strong>QR Code:</strong></p>
-                                <code>@shipment.QrCode</code>
+                                <code class="d-block text-break">@shipment.QrCode</code>
                             </div>
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-12 col-lg-6">
                                 <p class="mb-1"><strong><i class="bi bi-geo-alt-fill text-success"></i> Origin:</strong></p>
-                                <p class="text-muted">@shipment.Origin</p>
+                                <p class="text-muted text-break">@shipment.Origin</p>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-lg-6">
                                 <p class="mb-1"><strong><i class="bi bi-geo-alt-fill text-danger"></i> Destination:</strong></p>
-                                <p class="text-muted">@shipment.Destination</p>
+                                <p class="text-muted text-break">@shipment.Destination</p>
                             </div>
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-12 col-lg-6">
                                 <p class="mb-1"><strong>Created:</strong></p>
                                 <p class="text-muted">@shipment.CreatedAt.ToLocalTime().ToString("MMMM dd, yyyy HH:mm")</p>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-lg-6">
                                 <p class="mb-1"><strong>Last Updated:</strong></p>
                                 <p class="text-muted">@shipment.UpdatedAt.ToLocalTime().ToString("MMMM dd, yyyy HH:mm")</p>
                             </div>
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-12 col-lg-6">
                                 <p class="mb-1"><strong>Expected Delivery:</strong></p>
                                 <p class="text-muted">@shipment.ExpectedDeliveryDate.ToLocalTime().ToString("MMM dd, yyyy")</p>
                             </div>
                             @if (shipment.ActualDeliveryDate.HasValue)
                             {
-                                <div class="col-md-6">
+                                <div class="col-12 col-lg-6">
                                     <p class="mb-1"><strong>Actual Delivery:</strong></p>
                                     <p class="text-muted">@shipment.ActualDeliveryDate.Value.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</p>
                                 </div>
@@ -104,9 +107,9 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <p class="mb-1"><strong>Recipient ID:</strong></p>
-                                <p class="text-muted">@(shipment.RecipientId.Length > 8 ? shipment.RecipientId.Substring(0, 8) + "..." : shipment.RecipientId)</p>
+                                <p class="text-muted text-break">@shipment.RecipientId</p>
                             </div>
                         </div>
                     </div>
