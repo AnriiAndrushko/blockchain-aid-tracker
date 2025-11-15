@@ -1,0 +1,711 @@
+@page "/validators"
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApiClientService ApiClient
+@rendermode InteractiveServer
+
+<PageTitle>Validator Management - Blockchain Aid Tracker</PageTitle>
+
+<AuthorizeView Roles="Administrator">
+    <Authorized Context="authContext">
+        <div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-shield-check me-2"></i>Validator Management</h2>
+            <p class="text-muted">Manage Proof-of-Authority validators for blockchain consensus</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="ShowRegisterModal">
+                <i class="bi bi-plus-circle me-2"></i>Register New Validator
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search by name or address..."
+                       @bind="searchQuery" @bind:event="oninput" @onkeyup="FilterValidators" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="statusFilter" @bind:after="FilterValidators">
+                <option value="">All Status</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-outline-primary w-100" @onclick="LoadValidators">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading validators...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Total Validators</h6>
+                                <h3 class="mb-0">@validators.Count</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-shield-check" style="font-size: 2rem; color: #0d6efd;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Active Validators</h6>
+                                <h3 class="mb-0 text-success">@validators.Count(v => v.IsActive)</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-check-circle-fill" style="font-size: 2rem; color: #198754;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Blocks Created</h6>
+                                <h3 class="mb-0">@validators.Sum(v => v.TotalBlocksCreated)</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-box-seam-fill" style="font-size: 2rem; color: #6c757d;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Inactive Validators</h6>
+                                <h3 class="mb-0 text-secondary">@validators.Count(v => !v.IsActive)</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-x-circle-fill" style="font-size: 2rem; color: #6c757d;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validators Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Validators (@filteredValidators.Count)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (filteredValidators.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Priority</th>
+                                            <th>Network Address</th>
+                                            <th>Blocks Created</th>
+                                            <th>Last Block</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var validator in filteredValidators.OrderBy(v => v.Priority))
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                        <strong>@validator.Name</strong>
+                                                        <br />
+                                                        <small class="text-muted">@TruncateHash(validator.PublicKey)</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary">@validator.Priority</span>
+                                                </td>
+                                                <td>
+                                                    <code class="small">@(string.IsNullOrEmpty(validator.Address) ? "Not set" : validator.Address)</code>
+                                                </td>
+                                                <td>@validator.TotalBlocksCreated</td>
+                                                <td>
+                                                    @if (validator.LastBlockCreatedTimestamp.HasValue)
+                                                    {
+                                                        <small class="text-muted">@validator.LastBlockCreatedTimestamp.Value.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                                    }
+                                                    else
+                                                    {
+                                                        <small class="text-muted">Never</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (validator.IsActive)
+                                                    {
+                                                        <span class="badge bg-success">Active</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">Inactive</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary" @onclick="() => ShowValidatorDetails(validator)">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning" @onclick="() => ShowUpdateModal(validator)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        @if (validator.IsActive)
+                                                        {
+                                                            <button class="btn btn-outline-danger" @onclick="() => DeactivateValidator(validator.Id)">
+                                                                <i class="bi bi-x-circle"></i>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-outline-success" @onclick="() => ActivateValidator(validator.Id)">
+                                                                <i class="bi bi-check-circle"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-shield-check" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No validators found</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Register Validator Modal -->
+    @if (showRegisterModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Register New Validator</h5>
+                        <button type="button" class="btn-close" @onclick="HideRegisterModal"></button>
+                    </div>
+                    <EditForm Model="@registerModel" OnValidSubmit="RegisterValidator">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            @if (!string.IsNullOrEmpty(registerError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    @registerError
+                                    <button type="button" class="btn-close" @onclick="() => registerError = string.Empty"></button>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(registerSuccess))
+                            {
+                                <div class="alert alert-success alert-dismissible fade show">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    @registerSuccess
+                                    <button type="button" class="btn-close" @onclick="() => registerSuccess = string.Empty"></button>
+                                </div>
+                            }
+                            <div class="mb-3">
+                                <label class="form-label">Validator Name <span class="text-danger">*</span></label>
+                                <InputText class="form-control" @bind-Value="registerModel.Name" placeholder="e.g., Validator Node 1" />
+                                <ValidationMessage For="@(() => registerModel.Name)" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password <span class="text-danger">*</span></label>
+                                <InputText type="password" class="form-control" @bind-Value="registerModel.ValidatorPassword" placeholder="Secure password for private key encryption" />
+                                <ValidationMessage For="@(() => registerModel.ValidatorPassword)" />
+                                <small class="text-muted">This password will encrypt the validator's private key</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Priority <span class="text-danger">*</span></label>
+                                <InputNumber class="form-control" @bind-Value="registerModel.Priority" />
+                                <ValidationMessage For="@(() => registerModel.Priority)" />
+                                <small class="text-muted">Lower numbers have higher priority for block creation</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Network Address</label>
+                                <InputText class="form-control" @bind-Value="registerModel.Address" placeholder="e.g., http://validator1:5000" />
+                                <small class="text-muted">Optional - validator node endpoint</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="HideRegisterModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isRegistering">
+                                @if (isRegistering)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-save me-2"></i>Register Validator
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Validator Details Modal -->
+    @if (showDetailsModal && selectedValidator != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-shield-check me-2"></i>Validator Details</h5>
+                        <button type="button" class="btn-close" @onclick="HideDetailsModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Validator Name</strong></label>
+                                <p class="text-muted">@selectedValidator.Name</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Status</strong></label>
+                                <p>
+                                    @if (selectedValidator.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Priority</strong></label>
+                                <p><span class="badge bg-primary">@selectedValidator.Priority</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Network Address</strong></label>
+                                <p><code>@(string.IsNullOrEmpty(selectedValidator.Address) ? "Not set" : selectedValidator.Address)</code></p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label"><strong>Public Key</strong></label>
+                                <p><code class="small">@selectedValidator.PublicKey</code></p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Total Blocks Created</strong></label>
+                                <p class="text-muted">@selectedValidator.TotalBlocksCreated</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Last Block Created</strong></label>
+                                <p class="text-muted">
+                                    @if (selectedValidator.LastBlockCreatedTimestamp.HasValue)
+                                    {
+                                        @selectedValidator.LastBlockCreatedTimestamp.Value.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss")
+                                    }
+                                    else
+                                    {
+                                        <text>Never</text>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <label class="form-label"><strong>Validator ID</strong></label>
+                                <p><code class="small">@selectedValidator.Id</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="HideDetailsModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Update Validator Modal -->
+    @if (showUpdateModal && selectedValidator != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Update Validator</h5>
+                        <button type="button" class="btn-close" @onclick="HideUpdateModal"></button>
+                    </div>
+                    <EditForm Model="@updateModel" OnValidSubmit="UpdateValidator">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            @if (!string.IsNullOrEmpty(updateError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    @updateError
+                                    <button type="button" class="btn-close" @onclick="() => updateError = string.Empty"></button>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(updateSuccess))
+                            {
+                                <div class="alert alert-success alert-dismissible fade show">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    @updateSuccess
+                                    <button type="button" class="btn-close" @onclick="() => updateSuccess = string.Empty"></button>
+                                </div>
+                            }
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Validator</strong></label>
+                                <p class="text-muted">@selectedValidator.Name</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Name</label>
+                                <InputText class="form-control" @bind-Value="updateModel.Name" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Priority <span class="text-danger">*</span></label>
+                                <InputNumber class="form-control" @bind-Value="updateModel.Priority" />
+                                <ValidationMessage For="@(() => updateModel.Priority)" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Network Address</label>
+                                <InputText class="form-control" @bind-Value="updateModel.Address" />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="HideUpdateModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isUpdating">
+                                @if (isUpdating)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-save me-2"></i>Update Validator
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be an Administrator to access this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<ValidatorDto> validators = new();
+    private List<ValidatorDto> filteredValidators = new();
+    private bool isLoading = true;
+    private string searchQuery = string.Empty;
+    private string statusFilter = string.Empty;
+
+    // Modal states
+    private bool showRegisterModal = false;
+    private bool showDetailsModal = false;
+    private bool showUpdateModal = false;
+    private bool isRegistering = false;
+    private bool isUpdating = false;
+    private ValidatorDto? selectedValidator = null;
+    private string registerError = string.Empty;
+    private string registerSuccess = string.Empty;
+    private string updateError = string.Empty;
+    private string updateSuccess = string.Empty;
+    private RegisterValidatorModel registerModel = new();
+    private UpdateValidatorModel updateModel = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadValidators();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadValidators()
+    {
+        try
+        {
+            isLoading = true;
+            validators = await ApiClient.GetAsync<List<ValidatorDto>>("/api/validators") ?? new();
+            FilterValidators();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading validators: {ex.Message}");
+            validators = new();
+            filteredValidators = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterValidators()
+    {
+        filteredValidators = validators;
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filteredValidators = filteredValidators.Where(v =>
+                v.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                v.Address.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                v.PublicKey.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+
+        // Apply status filter
+        if (statusFilter == "active")
+        {
+            filteredValidators = filteredValidators.Where(v => v.IsActive).ToList();
+        }
+        else if (statusFilter == "inactive")
+        {
+            filteredValidators = filteredValidators.Where(v => !v.IsActive).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    private void ShowRegisterModal()
+    {
+        registerModel = new RegisterValidatorModel();
+        registerError = string.Empty;
+        registerSuccess = string.Empty;
+        showRegisterModal = true;
+    }
+
+    private void HideRegisterModal()
+    {
+        showRegisterModal = false;
+    }
+
+    private void ShowValidatorDetails(ValidatorDto validator)
+    {
+        selectedValidator = validator;
+        showDetailsModal = true;
+    }
+
+    private void HideDetailsModal()
+    {
+        showDetailsModal = false;
+        selectedValidator = null;
+    }
+
+    private void ShowUpdateModal(ValidatorDto validator)
+    {
+        selectedValidator = validator;
+        updateModel = new UpdateValidatorModel
+        {
+            Name = validator.Name,
+            Priority = validator.Priority,
+            Address = validator.Address
+        };
+        updateError = string.Empty;
+        updateSuccess = string.Empty;
+        showUpdateModal = true;
+    }
+
+    private void HideUpdateModal()
+    {
+        showUpdateModal = false;
+        selectedValidator = null;
+    }
+
+    private async Task RegisterValidator()
+    {
+        try
+        {
+            isRegistering = true;
+            registerError = string.Empty;
+            registerSuccess = string.Empty;
+
+            await ApiClient.PostAsync<RegisterValidatorModel, object>(
+                "/api/validators",
+                registerModel
+            );
+
+            registerSuccess = "Validator registered successfully! ECDSA keys generated.";
+
+            await Task.Delay(1500);
+            await LoadValidators();
+            HideRegisterModal();
+        }
+        catch (Exception ex)
+        {
+            registerError = $"Error registering validator: {ex.Message}";
+            Console.WriteLine($"Error registering validator: {ex.Message}");
+        }
+        finally
+        {
+            isRegistering = false;
+        }
+    }
+
+    private async Task UpdateValidator()
+    {
+        if (selectedValidator == null) return;
+
+        try
+        {
+            isUpdating = true;
+            updateError = string.Empty;
+            updateSuccess = string.Empty;
+
+            await ApiClient.PutAsync<UpdateValidatorModel, object>(
+                $"/api/validators/{selectedValidator.Id}",
+                updateModel
+            );
+
+            updateSuccess = "Validator updated successfully!";
+
+            await Task.Delay(1500);
+            await LoadValidators();
+            HideUpdateModal();
+        }
+        catch (Exception ex)
+        {
+            updateError = $"Error updating validator: {ex.Message}";
+            Console.WriteLine($"Error updating validator: {ex.Message}");
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task ActivateValidator(string id)
+    {
+        try
+        {
+            await ApiClient.PostAsync<object, object>(
+                $"/api/validators/{id}/activate",
+                new { }
+            );
+
+            await LoadValidators();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error activating validator: {ex.Message}");
+        }
+    }
+
+    private async Task DeactivateValidator(string id)
+    {
+        try
+        {
+            await ApiClient.PostAsync<object, object>(
+                $"/api/validators/{id}/deactivate",
+                new { }
+            );
+
+            await LoadValidators();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deactivating validator: {ex.Message}");
+        }
+    }
+
+    private string TruncateHash(string hash)
+    {
+        if (string.IsNullOrEmpty(hash)) return string.Empty;
+        return hash.Length > 16
+            ? $"{hash.Substring(0, 8)}...{hash.Substring(hash.Length - 8)}"
+            : hash;
+    }
+
+    private class ValidatorDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public bool IsActive { get; set; }
+        public string? Address { get; set; }
+        public int TotalBlocksCreated { get; set; }
+        public DateTime? LastBlockCreatedTimestamp { get; set; }
+    }
+
+    private class RegisterValidatorModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Validator name is required")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
+        public string ValidatorPassword { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Priority is required")]
+        [System.ComponentModel.DataAnnotations.Range(1, 100, ErrorMessage = "Priority must be between 1 and 100")]
+        public int Priority { get; set; } = 1;
+
+        public string Address { get; set; } = string.Empty;
+    }
+
+    private class UpdateValidatorModel
+    {
+        public string Name { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Priority is required")]
+        [System.ComponentModel.DataAnnotations.Range(1, 100, ErrorMessage = "Priority must be between 1 and 100")]
+        public int Priority { get; set; }
+
+        public string Address { get; set; } = string.Empty;
+    }
+}

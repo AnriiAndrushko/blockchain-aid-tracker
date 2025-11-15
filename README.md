@@ -8,7 +8,8 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 **Current Metrics:**
 -  **594 tests passing** (100% success rate: 487 unit + 107 integration)
--  **Blazor Web UI fully functional** (login, dashboard, shipments, blockchain explorer) NEWEST
+-  **Complete Blazor Web UI with 16 pages** (auth, dashboard, shipments, users, validators, consensus, contracts, blockchain explorer) NEWEST
+-  **Full role-based UI behavior** (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner) NEWEST
 -  **Blockchain persistence with automatic save/load and backup rotation**
 -  **Consensus API with 4 endpoints for block creation and validation**
 -  **Automated background service creating blocks every 30 seconds**
@@ -27,7 +28,7 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 -  Cryptographic services (SHA-256, ECDSA) with real signatures
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
--  **12 Blazor components with authentication, role-based access, and responsive UI**
+-  **16 Blazor pages with authentication, role-based access, and responsive UI**
 
 **Next:** Consider implementing Blazor component tests (bUnit), real-time updates with SignalR, advanced analytics, additional security features (rate limiting, audit logging), or mobile app development with .NET MAUI.
 
@@ -89,14 +90,21 @@ dotnet run --project src/BlockchainAidTracker.Web/BlockchainAidTracker.Web.cspro
    - **Dashboard**: View statistics, recent shipments, and blockchain status
    - **Shipments**: Browse all shipments with filtering and search
    - **Create Shipment** (Coordinator role only): Create new aid shipments with items
-   - **Shipment Details**: View detailed information, QR codes, and blockchain history
+   - **Shipment Details**: View detailed information, QR codes, blockchain history, update status, and confirm delivery
    - **Blockchain Explorer**: Browse blocks, view transactions, and verify hashes
+   - **Smart Contracts**: View deployed contracts and their state
+   - **User Profile**: View and edit your own profile information
+   - **Consensus Dashboard** (Admin/Validator only): Monitor PoA consensus, view active validators, manually create blocks
+   - **User Management** (Admin only): Manage users, assign roles, activate/deactivate accounts
+   - **Validator Management** (Admin only): Register validators, manage priorities, activate/deactivate validator nodes
 
 5. **Role-Based Access:**
-   - **Coordinator**: Can create shipments and update status
-   - **Recipient**: Can confirm delivery of assigned shipments
+   - **Administrator**: Full system access - user management, validator management, consensus control, all shipment operations
+   - **Coordinator**: Can create shipments, update status, view all shipments
+   - **Recipient**: Can confirm delivery of assigned shipments, view shipment details
    - **Donor**: Can view shipment transparency and blockchain history
-   - **Logistics Partner**: Can update shipment status during transit
+   - **Validator**: Can access consensus dashboard, view validator information, manually create blocks
+   - **Logistics Partner**: Can view shipments and blockchain information
 
 **API Configuration:**
 - The Web UI connects to the API at `https://localhost:5001` by default
@@ -231,7 +239,7 @@ blockchain-aid-tracker/
 │   ├── BlockchainAidTracker.Services/     # Business logic (8 services + key mgmt) ✅
 │   ├── BlockchainAidTracker.SmartContracts/ # Smart contract framework ✅
 │   ├── BlockchainAidTracker.Api/          # Web API (auth + shipment + user mgmt + blockchain + validators) ✅
-│   └── BlockchainAidTracker.Web/          # Blazor UI (referenced)
+│   └── BlockchainAidTracker.Web/          # Blazor Web UI (16 pages, role-based access) ✅
 ├── tests/                                  # Test projects
 │   └── BlockchainAidTracker.Tests/        # 594 tests (487 unit + 107 integration) ✅
 │       ├── Blockchain/                    # 61 blockchain tests (core + persistence) ✅
@@ -281,17 +289,27 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 - ✅ **Block validation with validator signature verification**
 - ✅ **Consensus API with 4 endpoints for block operations**
 - ✅ **Automated block creation background service (30 second intervals)**
-- ✅ **Blockchain persistence with file-based JSON storage** NEWEST
-- ✅ **Automatic save after block creation and load on startup** NEWEST
-- ✅ **Backup file creation with configurable rotation** NEWEST
-- ✅ **594 tests passing with real cryptographic signature validation** NEWEST
+- ✅ **Blockchain persistence with file-based JSON storage**
+- ✅ **Automatic save after block creation and load on startup**
+- ✅ **Backup file creation with configurable rotation**
+- ✅ **594 tests passing with real cryptographic signature validation**
+- ✅ **Complete Blazor Web UI with 16 pages** NEWEST
+- ✅ **Role-based UI with different views for all 6 roles** NEWEST
+- ✅ **Shipment status update and delivery confirmation modals** NEWEST
+- ✅ **User Management page for administrators** NEWEST
+- ✅ **Validator Management page for PoA consensus** NEWEST
+- ✅ **Consensus Dashboard with manual block creation** NEWEST
+- ✅ **Smart Contracts viewer with state inspection** NEWEST
+- ✅ **User Profile management for all users** NEWEST
+- ✅ **Blockchain Explorer with block and transaction details** NEWEST
+- ✅ **Responsive Bootstrap 5 UI with Bootstrap Icons** NEWEST
 
 ### Planned 📋
-- 📋 Multi-node validator network communication
+- 📋 Multi-node validator network communication (P2P)
 - 📋 Peer-to-peer blockchain synchronization
-- 📋 Real-time blockchain explorer UI
-- 📋 Blazor web application interface
-- 📋 Transparent donation tracking dashboard
+- 📋 Real-time updates with SignalR for live blockchain monitoring
+- 📋 Blazor component tests with bUnit
+- 📋 Advanced analytics dashboard with charts and graphs
 
 ## Technology Stack
 
@@ -325,7 +343,7 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 | 12. **Consensus Engine** | ✅ Complete | PoA block creation, validator signature validation |
 | 13. **Consensus API Integration** | ✅ Complete | 4 endpoints, automated background service |
 | 14. **Blockchain Persistence** | ✅ Complete | File-based storage, automatic save/load, backups |
-| 15. Web Application UI | 📋 Planned | Blazor dashboard |
+| 15. **Web Application UI** | ✅ Complete | 16 Blazor pages, role-based access, responsive design |
 
 **Legend:** ✅ Complete | 🔨 In Progress | 📋 Planned
 

@@ -1,0 +1,512 @@
+@page "/consensus"
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApiClientService ApiClient
+@rendermode InteractiveServer
+
+<PageTitle>Consensus Dashboard - Blockchain Aid Tracker</PageTitle>
+
+<AuthorizeView Roles="Administrator,Validator">
+    <Authorized Context="authContext">
+        <div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-diagram-3 me-2"></i>Consensus Dashboard</h2>
+            <p class="text-muted">Monitor Proof-of-Authority consensus and blockchain status</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="ShowCreateBlockModal">
+                <i class="bi bi-plus-square me-2"></i>Create Block Manually
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading consensus status...</p>
+        </div>
+    }
+    else if (consensusStatus != null)
+    {
+        <!-- Status Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Chain Height</h6>
+                                <h3 class="mb-0 text-primary">@consensusStatus.ChainHeight</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-layers" style="font-size: 2rem; color: #0d6efd;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Pending Transactions</h6>
+                                <h3 class="mb-0 text-warning">@consensusStatus.PendingTransactionCount</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-hourglass-split" style="font-size: 2rem; color: #ffc107;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Active Validators</h6>
+                                <h3 class="mb-0 text-success">@consensusStatus.ActiveValidatorCount</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-shield-check" style="font-size: 2rem; color: #198754;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-1">Auto Block Creation</h6>
+                                <h3 class="mb-0">
+                                    @if (consensusStatus.AutomatedBlockCreationEnabled)
+                                    {
+                                        <span class="badge bg-success">Enabled</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Disabled</span>
+                                    }
+                                </h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-gear-fill" style="font-size: 2rem; color: #6c757d;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Validator Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-arrow-right-circle me-2"></i>Next Block Validator</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(consensusStatus.NextValidatorName))
+                        {
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h4 class="mb-2">@consensusStatus.NextValidatorName</h4>
+                                    <p class="text-muted mb-0">Validator ID: <code>@consensusStatus.NextValidatorId</code></p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <p class="text-muted mb-1">Block Creation Interval</p>
+                                    <h5 class="mb-0">Every @consensusStatus.BlockCreationIntervalSeconds seconds</h5>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-0">No active validator available</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Validators List -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Active Validators</h5>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="LoadActiveValidators">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (activeValidators.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Priority</th>
+                                            <th>Blocks Created</th>
+                                            <th>Last Block</th>
+                                            <th>Public Key</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var validator in activeValidators.OrderBy(v => v.Priority))
+                                        {
+                                            <tr class="@(validator.Id == consensusStatus.NextValidatorId ? "table-primary" : "")">
+                                                <td>
+                                                    <strong>@validator.Name</strong>
+                                                    @if (validator.Id == consensusStatus.NextValidatorId)
+                                                    {
+                                                        <span class="badge bg-primary ms-2">Next</span>
+                                                    }
+                                                </td>
+                                                <td><span class="badge bg-info">@validator.Priority</span></td>
+                                                <td>@validator.TotalBlocksCreated</td>
+                                                <td>
+                                                    @if (validator.LastBlockCreatedTimestamp.HasValue)
+                                                    {
+                                                        <small class="text-muted">@validator.LastBlockCreatedTimestamp.Value.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                                    }
+                                                    else
+                                                    {
+                                                        <small class="text-muted">Never</small>
+                                                    }
+                                                </td>
+                                                <td><code class="small">@TruncateHash(validator.PublicKey)</code></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-shield-x" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No active validators found</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Block Creation Activity -->
+        @if (recentBlocks.Any())
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Block Activity</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Block Index</th>
+                                            <th>Timestamp</th>
+                                            <th>Transactions</th>
+                                            <th>Hash</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var block in recentBlocks.Take(10))
+                                        {
+                                            <tr>
+                                                <td><span class="badge bg-primary">@block.Index</span></td>
+                                                <td>@block.Timestamp.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss")</td>
+                                                <td>@block.Transactions.Count</td>
+                                                <td><code class="small">@TruncateHash(block.Hash)</code></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Create Block Modal -->
+    @if (showCreateBlockModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-plus-square me-2"></i>Create Block Manually</h5>
+                        <button type="button" class="btn-close" @onclick="HideCreateBlockModal"></button>
+                    </div>
+                    <EditForm Model="@createBlockModel" OnValidSubmit="CreateBlock">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            @if (!string.IsNullOrEmpty(createBlockError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    @createBlockError
+                                    <button type="button" class="btn-close" @onclick="() => createBlockError = string.Empty"></button>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(createBlockSuccess))
+                            {
+                                <div class="alert alert-success alert-dismissible fade show">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    @createBlockSuccess
+                                    <button type="button" class="btn-close" @onclick="() => createBlockSuccess = string.Empty"></button>
+                                </div>
+                            }
+
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Manual Block Creation</strong>
+                                <p class="mb-0 mt-2">
+                                    This will create a new block with all pending transactions using the next validator in the round-robin sequence.
+                                    You must provide the validator's password to sign the block.
+                                </p>
+                            </div>
+
+                            @if (consensusStatus != null)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Pending Transactions</strong></label>
+                                    <p class="text-muted">@consensusStatus.PendingTransactionCount transaction(s) waiting to be included</p>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Next Validator</strong></label>
+                                    <p class="text-muted">@(consensusStatus.NextValidatorName ?? "No active validator")</p>
+                                </div>
+                            }
+
+                            <div class="mb-3">
+                                <label class="form-label">Validator Password <span class="text-danger">*</span></label>
+                                <InputText type="password" class="form-control" @bind-Value="createBlockModel.ValidatorPassword"
+                                           placeholder="Enter validator password" />
+                                <ValidationMessage For="@(() => createBlockModel.ValidatorPassword)" />
+                                <small class="text-muted">Password is required to decrypt the validator's private key for block signing</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="HideCreateBlockModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isCreatingBlock">
+                                @if (isCreatingBlock)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-plus-square me-2"></i>Create Block
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be an Administrator or Validator to access this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private ConsensusStatusDto? consensusStatus;
+    private List<ValidatorDto> activeValidators = new();
+    private List<BlockDto> recentBlocks = new();
+    private bool isLoading = true;
+    private bool showCreateBlockModal = false;
+    private bool isCreatingBlock = false;
+    private string createBlockError = string.Empty;
+    private string createBlockSuccess = string.Empty;
+    private CreateBlockModel createBlockModel = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadConsensusStatus();
+            await LoadActiveValidators();
+            await LoadRecentBlocks();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadConsensusStatus()
+    {
+        try
+        {
+            isLoading = true;
+            consensusStatus = await ApiClient.GetAsync<ConsensusStatusDto>("/api/consensus/status");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading consensus status: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadActiveValidators()
+    {
+        try
+        {
+            activeValidators = await ApiClient.GetAsync<List<ValidatorDto>>("/api/consensus/validators") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading active validators: {ex.Message}");
+        }
+    }
+
+    private async Task LoadRecentBlocks()
+    {
+        try
+        {
+            var blockchain = await ApiClient.GetAsync<List<BlockDto>>("/api/blockchain/chain");
+            recentBlocks = blockchain?.OrderByDescending(b => b.Index).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading recent blocks: {ex.Message}");
+        }
+    }
+
+    private void ShowCreateBlockModal()
+    {
+        createBlockModel = new CreateBlockModel();
+        createBlockError = string.Empty;
+        createBlockSuccess = string.Empty;
+        showCreateBlockModal = true;
+    }
+
+    private void HideCreateBlockModal()
+    {
+        showCreateBlockModal = false;
+    }
+
+    private async Task CreateBlock()
+    {
+        try
+        {
+            isCreatingBlock = true;
+            createBlockError = string.Empty;
+            createBlockSuccess = string.Empty;
+
+            var result = await ApiClient.PostAsync<CreateBlockModel, BlockCreationResultDto>(
+                "/api/consensus/create-block",
+                createBlockModel
+            );
+
+            if (result != null && result.Success)
+            {
+                createBlockSuccess = $"Block created successfully! {result.TransactionCount} transaction(s) included. Validator: {result.ValidatorName}";
+
+                await Task.Delay(2000);
+                await LoadConsensusStatus();
+                await LoadRecentBlocks();
+                HideCreateBlockModal();
+            }
+            else
+            {
+                createBlockError = result?.Message ?? "Failed to create block";
+            }
+        }
+        catch (Exception ex)
+        {
+            createBlockError = $"Error creating block: {ex.Message}";
+            Console.WriteLine($"Error creating block: {ex.Message}");
+        }
+        finally
+        {
+            isCreatingBlock = false;
+        }
+    }
+
+    private string TruncateHash(string hash)
+    {
+        if (string.IsNullOrEmpty(hash)) return string.Empty;
+        return hash.Length > 16
+            ? $"{hash.Substring(0, 8)}...{hash.Substring(hash.Length - 8)}"
+            : hash;
+    }
+
+    private class ConsensusStatusDto
+    {
+        public int ChainHeight { get; set; }
+        public int PendingTransactionCount { get; set; }
+        public string NextValidatorId { get; set; } = string.Empty;
+        public string NextValidatorName { get; set; } = string.Empty;
+        public int ActiveValidatorCount { get; set; }
+        public bool AutomatedBlockCreationEnabled { get; set; }
+        public int BlockCreationIntervalSeconds { get; set; }
+    }
+
+    private class ValidatorDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public bool IsActive { get; set; }
+        public string Address { get; set; } = string.Empty;
+        public int TotalBlocksCreated { get; set; }
+        public DateTime? LastBlockCreatedTimestamp { get; set; }
+    }
+
+    private class BlockDto
+    {
+        public int Index { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Hash { get; set; } = string.Empty;
+        public string PreviousHash { get; set; } = string.Empty;
+        public List<TransactionDto> Transactions { get; set; } = new();
+        public string ValidatorSignature { get; set; } = string.Empty;
+    }
+
+    private class TransactionDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string SenderPublicKey { get; set; } = string.Empty;
+        public string Payload { get; set; } = string.Empty;
+        public string Signature { get; set; } = string.Empty;
+    }
+
+    private class BlockCreationResultDto
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public BlockDto? Block { get; set; }
+        public string ValidatorId { get; set; } = string.Empty;
+        public string ValidatorName { get; set; } = string.Empty;
+        public int TransactionCount { get; set; }
+    }
+
+    private class CreateBlockModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Validator password is required")]
+        public string ValidatorPassword { get; set; } = string.Empty;
+    }
+}

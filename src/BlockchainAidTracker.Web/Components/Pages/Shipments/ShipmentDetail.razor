@@ -2,15 +2,21 @@
 @using BlockchainAidTracker.Web.Services
 @using System.Net.Http.Headers
 @using Blazored.LocalStorage
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ApiClientService ApiClient
 @inject NavigationManager Navigation
 @inject HttpClient HttpClient
 @inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>Shipment Details - Blockchain Aid Tracker</PageTitle>
 
-<div class="container-fluid">
+<AuthorizeView>
+    <Authorized Context="authContext">
+        <div class="container-fluid">
     @if (isLoading)
     {
         <div class="text-center py-5">
@@ -46,7 +52,7 @@
                 <div class="card mb-3">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Shipment Information</h5>
-                        <span class="badge bg-@GetStatusColor(shipment.Status) fs-6">@shipment.Status</span>
+                        <span class="badge bg-@GetStatusColor(shipment.Status) fs-6">@GetStatusName(shipment.Status)</span>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
@@ -207,6 +213,18 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
+                            @if (CanUpdateStatus())
+                            {
+                                <button class="btn btn-primary" @onclick="ShowUpdateStatusModal">
+                                    <i class="bi bi-pencil-square me-2"></i>Update Status
+                                </button>
+                            }
+                            @if (CanConfirmDelivery())
+                            {
+                                <button class="btn btn-success" @onclick="ShowConfirmDeliveryModal">
+                                    <i class="bi bi-check-circle me-2"></i>Confirm Delivery
+                                </button>
+                            }
                             <button class="btn btn-outline-primary" @onclick="ViewOnBlockchain">
                                 <i class="bi bi-diagram-3 me-2"></i>View on Blockchain
                             </button>
@@ -219,7 +237,143 @@
             </div>
         </div>
     }
+
+    <!-- Update Status Modal -->
+    @if (showUpdateStatusModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Update Shipment Status</h5>
+                        <button type="button" class="btn-close" @onclick="HideUpdateStatusModal"></button>
+                    </div>
+                    <EditForm Model="@updateStatusModel" OnValidSubmit="UpdateStatus">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            @if (!string.IsNullOrEmpty(statusUpdateError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    @statusUpdateError
+                                    <button type="button" class="btn-close" @onclick="() => statusUpdateError = string.Empty"></button>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(statusUpdateSuccess))
+                            {
+                                <div class="alert alert-success alert-dismissible fade show">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    @statusUpdateSuccess
+                                    <button type="button" class="btn-close" @onclick="() => statusUpdateSuccess = string.Empty"></button>
+                                </div>
+                            }
+                            <div class="mb-3">
+                                <label class="form-label">Current Status</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-@GetStatusColor(shipment?.Status ?? 0)">@GetStatusName(shipment?.Status ?? 0)</span>
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Status <span class="text-danger">*</span></label>
+                                <InputSelect class="form-select" @bind-Value="updateStatusModel.NewStatus">
+                                    <option value="">-- Select Status --</option>
+                                    <option value="0">Created</option>
+                                    <option value="1">Validated</option>
+                                    <option value="2">In Transit</option>
+                                    <option value="3">Delivered</option>
+                                    <option value="4">Confirmed</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => updateStatusModel.NewStatus)" />
+                            </div>
+                            <div class="alert alert-info">
+                                <small><i class="bi bi-info-circle me-1"></i>Status transitions: Created → Validated → In Transit → Delivered → Confirmed</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="HideUpdateStatusModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isUpdatingStatus">
+                                @if (isUpdatingStatus)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-save me-2"></i>Update Status
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Confirm Delivery Modal -->
+    @if (showConfirmDeliveryModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>Confirm Delivery</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="HideConfirmDeliveryModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(deliveryConfirmError))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                @deliveryConfirmError
+                                <button type="button" class="btn-close" @onclick="() => deliveryConfirmError = string.Empty"></button>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(deliveryConfirmSuccess))
+                        {
+                            <div class="alert alert-success alert-dismissible fade show">
+                                <i class="bi bi-check-circle me-2"></i>
+                                @deliveryConfirmSuccess
+                                <button type="button" class="btn-close" @onclick="() => deliveryConfirmSuccess = string.Empty"></button>
+                            </div>
+                        }
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Confirm Receipt</strong>
+                            <p class="mb-0 mt-2">
+                                By confirming this delivery, you acknowledge that you have received the shipment and all items are as expected.
+                                This action will be recorded on the blockchain and cannot be undone.
+                            </p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Shipment Details</strong></label>
+                            <ul class="list-unstyled">
+                                <li><strong>Origin:</strong> @shipment?.Origin</li>
+                                <li><strong>Destination:</strong> @shipment?.Destination</li>
+                                <li><strong>Items:</strong> @shipment?.Items.Count item(s)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="HideConfirmDeliveryModal">Cancel</button>
+                        <button type="button" class="btn btn-success" @onclick="ConfirmDelivery" disabled="@isConfirmingDelivery">
+                            @if (isConfirmingDelivery)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-check-circle me-2"></i>Confirm Delivery
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be logged in to view shipment details.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     [Parameter]
@@ -232,15 +386,50 @@
     private string qrCodeImage = string.Empty;
     private bool hasLoadedData = false;
 
+    // Modal states
+    private bool showUpdateStatusModal = false;
+    private bool showConfirmDeliveryModal = false;
+    private bool isUpdatingStatus = false;
+    private bool isConfirmingDelivery = false;
+    private string statusUpdateError = string.Empty;
+    private string statusUpdateSuccess = string.Empty;
+    private string deliveryConfirmError = string.Empty;
+    private string deliveryConfirmSuccess = string.Empty;
+    private UpdateStatusModel updateStatusModel = new();
+
+    // User info
+    private string currentUserId = string.Empty;
+    private string currentUserRole = string.Empty;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && !hasLoadedData)
         {
             hasLoadedData = true;
+            await LoadUserInfo();
             await LoadShipmentDetails();
             await LoadBlockchainHistory();
             await LoadQrCode();
             StateHasChanged();
+        }
+    }
+
+    private async Task LoadUserInfo()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                currentUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                currentUserRole = user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
         }
     }
 
@@ -328,15 +517,144 @@
         Navigation.NavigateTo("/shipments");
     }
 
-    private string GetStatusColor(string status)
+    // Modal methods
+    private void ShowUpdateStatusModal()
+    {
+        updateStatusModel = new UpdateStatusModel();
+        statusUpdateError = string.Empty;
+        statusUpdateSuccess = string.Empty;
+        showUpdateStatusModal = true;
+    }
+
+    private void HideUpdateStatusModal()
+    {
+        showUpdateStatusModal = false;
+    }
+
+    private void ShowConfirmDeliveryModal()
+    {
+        deliveryConfirmError = string.Empty;
+        deliveryConfirmSuccess = string.Empty;
+        showConfirmDeliveryModal = true;
+    }
+
+    private void HideConfirmDeliveryModal()
+    {
+        showConfirmDeliveryModal = false;
+    }
+
+    // Permission checks
+    private bool CanUpdateStatus()
+    {
+        if (shipment == null) return false;
+
+        // Coordinators and Administrators can update status
+        // Also allow if the status is not yet "Confirmed" (4)
+        return (currentUserRole == "Coordinator" || currentUserRole == "Administrator")
+               && shipment.Status != 4;
+    }
+
+    private bool CanConfirmDelivery()
+    {
+        if (shipment == null) return false;
+
+        // Recipients can confirm delivery only when status is "Delivered" (3)
+        // Check if current user is the assigned recipient
+        return (currentUserRole == "Recipient" && shipment.RecipientId == currentUserId && shipment.Status == 3)
+               || (currentUserRole == "Administrator" && shipment.Status == 3);
+    }
+
+    // API actions
+    private async Task UpdateStatus()
+    {
+        try
+        {
+            isUpdatingStatus = true;
+            statusUpdateError = string.Empty;
+            statusUpdateSuccess = string.Empty;
+
+            var response = await ApiClient.PutAsync<UpdateStatusModel, object>(
+                $"/api/shipments/{Id}/status",
+                updateStatusModel
+            );
+
+            statusUpdateSuccess = "Status updated successfully!";
+
+            // Reload shipment details after a short delay
+            await Task.Delay(1500);
+            await LoadShipmentDetails();
+            await LoadBlockchainHistory();
+
+            HideUpdateStatusModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            statusUpdateError = $"Error updating status: {ex.Message}";
+            Console.WriteLine($"Error updating status: {ex.Message}");
+        }
+        finally
+        {
+            isUpdatingStatus = false;
+        }
+    }
+
+    private async Task ConfirmDelivery()
+    {
+        try
+        {
+            isConfirmingDelivery = true;
+            deliveryConfirmError = string.Empty;
+            deliveryConfirmSuccess = string.Empty;
+
+            await ApiClient.PostAsync<object, object>(
+                $"/api/shipments/{Id}/confirm-delivery",
+                new { }
+            );
+
+            deliveryConfirmSuccess = "Delivery confirmed successfully! Transaction recorded on blockchain.";
+
+            // Reload shipment details after a short delay
+            await Task.Delay(1500);
+            await LoadShipmentDetails();
+            await LoadBlockchainHistory();
+
+            HideConfirmDeliveryModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            deliveryConfirmError = $"Error confirming delivery: {ex.Message}";
+            Console.WriteLine($"Error confirming delivery: {ex.Message}");
+        }
+        finally
+        {
+            isConfirmingDelivery = false;
+        }
+    }
+
+    private string GetStatusName(int status)
     {
         return status switch
         {
-            "Created" => "secondary",
-            "Validated" => "info",
-            "InTransit" => "warning",
-            "Delivered" => "success",
-            "Confirmed" => "success",
+            0 => "Created",
+            1 => "Validated",
+            2 => "In Transit",
+            3 => "Delivered",
+            4 => "Confirmed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusColor(int status)
+    {
+        return status switch
+        {
+            0 => "secondary",  // Created
+            1 => "info",       // Validated
+            2 => "warning",    // InTransit
+            3 => "success",    // Delivered
+            4 => "success",    // Confirmed
             _ => "secondary"
         };
     }
@@ -349,7 +667,7 @@
         public string RecipientId { get; set; } = string.Empty;
         public DateTime ExpectedDeliveryDate { get; set; }
         public DateTime? ActualDeliveryDate { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public int Status { get; set; }
         public string QrCode { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -363,5 +681,12 @@
         public string Description { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public string Unit { get; set; } = string.Empty;
+    }
+
+    private class UpdateStatusModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Please select a new status")]
+        [System.ComponentModel.DataAnnotations.Range(0, 4, ErrorMessage = "Please select a valid status")]
+        public int NewStatus { get; set; }
     }
 }

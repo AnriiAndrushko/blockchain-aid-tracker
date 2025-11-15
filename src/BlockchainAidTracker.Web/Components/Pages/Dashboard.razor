@@ -119,7 +119,7 @@
                                                 <td><code>@(shipment.Id.Length > 8 ? shipment.Id.Substring(0, 8) : shipment.Id)</code></td>
                                                 <td>@shipment.Origin</td>
                                                 <td>@shipment.Destination</td>
-                                                <td><span class="badge bg-@GetStatusColor(shipment.Status)">@shipment.Status</span></td>
+                                                <td><span class="badge bg-@GetStatusColor(shipment.Status)">@GetStatusName(shipment.Status)</span></td>
                                                 <td>@shipment.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</td>
                                                 <td>
                                                     <a href="/shipments/@shipment.Id" class="btn btn-sm btn-outline-primary">
@@ -213,10 +213,9 @@
             // Calculate stats
             stats.TotalShipments = allShipments.Count;
             stats.DeliveredShipments = allShipments.Count(s =>
-                s.Status.Equals("Delivered", StringComparison.OrdinalIgnoreCase) ||
-                s.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase));
+                s.Status == 3 || s.Status == 4); // Delivered = 3, Confirmed = 4
             stats.InTransitShipments = allShipments.Count(s =>
-                s.Status.Equals("InTransit", StringComparison.OrdinalIgnoreCase));
+                s.Status == 2); // InTransit = 2
             stats.BlockchainHeight = chainData?.Count ?? 0;
             stats.PendingTransactions = 0; // You can get this from API
             stats.IsChainValid = validation?.IsValid ?? false;
@@ -231,15 +230,28 @@
         }
     }
 
-    private string GetStatusColor(string status)
+    private string GetStatusName(int status)
     {
         return status switch
         {
-            "Created" => "secondary",
-            "Validated" => "info",
-            "InTransit" => "warning",
-            "Delivered" => "success",
-            "Confirmed" => "success",
+            0 => "Created",
+            1 => "Validated",
+            2 => "In Transit",
+            3 => "Delivered",
+            4 => "Confirmed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusColor(int status)
+    {
+        return status switch
+        {
+            0 => "secondary",  // Created
+            1 => "info",       // Validated
+            2 => "warning",    // InTransit
+            3 => "success",    // Delivered
+            4 => "success",    // Confirmed
             _ => "secondary"
         };
     }
@@ -262,7 +274,7 @@
         public string RecipientId { get; set; } = string.Empty;
         public DateTime ExpectedDeliveryDate { get; set; }
         public DateTime? ActualDeliveryDate { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public int Status { get; set; }
         public string QrCode { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
