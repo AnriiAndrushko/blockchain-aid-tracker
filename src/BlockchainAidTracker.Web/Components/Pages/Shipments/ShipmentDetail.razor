@@ -357,6 +357,15 @@
                                 <li><strong>Items:</strong> @shipment?.Items.Count item(s)</li>
                             </ul>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Debug Info</strong></label>
+                            <ul class="list-unstyled small text-muted">
+                                <li><strong>Your User ID:</strong> <code>@currentUserId</code></li>
+                                <li><strong>Recipient ID:</strong> <code>@(shipment?.RecipientId)</code></li>
+                                <li><strong>Your Role:</strong> @currentUserRole</li>
+                                <li><strong>Match:</strong> @(currentUserId == shipment?.RecipientId ? "✓ Yes" : "✗ No")</li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" @onclick="HideConfirmDeliveryModal">Cancel</button>
@@ -620,6 +629,11 @@
             deliveryConfirmError = string.Empty;
             deliveryConfirmSuccess = string.Empty;
 
+            Console.WriteLine($"Attempting to confirm delivery for shipment {Id}");
+            Console.WriteLine($"Current User ID: {currentUserId}");
+            Console.WriteLine($"Current User Role: {currentUserRole}");
+            Console.WriteLine($"Shipment Recipient ID: {shipment?.RecipientId}");
+
             await ApiClient.PostAsync<object, object>(
                 $"/api/shipments/{Id}/confirm-delivery",
                 new { }
@@ -635,10 +649,17 @@
             HideConfirmDeliveryModal();
             StateHasChanged();
         }
+        catch (HttpRequestException ex)
+        {
+            deliveryConfirmError = $"Error confirming delivery: {ex.Message}. Please check if you are the assigned recipient.";
+            Console.WriteLine($"HTTP Error confirming delivery: {ex.Message}");
+            Console.WriteLine($"Status Code: {ex.StatusCode}");
+        }
         catch (Exception ex)
         {
             deliveryConfirmError = $"Error confirming delivery: {ex.Message}";
             Console.WriteLine($"Error confirming delivery: {ex.Message}");
+            Console.WriteLine($"Exception Type: {ex.GetType().Name}");
         }
         finally
         {
