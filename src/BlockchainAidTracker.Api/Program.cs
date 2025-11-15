@@ -97,12 +97,14 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         var allowedOrigins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>()
-            ?? new[] { "http://localhost:5000", "https://localhost:5001" };
+            ?? new[] { "http://localhost:5000", "https://localhost:5001", "http://localhost:5002", "https://localhost:5003" };
 
         policy.WithOrigins(allowedOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials();
+            .AllowCredentials()
+            .WithExposedHeaders("Token-Expired", "Authorization")
+            .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });
 
