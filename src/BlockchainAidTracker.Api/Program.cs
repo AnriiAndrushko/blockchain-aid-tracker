@@ -198,12 +198,21 @@ if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing")
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var hashService = scope.ServiceProvider.GetRequiredService<IHashService>();
+    var signatureService = scope.ServiceProvider.GetRequiredService<IDigitalSignatureService>();
 
     // Delete existing database for demo purposes (as per CLAUDE.md - "Reset database state on application start")
     //dbContext.Database.EnsureDeleted();
     dbContext.Database.Migrate();
 
     app.Logger.LogInformation("Database migrations applied successfully");
+
+    // Seed database with demo data
+    await BlockchainAidTracker.DataAccess.Seeding.DatabaseSeeder.SeedAsync(
+        dbContext,
+        hashService,
+        signatureService,
+        app.Logger);
 }
 
 // Load blockchain from persistence if configured
