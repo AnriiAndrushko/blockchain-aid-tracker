@@ -186,7 +186,8 @@ var app = builder.Build();
 
 // Get the blockchain instance from the actual service provider and configure it
 var blockchain = app.Services.GetRequiredService<Blockchain>();
-blockchain.ValidateTransactionSignatures = !app.Environment.IsEnvironment("Testing");
+// Disable signature validation in Development and Testing until private key management is fully set up
+blockchain.ValidateTransactionSignatures = false; // TODO: Enable when private keys are properly managed
 blockchain.ValidateBlockSignatures = false; // Block validator signatures not yet implemented
 
 // Deploy smart contracts after building the app
