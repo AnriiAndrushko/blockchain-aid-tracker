@@ -257,8 +257,8 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Password <span class="text-danger">*</span></label>
-                                <InputText type="password" class="form-control" @bind-Value="registerModel.ValidatorPassword" placeholder="Secure password for private key encryption" />
-                                <ValidationMessage For="@(() => registerModel.ValidatorPassword)" />
+                                <InputText type="password" class="form-control" @bind-Value="registerModel.Password" placeholder="Secure password for private key encryption" />
+                                <ValidationMessage For="@(() => registerModel.Password)" />
                                 <small class="text-muted">This password will encrypt the validator's private key</small>
                             </div>
                             <div class="mb-3">
@@ -684,18 +684,18 @@
     private class RegisterValidatorModel
     {
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Validator name is required")]
-        [System.ComponentModel.DataAnnotations.StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 3, ErrorMessage = "Name must be between 3 and 100 characters")]
         public string Name { get; set; } = string.Empty;
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required")]
-        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
-        public string ValidatorPassword { get; set; } = string.Empty;
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters")]
+        public string Password { get; set; } = string.Empty;
 
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Priority is required")]
-        [System.ComponentModel.DataAnnotations.Range(1, 100, ErrorMessage = "Priority must be between 1 and 100")]
-        public int Priority { get; set; } = 1;
+        [System.ComponentModel.DataAnnotations.Range(0, 1000, ErrorMessage = "Priority must be between 0 and 1000")]
+        public int Priority { get; set; } = 0;
 
-        public string Address { get; set; } = string.Empty;
+        [System.ComponentModel.DataAnnotations.StringLength(200, ErrorMessage = "Address cannot exceed 200 characters")]
+        public string? Address { get; set; }
     }
 
     private class UpdateValidatorModel
