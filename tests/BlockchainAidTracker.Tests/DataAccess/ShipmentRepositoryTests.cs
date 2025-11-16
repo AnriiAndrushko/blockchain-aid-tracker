@@ -534,4 +534,227 @@ public class ShipmentRepositoryTests : DatabaseTestBase
     }
 
     #endregion
+
+    #region Donor and Logistics Partner Query Tests
+
+    [Fact]
+    public async Task GetByDonorIdAsync_ReturnsDonorShipments()
+    {
+        // Arrange
+        var donorId = "donor-123";
+        var shipment1 = TestData.CreateShipment()
+            .WithOrigin("Origin1")
+            .WithDestination("Destination1")
+            .Build();
+        shipment1.DonorId = donorId;
+
+        var shipment2 = TestData.CreateShipment()
+            .WithOrigin("Origin2")
+            .WithDestination("Destination2")
+            .Build();
+        shipment2.DonorId = donorId;
+
+        var shipment3 = TestData.CreateShipment()
+            .WithOrigin("Origin3")
+            .WithDestination("Destination3")
+            .Build();
+        shipment3.DonorId = "other-donor";
+
+        await Context.Shipments.AddRangeAsync(shipment1, shipment2, shipment3);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByDonorIdAsync(donorId);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.All(result, s => Assert.Equal(donorId, s.DonorId));
+        Assert.Contains(result, s => s.Id == shipment1.Id);
+        Assert.Contains(result, s => s.Id == shipment2.Id);
+    }
+
+    [Fact]
+    public async Task GetByDonorIdAsync_ReturnsEmptyForNonexistentDonor()
+    {
+        // Arrange
+        var shipment = TestData.CreateShipment().Build();
+        shipment.DonorId = "donor-123";
+
+        await Context.Shipments.AddAsync(shipment);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByDonorIdAsync("nonexistent-donor");
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetByDonorIdAsync_IncludesItems()
+    {
+        // Arrange
+        var donorId = "donor-456";
+        var shipment = TestData.CreateShipment()
+            .WithItem("Item1", 10, "kg", "Food")
+            .WithItem("Item2", 20, "boxes", "Medical")
+            .Build();
+        shipment.DonorId = donorId;
+
+        await Context.Shipments.AddAsync(shipment);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByDonorIdAsync(donorId);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(2, result[0].Items.Count);
+    }
+
+    [Fact]
+    public async Task GetByLogisticsPartnerIdAsync_ReturnsAssignedShipments()
+    {
+        // Arrange
+        var logisticsPartnerId = "lp-123";
+        var shipment1 = TestData.CreateShipment()
+            .WithOrigin("Origin1")
+            .WithDestination("Destination1")
+            .Build();
+        shipment1.AssignedLogisticsPartnerId = logisticsPartnerId;
+
+        var shipment2 = TestData.CreateShipment()
+            .WithOrigin("Origin2")
+            .WithDestination("Destination2")
+            .Build();
+        shipment2.AssignedLogisticsPartnerId = logisticsPartnerId;
+
+        var shipment3 = TestData.CreateShipment()
+            .WithOrigin("Origin3")
+            .WithDestination("Destination3")
+            .Build();
+        shipment3.AssignedLogisticsPartnerId = "other-lp";
+
+        await Context.Shipments.AddRangeAsync(shipment1, shipment2, shipment3);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByLogisticsPartnerIdAsync(logisticsPartnerId);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.All(result, s => Assert.Equal(logisticsPartnerId, s.AssignedLogisticsPartnerId));
+        Assert.Contains(result, s => s.Id == shipment1.Id);
+        Assert.Contains(result, s => s.Id == shipment2.Id);
+    }
+
+    [Fact]
+    public async Task GetByLogisticsPartnerIdAsync_ReturnsEmptyForNonexistentPartner()
+    {
+        // Arrange
+        var shipment = TestData.CreateShipment().Build();
+        shipment.AssignedLogisticsPartnerId = "lp-123";
+
+        await Context.Shipments.AddAsync(shipment);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByLogisticsPartnerIdAsync("nonexistent-lp");
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetByLogisticsPartnerIdAsync_IncludesItems()
+    {
+        // Arrange
+        var logisticsPartnerId = "lp-456";
+        var shipment = TestData.CreateShipment()
+            .WithItem("Item1", 10, "kg", "Food")
+            .WithItem("Item2", 20, "boxes", "Medical")
+            .WithItem("Item3", 30, "units", "Supplies")
+            .Build();
+        shipment.AssignedLogisticsPartnerId = logisticsPartnerId;
+
+        await Context.Shipments.AddAsync(shipment);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByLogisticsPartnerIdAsync(logisticsPartnerId);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(3, result[0].Items.Count);
+    }
+
+    [Fact]
+    public async Task GetByDonorIdAsync_OrdersByCreatedTimestampDescending()
+    {
+        // Arrange
+        var donorId = "donor-789";
+        var shipment1 = TestData.CreateShipment().Build();
+        shipment1.DonorId = donorId;
+        shipment1.CreatedTimestamp = DateTime.UtcNow.AddDays(-2);
+
+        var shipment2 = TestData.CreateShipment().Build();
+        shipment2.DonorId = donorId;
+        shipment2.CreatedTimestamp = DateTime.UtcNow.AddDays(-1);
+
+        var shipment3 = TestData.CreateShipment().Build();
+        shipment3.DonorId = donorId;
+        shipment3.CreatedTimestamp = DateTime.UtcNow;
+
+        await Context.Shipments.AddRangeAsync(shipment1, shipment2, shipment3);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByDonorIdAsync(donorId);
+
+        // Assert
+        Assert.Equal(3, result.Count);
+        Assert.Equal(shipment3.Id, result[0].Id); // Most recent first
+        Assert.Equal(shipment2.Id, result[1].Id);
+        Assert.Equal(shipment1.Id, result[2].Id);
+    }
+
+    [Fact]
+    public async Task GetByLogisticsPartnerIdAsync_OrdersByCreatedTimestampDescending()
+    {
+        // Arrange
+        var logisticsPartnerId = "lp-789";
+        var shipment1 = TestData.CreateShipment().Build();
+        shipment1.AssignedLogisticsPartnerId = logisticsPartnerId;
+        shipment1.CreatedTimestamp = DateTime.UtcNow.AddDays(-3);
+
+        var shipment2 = TestData.CreateShipment().Build();
+        shipment2.AssignedLogisticsPartnerId = logisticsPartnerId;
+        shipment2.CreatedTimestamp = DateTime.UtcNow.AddDays(-1);
+
+        var shipment3 = TestData.CreateShipment().Build();
+        shipment3.AssignedLogisticsPartnerId = logisticsPartnerId;
+        shipment3.CreatedTimestamp = DateTime.UtcNow;
+
+        await Context.Shipments.AddRangeAsync(shipment1, shipment2, shipment3);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+
+        // Act
+        var result = await _shipmentRepository.GetByLogisticsPartnerIdAsync(logisticsPartnerId);
+
+        // Assert
+        Assert.Equal(3, result.Count);
+        Assert.Equal(shipment3.Id, result[0].Id); // Most recent first
+        Assert.Equal(shipment2.Id, result[1].Id);
+        Assert.Equal(shipment1.Id, result[2].Id);
+    }
+
+    #endregion
 }

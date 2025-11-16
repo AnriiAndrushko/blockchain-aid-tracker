@@ -557,4 +557,399 @@ public class ShipmentServiceTests
     }
 
     #endregion
+
+    #region GetShipmentsByDonorAsync Tests
+
+    [Fact]
+    public async Task GetShipmentsByDonorAsync_ValidDonorId_ReturnsShipments()
+    {
+        // Arrange
+        var donorId = "donor123";
+        var shipments = new List<Shipment>
+        {
+            new() { Id = "ship1", DonorId = donorId, Items = new List<ShipmentItem>() },
+            new() { Id = "ship2", DonorId = donorId, Items = new List<ShipmentItem>() }
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByDonorIdAsync(donorId, default))
+            .ReturnsAsync(shipments);
+
+        // Act
+        var result = await _shipmentService.GetShipmentsByDonorAsync(donorId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task GetShipmentsByDonorAsync_EmptyDonorId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _shipmentService.GetShipmentsByDonorAsync(string.Empty));
+    }
+
+    [Fact]
+    public async Task GetShipmentsByDonorAsync_NullDonorId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _shipmentService.GetShipmentsByDonorAsync(null!));
+    }
+
+    #endregion
+
+    #region GetShipmentsByLogisticsPartnerAsync Tests
+
+    [Fact]
+    public async Task GetShipmentsByLogisticsPartnerAsync_ValidPartnerId_ReturnsShipments()
+    {
+        // Arrange
+        var logisticsPartnerId = "lp123";
+        var shipments = new List<Shipment>
+        {
+            new() { Id = "ship1", AssignedLogisticsPartnerId = logisticsPartnerId, Items = new List<ShipmentItem>() },
+            new() { Id = "ship2", AssignedLogisticsPartnerId = logisticsPartnerId, Items = new List<ShipmentItem>() },
+            new() { Id = "ship3", AssignedLogisticsPartnerId = logisticsPartnerId, Items = new List<ShipmentItem>() }
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByLogisticsPartnerIdAsync(logisticsPartnerId, default))
+            .ReturnsAsync(shipments);
+
+        // Act
+        var result = await _shipmentService.GetShipmentsByLogisticsPartnerAsync(logisticsPartnerId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Count);
+    }
+
+    [Fact]
+    public async Task GetShipmentsByLogisticsPartnerAsync_EmptyPartnerId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _shipmentService.GetShipmentsByLogisticsPartnerAsync(string.Empty));
+    }
+
+    [Fact]
+    public async Task GetShipmentsByLogisticsPartnerAsync_NullPartnerId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _shipmentService.GetShipmentsByLogisticsPartnerAsync(null!));
+    }
+
+    #endregion
+
+    #region CreateShipmentAsync with Donor and LogisticsPartner Tests
+
+    [Fact]
+    public async Task CreateShipmentAsync_WithValidDonor_AssignsDonor()
+    {
+        // Arrange
+        var coordinatorId = "coordinator123";
+        var donorId = "donor123";
+        var request = new CreateShipmentRequest
+        {
+            Origin = "Origin",
+            Destination = "Destination",
+            RecipientId = "recipient123",
+            DonorId = donorId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new List<ShipmentItemDto>
+            {
+                new() { Description = "Item", Quantity = 1, Unit = "unit" }
+            }
+        };
+
+        var coordinator = new User
+        {
+            Id = coordinatorId,
+            Role = UserRole.Coordinator,
+            PublicKey = "coordinator-key"
+        };
+
+        var recipient = new User
+        {
+            Id = "recipient123",
+            PublicKey = "recipient-key"
+        };
+
+        var donor = new User
+        {
+            Id = donorId,
+            Role = UserRole.Donor,
+            PublicKey = "donor-key"
+        };
+
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(coordinatorId, default))
+            .ReturnsAsync(coordinator);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync("recipient123", default))
+            .ReturnsAsync(recipient);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(donorId, default))
+            .ReturnsAsync(donor);
+
+        // Act
+        var result = await _shipmentService.CreateShipmentAsync(request, coordinatorId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(donorId, result.DonorId);
+        _shipmentRepositoryMock.Verify(x => x.AddAsync(It.Is<Shipment>(s =>
+            s.DonorId == donorId &&
+            s.DonorPublicKey == "donor-key"
+        ), default), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_WithInvalidDonorRole_ThrowsBusinessException()
+    {
+        // Arrange
+        var coordinatorId = "coordinator123";
+        var donorId = "donor123";
+        var request = new CreateShipmentRequest
+        {
+            Origin = "Origin",
+            Destination = "Destination",
+            RecipientId = "recipient123",
+            DonorId = donorId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new List<ShipmentItemDto>
+            {
+                new() { Description = "Item", Quantity = 1, Unit = "unit" }
+            }
+        };
+
+        var coordinator = new User
+        {
+            Id = coordinatorId,
+            Role = UserRole.Coordinator,
+            PublicKey = "coordinator-key"
+        };
+
+        var recipient = new User
+        {
+            Id = "recipient123",
+            PublicKey = "recipient-key"
+        };
+
+        var invalidDonor = new User
+        {
+            Id = donorId,
+            Role = UserRole.Recipient, // Wrong role!
+            PublicKey = "donor-key"
+        };
+
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(coordinatorId, default))
+            .ReturnsAsync(coordinator);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync("recipient123", default))
+            .ReturnsAsync(recipient);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(donorId, default))
+            .ReturnsAsync(invalidDonor);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<BusinessException>(() =>
+            _shipmentService.CreateShipmentAsync(request, coordinatorId));
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_WithValidLogisticsPartner_AssignsLogisticsPartner()
+    {
+        // Arrange
+        var coordinatorId = "coordinator123";
+        var logisticsPartnerId = "lp123";
+        var request = new CreateShipmentRequest
+        {
+            Origin = "Origin",
+            Destination = "Destination",
+            RecipientId = "recipient123",
+            LogisticsPartnerId = logisticsPartnerId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new List<ShipmentItemDto>
+            {
+                new() { Description = "Item", Quantity = 1, Unit = "unit" }
+            }
+        };
+
+        var coordinator = new User
+        {
+            Id = coordinatorId,
+            Role = UserRole.Coordinator,
+            PublicKey = "coordinator-key"
+        };
+
+        var recipient = new User
+        {
+            Id = "recipient123",
+            PublicKey = "recipient-key"
+        };
+
+        var logisticsPartner = new User
+        {
+            Id = logisticsPartnerId,
+            Role = UserRole.LogisticsPartner,
+            PublicKey = "lp-key"
+        };
+
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(coordinatorId, default))
+            .ReturnsAsync(coordinator);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync("recipient123", default))
+            .ReturnsAsync(recipient);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(logisticsPartnerId, default))
+            .ReturnsAsync(logisticsPartner);
+
+        // Act
+        var result = await _shipmentService.CreateShipmentAsync(request, coordinatorId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(logisticsPartnerId, result.LogisticsPartnerId);
+        _shipmentRepositoryMock.Verify(x => x.AddAsync(It.Is<Shipment>(s =>
+            s.AssignedLogisticsPartnerId == logisticsPartnerId &&
+            s.LogisticsPartnerPublicKey == "lp-key"
+        ), default), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_WithInvalidLogisticsPartnerRole_ThrowsBusinessException()
+    {
+        // Arrange
+        var coordinatorId = "coordinator123";
+        var logisticsPartnerId = "lp123";
+        var request = new CreateShipmentRequest
+        {
+            Origin = "Origin",
+            Destination = "Destination",
+            RecipientId = "recipient123",
+            LogisticsPartnerId = logisticsPartnerId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new List<ShipmentItemDto>
+            {
+                new() { Description = "Item", Quantity = 1, Unit = "unit" }
+            }
+        };
+
+        var coordinator = new User
+        {
+            Id = coordinatorId,
+            Role = UserRole.Coordinator,
+            PublicKey = "coordinator-key"
+        };
+
+        var recipient = new User
+        {
+            Id = "recipient123",
+            PublicKey = "recipient-key"
+        };
+
+        var invalidLogisticsPartner = new User
+        {
+            Id = logisticsPartnerId,
+            Role = UserRole.Recipient, // Wrong role!
+            PublicKey = "lp-key"
+        };
+
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(coordinatorId, default))
+            .ReturnsAsync(coordinator);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync("recipient123", default))
+            .ReturnsAsync(recipient);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(logisticsPartnerId, default))
+            .ReturnsAsync(invalidLogisticsPartner);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<BusinessException>(() =>
+            _shipmentService.CreateShipmentAsync(request, coordinatorId));
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_WithNonexistentDonor_ThrowsNotFoundException()
+    {
+        // Arrange
+        var coordinatorId = "coordinator123";
+        var donorId = "nonexistent-donor";
+        var request = new CreateShipmentRequest
+        {
+            Origin = "Origin",
+            Destination = "Destination",
+            RecipientId = "recipient123",
+            DonorId = donorId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new List<ShipmentItemDto>
+            {
+                new() { Description = "Item", Quantity = 1, Unit = "unit" }
+            }
+        };
+
+        var coordinator = new User
+        {
+            Id = coordinatorId,
+            Role = UserRole.Coordinator,
+            PublicKey = "coordinator-key"
+        };
+
+        var recipient = new User
+        {
+            Id = "recipient123",
+            PublicKey = "recipient-key"
+        };
+
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(coordinatorId, default))
+            .ReturnsAsync(coordinator);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync("recipient123", default))
+            .ReturnsAsync(recipient);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(donorId, default))
+            .ReturnsAsync((User?)null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _shipmentService.CreateShipmentAsync(request, coordinatorId));
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_WithNonexistentLogisticsPartner_ThrowsNotFoundException()
+    {
+        // Arrange
+        var coordinatorId = "coordinator123";
+        var logisticsPartnerId = "nonexistent-lp";
+        var request = new CreateShipmentRequest
+        {
+            Origin = "Origin",
+            Destination = "Destination",
+            RecipientId = "recipient123",
+            LogisticsPartnerId = logisticsPartnerId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new List<ShipmentItemDto>
+            {
+                new() { Description = "Item", Quantity = 1, Unit = "unit" }
+            }
+        };
+
+        var coordinator = new User
+        {
+            Id = coordinatorId,
+            Role = UserRole.Coordinator,
+            PublicKey = "coordinator-key"
+        };
+
+        var recipient = new User
+        {
+            Id = "recipient123",
+            PublicKey = "recipient-key"
+        };
+
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(coordinatorId, default))
+            .ReturnsAsync(coordinator);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync("recipient123", default))
+            .ReturnsAsync(recipient);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(logisticsPartnerId, default))
+            .ReturnsAsync((User?)null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _shipmentService.CreateShipmentAsync(request, coordinatorId));
+    }
+
+    #endregion
 }

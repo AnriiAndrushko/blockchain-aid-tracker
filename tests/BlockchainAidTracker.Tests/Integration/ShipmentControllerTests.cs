@@ -618,4 +618,242 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
     }
 
     #endregion
+
+    #region Donor and LogisticsPartner Endpoint Tests
+
+    [Fact]
+    public async Task GetMyDonorShipments_ReturnsDonorShipments()
+    {
+        // Arrange
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var (coordinatorToken, coordinatorId) = await CreateUserAndGetTokenWithIdAsync($"coordinator_{uniqueId}", UserRole.Coordinator);
+        var (donorToken, donorId) = await CreateUserAndGetTokenWithIdAsync($"donor_{uniqueId}", UserRole.Donor);
+        var (_, recipientId) = await CreateUserAndGetTokenWithIdAsync($"recipient_{uniqueId}", UserRole.Recipient);
+
+        // Create shipment with donor
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+        var createRequest = new
+        {
+            Origin = "Origin1",
+            Destination = "Destination1",
+            RecipientId = recipientId,
+            DonorId = donorId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new[]
+            {
+                new { Description = "Item1", Quantity = 10, Unit = "kg" }
+            }
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/shipments", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // Act - Get donor's shipments
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", donorToken);
+        var response = await _client.GetAsync("/api/shipments/donor/my-shipments");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var shipments = await response.Content.ReadFromJsonAsync<List<ShipmentDto>>();
+        shipments.Should().NotBeNull();
+        shipments.Should().HaveCount(1);
+        shipments![0].DonorId.Should().Be(donorId);
+    }
+
+    [Fact]
+    public async Task GetMyDonorShipments_Unauthorized_ReturnsUnauthorized()
+    {
+        // Arrange - No authorization header
+
+        // Act
+        var response = await _client.GetAsync("/api/shipments/donor/my-shipments");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetMyLogisticsPartnerShipments_ReturnsLogisticsPartnerShipments()
+    {
+        // Arrange
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var (coordinatorToken, coordinatorId) = await CreateUserAndGetTokenWithIdAsync($"coordinator_{uniqueId}", UserRole.Coordinator);
+        var (lpToken, lpId) = await CreateUserAndGetTokenWithIdAsync($"lp_{uniqueId}", UserRole.LogisticsPartner);
+        var (_, recipientId) = await CreateUserAndGetTokenWithIdAsync($"recipient_{uniqueId}", UserRole.Recipient);
+
+        // Create shipment with logistics partner
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+        var createRequest = new
+        {
+            Origin = "Origin2",
+            Destination = "Destination2",
+            RecipientId = recipientId,
+            LogisticsPartnerId = lpId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new[]
+            {
+                new { Description = "Item2", Quantity = 20, Unit = "boxes" }
+            }
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/shipments", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // Act - Get logistics partner's shipments
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", lpToken);
+        var response = await _client.GetAsync("/api/shipments/logistics-partner/my-shipments");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var shipments = await response.Content.ReadFromJsonAsync<List<ShipmentDto>>();
+        shipments.Should().NotBeNull();
+        shipments.Should().HaveCount(1);
+        shipments![0].LogisticsPartnerId.Should().Be(lpId);
+    }
+
+    [Fact]
+    public async Task GetMyLogisticsPartnerShipments_Unauthorized_ReturnsUnauthorized()
+    {
+        // Arrange - No authorization header
+
+        // Act
+        var response = await _client.GetAsync("/api/shipments/logistics-partner/my-shipments");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task CreateShipment_WithBothDonorAndLogisticsPartner_AssignsBoth()
+    {
+        // Arrange
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var (coordinatorToken, coordinatorId) = await CreateUserAndGetTokenWithIdAsync($"coordinator_{uniqueId}", UserRole.Coordinator);
+        var (_, donorId) = await CreateUserAndGetTokenWithIdAsync($"donor_{uniqueId}", UserRole.Donor);
+        var (_, lpId) = await CreateUserAndGetTokenWithIdAsync($"lp_{uniqueId}", UserRole.LogisticsPartner);
+        var (_, recipientId) = await CreateUserAndGetTokenWithIdAsync($"recipient_{uniqueId}", UserRole.Recipient);
+
+        // Act - Create shipment with both donor and logistics partner
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+        var createRequest = new
+        {
+            Origin = "Origin3",
+            Destination = "Destination3",
+            RecipientId = recipientId,
+            DonorId = donorId,
+            LogisticsPartnerId = lpId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new[]
+            {
+                new { Description = "Item3", Quantity = 30, Unit = "units" }
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/shipments", createRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var shipment = await response.Content.ReadFromJsonAsync<ShipmentDto>();
+        shipment.Should().NotBeNull();
+        shipment!.DonorId.Should().Be(donorId);
+        shipment.LogisticsPartnerId.Should().Be(lpId);
+    }
+
+    [Fact]
+    public async Task CreateShipment_WithInvalidDonorRole_ReturnsBadRequest()
+    {
+        // Arrange
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var (coordinatorToken, coordinatorId) = await CreateUserAndGetTokenWithIdAsync($"coordinator_{uniqueId}", UserRole.Coordinator);
+        var (_, invalidDonorId) = await CreateUserAndGetTokenWithIdAsync($"invaliddonor_{uniqueId}", UserRole.Recipient); // Wrong role
+        var (_, recipientId) = await CreateUserAndGetTokenWithIdAsync($"recipient_{uniqueId}", UserRole.Recipient);
+
+        // Act - Try to create shipment with invalid donor
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+        var createRequest = new
+        {
+            Origin = "Origin4",
+            Destination = "Destination4",
+            RecipientId = recipientId,
+            DonorId = invalidDonorId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new[]
+            {
+                new { Description = "Item4", Quantity = 40, Unit = "kg" }
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/shipments", createRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateShipment_WithInvalidLogisticsPartnerRole_ReturnsBadRequest()
+    {
+        // Arrange
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var (coordinatorToken, coordinatorId) = await CreateUserAndGetTokenWithIdAsync($"coordinator_{uniqueId}", UserRole.Coordinator);
+        var (_, invalidLpId) = await CreateUserAndGetTokenWithIdAsync($"invalidlp_{uniqueId}", UserRole.Recipient); // Wrong role
+        var (_, recipientId) = await CreateUserAndGetTokenWithIdAsync($"recipient_{uniqueId}", UserRole.Recipient);
+
+        // Act - Try to create shipment with invalid logistics partner
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+        var createRequest = new
+        {
+            Origin = "Origin5",
+            Destination = "Destination5",
+            RecipientId = recipientId,
+            LogisticsPartnerId = invalidLpId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(7),
+            Items = new[]
+            {
+                new { Description = "Item5", Quantity = 50, Unit = "boxes" }
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/shipments", createRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetMyDonorShipments_EmptyListForDonorWithNoShipments()
+    {
+        // Arrange
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var donorToken = await CreateUserAndGetTokenAsync($"donor_{uniqueId}", UserRole.Donor);
+
+        // Act
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", donorToken);
+        var response = await _client.GetAsync("/api/shipments/donor/my-shipments");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var shipments = await response.Content.ReadFromJsonAsync<List<ShipmentDto>>();
+        shipments.Should().NotBeNull();
+        shipments.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetMyLogisticsPartnerShipments_EmptyListForPartnerWithNoShipments()
+    {
+        // Arrange
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var lpToken = await CreateUserAndGetTokenAsync($"lp_{uniqueId}", UserRole.LogisticsPartner);
+
+        // Act
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", lpToken);
+        var response = await _client.GetAsync("/api/shipments/logistics-partner/my-shipments");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var shipments = await response.Content.ReadFromJsonAsync<List<ShipmentDto>>();
+        shipments.Should().NotBeNull();
+        shipments.Should().BeEmpty();
+    }
+
+    #endregion
 }
