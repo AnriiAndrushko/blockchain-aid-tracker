@@ -157,20 +157,14 @@ else
     builder.Services.AddSingleton(sp => new Blockchain(hashService, digitalSignatureService));
 }
 
-// Get the blockchain instance to configure signature validation
-var tempServiceProvider = builder.Services.BuildServiceProvider();
-var blockchain = tempServiceProvider.GetRequiredService<Blockchain>();
-blockchain.ValidateTransactionSignatures = !builder.Environment.IsEnvironment("Testing");
-blockchain.ValidateBlockSignatures = false; // Block validator signatures not yet implemented
-
 // Register DataAccess layer - skip in Testing environment (will be configured by tests)
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddDataAccess(builder.Configuration);
 }
 
-// Register Services layer with blockchain
-builder.Services.AddServicesWithBlockchain(jwtSettings, blockchain);
+// Register Services layer - blockchain instance will be resolved from DI
+builder.Services.AddServices(jwtSettings);
 
 // Register consensus settings as singleton
 builder.Services.AddSingleton(consensusSettings);
@@ -189,6 +183,11 @@ builder.Services.AddHealthChecks()
 builder.Services.AddHostedService<BlockchainAidTracker.Services.BackgroundServices.BlockCreationBackgroundService>();
 
 var app = builder.Build();
+
+// Get the blockchain instance from the actual service provider and configure it
+var blockchain = app.Services.GetRequiredService<Blockchain>();
+blockchain.ValidateTransactionSignatures = !app.Environment.IsEnvironment("Testing");
+blockchain.ValidateBlockSignatures = false; // Block validator signatures not yet implemented
 
 // Deploy smart contracts after building the app
 app.Services.DeployContracts();
@@ -211,7 +210,15 @@ if (persistenceSettings.Enabled && persistenceSettings.AutoLoadOnStartup && !app
 {
     try
     {
-        await app.Services.LoadBlockchainFromPersistenceAsync();
+        var loaded = await app.Services.LoadBlockchainFromPersistenceAsync();
+        if (loaded)
+        {
+            app.Logger.LogInformation("Blockchain loaded from persistence: {BlockCount} blocks", blockchain.Chain.Count);
+        }
+        else
+        {
+            app.Logger.LogInformation("No persisted blockchain found, starting with genesis block");
+        }
     }
     catch (Exception ex)
     {

@@ -370,6 +370,9 @@ public class ShipmentService : IShipmentService
         var block = _blockchain.CreateBlock(senderPublicKey);
         _blockchain.AddBlock(block);
 
+        // Save blockchain to persistence if configured
+        await _blockchain.SaveToPersistenceAsync();
+
         return await Task.FromResult(transaction.Id);
     }
 
