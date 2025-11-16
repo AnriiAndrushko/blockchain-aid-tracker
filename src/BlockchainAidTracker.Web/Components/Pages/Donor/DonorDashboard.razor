@@ -277,7 +277,7 @@
             var pendingTx = await ApiClient.GetAsync<List<TransactionDto>>("/api/blockchain/pending");
             pendingTransactions = pendingTx?.Count ?? 0;
 
-            var validationResult = await ApiClient.PostAsync<ValidationResultDto>("/api/blockchain/validate", new { });
+            var validationResult = await ApiClient.PostAsync<object, ValidationResultDto>("/api/blockchain/validate", new { });
             isChainValid = validationResult?.IsValid ?? false;
         }
         catch (Exception ex)
