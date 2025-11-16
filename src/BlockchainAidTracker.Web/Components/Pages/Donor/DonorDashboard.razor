@@ -271,13 +271,13 @@
             inTransitCount = recentShipments.Count(s => s.Status == 2);
 
             // Load blockchain info
-            var blockchainInfo = await ApiClient.GetAsync<BlockchainInfoDto>("/api/blockchain/chain");
-            blockchainHeight = blockchainInfo?.Blocks?.Count ?? 0;
+            var blocks = await ApiClient.GetAsync<List<BlockDto>>("/api/blockchain/chain");
+            blockchainHeight = blocks?.Count ?? 0;
 
             var pendingTx = await ApiClient.GetAsync<List<TransactionDto>>("/api/blockchain/pending");
             pendingTransactions = pendingTx?.Count ?? 0;
 
-            var validationResult = await ApiClient.PostAsync<ValidationResultDto>("/api/blockchain/validate", null);
+            var validationResult = await ApiClient.PostAsync<ValidationResultDto>("/api/blockchain/validate", new { });
             isChainValid = validationResult?.IsValid ?? false;
         }
         catch (Exception ex)
@@ -344,11 +344,6 @@
         public string Description { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public string Unit { get; set; } = string.Empty;
-    }
-
-    private class BlockchainInfoDto
-    {
-        public List<BlockDto>? Blocks { get; set; }
     }
 
     private class BlockDto
