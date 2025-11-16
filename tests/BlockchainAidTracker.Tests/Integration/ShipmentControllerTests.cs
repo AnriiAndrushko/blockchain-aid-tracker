@@ -856,4 +856,296 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
     }
 
     #endregion
+
+    #region Complete Pipeline Test
+
+    [Fact]
+    public async Task CompleteShipmentPipeline_AllRoles_FullLifecycle()
+    {
+        // ============================================================
+        // ARRANGE - Create all user types
+        // ============================================================
+        var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        var testOutput = new System.Text.StringBuilder();
+
+        testOutput.AppendLine("=== COMPLETE SHIPMENT PIPELINE TEST ===");
+        testOutput.AppendLine($"Test ID: {uniqueId}");
+        testOutput.AppendLine();
+
+        // Step 1: Create all user types
+        testOutput.AppendLine("Step 1: Creating all user types...");
+
+        var (coordinatorToken, coordinatorId) = await CreateUserAndGetTokenWithIdAsync($"coordinator_{uniqueId}", UserRole.Coordinator);
+        testOutput.AppendLine($"✓ Coordinator created: {coordinatorId[..8]}...");
+
+        var (recipientToken, recipientId) = await CreateUserAndGetTokenWithIdAsync($"recipient_{uniqueId}", UserRole.Recipient);
+        testOutput.AppendLine($"✓ Recipient created: {recipientId[..8]}...");
+
+        var (donorToken, donorId) = await CreateUserAndGetTokenWithIdAsync($"donor_{uniqueId}", UserRole.Donor);
+        testOutput.AppendLine($"✓ Donor created: {donorId[..8]}...");
+
+        var (lpToken, lpId) = await CreateUserAndGetTokenWithIdAsync($"lp_{uniqueId}", UserRole.LogisticsPartner);
+        testOutput.AppendLine($"✓ Logistics Partner created: {lpId[..8]}...");
+
+        var (adminToken, adminId) = await CreateUserAndGetTokenWithIdAsync($"admin_{uniqueId}", UserRole.Administrator);
+        testOutput.AppendLine($"✓ Administrator created: {adminId[..8]}...");
+
+        var (validatorToken, validatorId) = await CreateUserAndGetTokenWithIdAsync($"validator_{uniqueId}", UserRole.Validator);
+        testOutput.AppendLine($"✓ Validator created: {validatorId[..8]}...");
+
+        testOutput.AppendLine();
+
+        // ============================================================
+        // ACT & ASSERT - Step 2: Coordinator creates shipment with Donor and LP
+        // ============================================================
+        testOutput.AppendLine("Step 2: Coordinator creating shipment...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+
+        var createRequest = new
+        {
+            Origin = "Warehouse Alpha, New York",
+            Destination = "Relief Camp Beta, Somalia",
+            RecipientId = recipientId,
+            DonorId = donorId,
+            LogisticsPartnerId = lpId,
+            ExpectedDeliveryDate = DateTime.UtcNow.AddDays(14),
+            Items = new[]
+            {
+                new { Description = "Medical Supplies", Quantity = 50, Unit = "boxes" },
+                new { Description = "Water Purification Tablets", Quantity = 1000, Unit = "units" },
+                new { Description = "Emergency Food Rations", Quantity = 200, Unit = "kg" }
+            }
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/shipments", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var shipment = await createResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        shipment.Should().NotBeNull();
+        testOutput.AppendLine($"✓ Shipment created: {shipment!.Id[..8]}...");
+        testOutput.AppendLine($"  - Origin: {shipment.Origin}");
+        testOutput.AppendLine($"  - Destination: {shipment.Destination}");
+        testOutput.AppendLine($"  - Items: {shipment.Items.Count}");
+        testOutput.AppendLine($"  - Status: {shipment.Status}");
+        testOutput.AppendLine($"  - Donor: {shipment.DonorId?[..8]}...");
+        testOutput.AppendLine($"  - Logistics Partner: {shipment.LogisticsPartnerId?[..8]}...");
+
+        // Verify initial state
+        shipment.Status.Should().Be(ShipmentStatus.Created);
+        shipment.DonorId.Should().Be(donorId);
+        shipment.LogisticsPartnerId.Should().Be(lpId);
+        shipment.RecipientId.Should().Be(recipientId);
+        shipment.Items.Should().HaveCount(3);
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 3: Donor verifies they can see the shipment
+        // ============================================================
+        testOutput.AppendLine("Step 3: Donor checking funded shipments...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", donorToken);
+
+        var donorShipmentsResponse = await _client.GetAsync("/api/shipments/donor/my-shipments");
+        donorShipmentsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var donorShipments = await donorShipmentsResponse.Content.ReadFromJsonAsync<List<ShipmentDto>>();
+        donorShipments.Should().NotBeNull();
+        donorShipments.Should().HaveCount(1);
+        donorShipments![0].Id.Should().Be(shipment.Id);
+        testOutput.AppendLine($"✓ Donor can see their funded shipment");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 4: Logistics Partner sees the assigned shipment
+        // ============================================================
+        testOutput.AppendLine("Step 4: Logistics Partner checking assigned deliveries...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", lpToken);
+
+        var lpShipmentsResponse = await _client.GetAsync("/api/shipments/logistics-partner/my-shipments");
+        lpShipmentsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var lpShipments = await lpShipmentsResponse.Content.ReadFromJsonAsync<List<ShipmentDto>>();
+        lpShipments.Should().NotBeNull();
+        lpShipments.Should().HaveCount(1);
+        lpShipments![0].Id.Should().Be(shipment.Id);
+        testOutput.AppendLine($"✓ Logistics Partner can see assigned delivery");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 5: Coordinator validates the shipment
+        // ============================================================
+        testOutput.AppendLine("Step 5: Coordinator validating shipment...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+
+        var validateRequest = new { NewStatus = "Validated" };
+        var validateResponse = await _client.PutAsJsonAsync($"/api/shipments/{shipment.Id}/status", validateRequest);
+        validateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var validatedShipment = await validateResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        validatedShipment!.Status.Should().Be(ShipmentStatus.Validated);
+        testOutput.AppendLine($"✓ Shipment status: Created → Validated");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 6: Logistics Partner marks shipment as In Transit
+        // ============================================================
+        testOutput.AppendLine("Step 6: Logistics Partner starting transit...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", lpToken);
+
+        var inTransitRequest = new { NewStatus = "InTransit" };
+        var inTransitResponse = await _client.PutAsJsonAsync($"/api/shipments/{shipment.Id}/status", inTransitRequest);
+        inTransitResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var inTransitShipment = await inTransitResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        inTransitShipment!.Status.Should().Be(ShipmentStatus.InTransit);
+        testOutput.AppendLine($"✓ Shipment status: Validated → InTransit");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 7: Wait for blockchain transaction processing
+        // ============================================================
+        testOutput.AppendLine("Step 7: Waiting for blockchain processing...");
+        await Task.Delay(500); // Give time for transactions to be processed
+        testOutput.AppendLine($"✓ Blockchain transactions processed");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 8: Logistics Partner marks shipment as Delivered
+        // ============================================================
+        testOutput.AppendLine("Step 8: Logistics Partner marking as delivered...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", lpToken);
+
+        var deliveredRequest = new { NewStatus = "Delivered" };
+        var deliveredResponse = await _client.PutAsJsonAsync($"/api/shipments/{shipment.Id}/status", deliveredRequest);
+        deliveredResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var deliveredShipment = await deliveredResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        deliveredShipment!.Status.Should().Be(ShipmentStatus.Delivered);
+        testOutput.AppendLine($"✓ Shipment status: InTransit → Delivered");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 9: Recipient confirms delivery
+        // ============================================================
+        testOutput.AppendLine("Step 9: Recipient confirming delivery...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", recipientToken);
+
+        var confirmResponse = await _client.PostAsync($"/api/shipments/{shipment.Id}/confirm-delivery", null);
+        confirmResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var confirmedShipment = await confirmResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        confirmedShipment!.Status.Should().Be(ShipmentStatus.Confirmed);
+        confirmedShipment.ActualDeliveryDate.Should().NotBeNull();
+        testOutput.AppendLine($"✓ Shipment status: Delivered → Confirmed");
+        testOutput.AppendLine($"  - Actual delivery date: {confirmedShipment.ActualDeliveryDate:yyyy-MM-dd HH:mm:ss}");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 10: Verify blockchain history
+        // ============================================================
+        testOutput.AppendLine("Step 10: Verifying blockchain history...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+
+        var historyResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}/history");
+        historyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var history = await historyResponse.Content.ReadFromJsonAsync<List<string>>();
+        history.Should().NotBeNull();
+        history.Should().NotBeEmpty();
+        testOutput.AppendLine($"✓ Blockchain transactions: {history!.Count}");
+        testOutput.AppendLine($"  - Expected: ShipmentCreated, StatusUpdated (x3), DeliveryConfirmed");
+
+        // Should have: Created + 3 status updates + Delivery confirmation = 5 transactions minimum
+        history.Should().HaveCountGreaterThanOrEqualTo(5);
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 11: Get QR code
+        // ============================================================
+        testOutput.AppendLine("Step 11: Retrieving shipment QR code...");
+        var qrResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}/qrcode");
+        qrResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        qrResponse.Content.Headers.ContentType!.MediaType.Should().Be("image/png");
+        var qrCodeBytes = await qrResponse.Content.ReadAsByteArrayAsync();
+        qrCodeBytes.Should().NotBeEmpty();
+        testOutput.AppendLine($"✓ QR code generated: {qrCodeBytes.Length} bytes");
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 12: Verify final state from all user perspectives
+        // ============================================================
+        testOutput.AppendLine("Step 12: Verifying final state from all perspectives...");
+
+        // Coordinator view
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
+        var coordinatorViewResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}");
+        coordinatorViewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var coordinatorView = await coordinatorViewResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        coordinatorView!.Status.Should().Be(ShipmentStatus.Confirmed);
+        testOutput.AppendLine($"✓ Coordinator view: Status = {coordinatorView.Status}");
+
+        // Donor view
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", donorToken);
+        var donorViewResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}");
+        donorViewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var donorView = await donorViewResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        donorView!.Status.Should().Be(ShipmentStatus.Confirmed);
+        testOutput.AppendLine($"✓ Donor view: Status = {donorView.Status}");
+
+        // Logistics Partner view
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", lpToken);
+        var lpViewResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}");
+        lpViewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var lpView = await lpViewResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        lpView!.Status.Should().Be(ShipmentStatus.Confirmed);
+        testOutput.AppendLine($"✓ Logistics Partner view: Status = {lpView.Status}");
+
+        // Recipient view
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", recipientToken);
+        var recipientViewResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}");
+        recipientViewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var recipientView = await recipientViewResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        recipientView!.Status.Should().Be(ShipmentStatus.Confirmed);
+        testOutput.AppendLine($"✓ Recipient view: Status = {recipientView.Status}");
+
+        // Administrator view
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var adminViewResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}");
+        adminViewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var adminView = await adminViewResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+        adminView!.Status.Should().Be(ShipmentStatus.Confirmed);
+        testOutput.AppendLine($"✓ Administrator view: Status = {adminView.Status}");
+
+        testOutput.AppendLine();
+
+        // ============================================================
+        // Step 13: Validate blockchain integrity
+        // ============================================================
+        testOutput.AppendLine("Step 13: Validating blockchain integrity...");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var validateBlockchainResponse = await _client.PostAsync("/api/blockchain/validate", null);
+        validateBlockchainResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var validationResult = await validateBlockchainResponse.Content.ReadFromJsonAsync<ValidationResultDto>();
+        validationResult.Should().NotBeNull();
+        validationResult!.IsValid.Should().BeTrue();
+        testOutput.AppendLine($"✓ Blockchain validation: {(validationResult.IsValid ? "PASSED" : "FAILED")}");
+        if (!string.IsNullOrEmpty(validationResult.Message))
+        {
+            testOutput.AppendLine($"  - Message: {validationResult.Message}");
+        }
+        testOutput.AppendLine();
+
+        // ============================================================
+        // FINAL SUMMARY
+        // ============================================================
+        testOutput.AppendLine("=== TEST COMPLETE ===");
+        testOutput.AppendLine("Summary:");
+        testOutput.AppendLine($"✓ 6 user types created (Coordinator, Recipient, Donor, LP, Admin, Validator)");
+        testOutput.AppendLine($"✓ Shipment created with 3 items");
+        testOutput.AppendLine($"✓ Donor and Logistics Partner assigned");
+        testOutput.AppendLine($"✓ Complete lifecycle: Created → Validated → InTransit → Delivered → Confirmed");
+        testOutput.AppendLine($"✓ All role-based views verified");
+        testOutput.AppendLine($"✓ Blockchain transactions recorded: {history.Count}");
+        testOutput.AppendLine($"✓ Blockchain integrity validated");
+        testOutput.AppendLine($"✓ QR code generated");
+        testOutput.AppendLine();
+        testOutput.AppendLine("Pipeline Status: SUCCESS ✅");
+
+        // Output the test log
+        Console.WriteLine(testOutput.ToString());
+    }
+
+    #endregion
 }
