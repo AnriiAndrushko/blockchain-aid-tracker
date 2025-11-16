@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using BlockchainAidTracker.Blockchain;
+using BlockchainAidTracker.Blockchain.Persistence;
 using BlockchainAidTracker.Cryptography;
 using BlockchainAidTracker.Core.Interfaces;
 using BlockchainAidTracker.DataAccess;
@@ -50,9 +51,11 @@ var persistenceSettings = new BlockchainAidTracker.Blockchain.Configuration.Bloc
     MaxBackupFiles = builder.Configuration.GetValue<int>("BlockchainPersistenceSettings:MaxBackupFiles", 5)
 };
 
-// Log persistence configuration
+// Create logger factory for startup logging
 builder.Services.AddLogging();
 var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder.AddConsole());
+
+// Log persistence configuration
 var startupLogger = loggerFactory.CreateLogger("Startup");
 startupLogger.LogInformation("Blockchain persistence enabled: {Enabled}, file path: {FilePath}",
     persistenceSettings.Enabled, persistenceSettings.FilePath);
@@ -154,21 +157,37 @@ builder.Services.AddSingleton<IDigitalSignatureService, DigitalSignatureService>
 var hashService = new HashService();
 var digitalSignatureService = new DigitalSignatureService();
 
-// Use persistence if enabled, otherwise use standard blockchain
+// Create blockchain instance
+Blockchain blockchain;
 if (persistenceSettings.Enabled && !builder.Environment.IsEnvironment("Testing"))
 {
-    builder.Services.AddBlockchainWithPersistence(hashService, digitalSignatureService, persistenceSettings);
+    // Create persistence service with logger
+    var persistenceLogger = loggerFactory.CreateLogger<JsonBlockchainPersistence>();
+    var persistence = new JsonBlockchainPersistence(persistenceSettings, persistenceLogger);
+
+    // Create blockchain with persistence
+    blockchain = new Blockchain(hashService, digitalSignatureService, persistence);
+    startupLogger.LogInformation("Blockchain created with persistence support");
 }
 else
 {
-    builder.Services.AddSingleton(sp => new Blockchain(hashService, digitalSignatureService));
+    // Create blockchain without persistence
+    blockchain = new Blockchain(hashService, digitalSignatureService);
+    startupLogger.LogInformation("Blockchain created without persistence");
 }
 
-// Get the blockchain instance to configure signature validation
-var tempServiceProvider = builder.Services.BuildServiceProvider();
-var blockchain = tempServiceProvider.GetRequiredService<Blockchain>();
+// Configure signature validation
 blockchain.ValidateTransactionSignatures = !builder.Environment.IsEnvironment("Testing");
 blockchain.ValidateBlockSignatures = false; // Block validator signatures not yet implemented
+
+// Register the blockchain instance as singleton
+builder.Services.AddSingleton(blockchain);
+
+// Register persistence settings if enabled
+if (persistenceSettings.Enabled)
+{
+    builder.Services.AddSingleton(persistenceSettings);
+}
 
 // Register DataAccess layer - skip in Testing environment (will be configured by tests)
 if (!builder.Environment.IsEnvironment("Testing"))
