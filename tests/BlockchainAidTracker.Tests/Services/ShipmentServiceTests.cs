@@ -423,6 +423,292 @@ public class ShipmentServiceTests
             _shipmentService.UpdateShipmentStatusAsync("nonexistent", ShipmentStatus.Validated, "user123"));
     }
 
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_LogisticsPartnerUpdatesToInTransit_Success()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "logistics123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Validated
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.LogisticsPartner,
+            PublicKey = "logisticsPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.InTransit, userId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ShipmentStatus.InTransit, result.Status);
+        _shipmentRepositoryMock.Verify(x => x.Update(It.IsAny<Shipment>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_LogisticsPartnerUpdatesToDelivered_Success()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "logistics123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.InTransit
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.LogisticsPartner,
+            PublicKey = "logisticsPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.Delivered, userId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ShipmentStatus.Delivered, result.Status);
+        _shipmentRepositoryMock.Verify(x => x.Update(It.IsAny<Shipment>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_LogisticsPartnerUpdatesToValidated_ThrowsUnauthorizedException()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "logistics123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Created
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.LogisticsPartner,
+            PublicKey = "logisticsPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act & Assert - LogisticsPartner cannot update to Validated
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.Validated, userId));
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_LogisticsPartnerUpdatesToConfirmed_ThrowsUnauthorizedException()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "logistics123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Delivered
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.LogisticsPartner,
+            PublicKey = "logisticsPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act & Assert - LogisticsPartner cannot update to Confirmed
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.Confirmed, userId));
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_DonorRole_ThrowsUnauthorizedException()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "donor123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Created
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.Donor,
+            PublicKey = "donorPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act & Assert - Donor cannot update status
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.Validated, userId));
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_ValidatorRole_ThrowsUnauthorizedException()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "validator123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Created
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.Validator,
+            PublicKey = "validatorPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act & Assert - Validator cannot update status
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.Validated, userId));
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_RecipientRole_ThrowsUnauthorizedException()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "recipient123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Created
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.Recipient,
+            PublicKey = "recipientPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act & Assert - Recipient should use ConfirmDelivery endpoint
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.Delivered, userId));
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_AdministratorRole_CanUpdateToAnyStatus()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "admin123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Created
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.Administrator,
+            PublicKey = "adminPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.Validated, userId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ShipmentStatus.Validated, result.Status);
+        _shipmentRepositoryMock.Verify(x => x.Update(It.IsAny<Shipment>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateShipmentStatusAsync_CoordinatorRole_CanUpdateToAnyStatus()
+    {
+        // Arrange
+        var shipmentId = "shipment123";
+        var userId = "coordinator123";
+
+        var shipment = new Shipment
+        {
+            Id = shipmentId,
+            Status = ShipmentStatus.Validated
+        };
+
+        var user = new User
+        {
+            Id = userId,
+            Role = UserRole.Coordinator,
+            PublicKey = "coordinatorPublicKey"
+        };
+
+        _shipmentRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(shipmentId, default))
+            .ReturnsAsync(shipment);
+        _userRepositoryMock.Setup(x => x.GetByIdAsync(userId, default))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _shipmentService.UpdateShipmentStatusAsync(shipmentId, ShipmentStatus.InTransit, userId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ShipmentStatus.InTransit, result.Status);
+        _shipmentRepositoryMock.Verify(x => x.Update(It.IsAny<Shipment>()), Times.Once);
+    }
+
     #endregion
 
     #region ConfirmDeliveryAsync Tests

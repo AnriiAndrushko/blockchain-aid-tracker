@@ -1,0 +1,368 @@
+@page "/donor/dashboard"
+@attribute [Authorize(Roles = "Donor,Administrator")]
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Authorization
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Donor Dashboard - Blockchain Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-heart-fill me-2"></i>Donor Dashboard</h2>
+            <p class="text-muted">Track the impact of your contributions with full transparency</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading dashboard...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Statistics Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-primary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 opacity-75">Total Shipments</h6>
+                                <h2 class="mb-0">@totalShipments</h2>
+                            </div>
+                            <i class="bi bi-box-seam" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 opacity-75">Delivered</h6>
+                                <h2 class="mb-0">@deliveredCount</h2>
+                            </div>
+                            <i class="bi bi-check-circle-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-warning text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 opacity-75">In Transit</h6>
+                                <h2 class="mb-0">@inTransitCount</h2>
+                            </div>
+                            <i class="bi bi-truck" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 opacity-75">Blockchain Height</h6>
+                                <h2 class="mb-0">@blockchainHeight</h2>
+                            </div>
+                            <i class="bi bi-diagram-3-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Shipments Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Recent Shipments</h5>
+                        <a href="/donor/shipments" class="btn btn-sm btn-outline-primary">
+                            View All <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        @if (recentShipments.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Shipment ID</th>
+                                            <th>Origin</th>
+                                            <th>Destination</th>
+                                            <th>Status</th>
+                                            <th>Items</th>
+                                            <th>Created</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var shipment in recentShipments.Take(5))
+                                        {
+                                            <tr>
+                                                <td><code class="text-primary">@(shipment.Id.Length > 8 ? shipment.Id.Substring(0, 8) : shipment.Id)...</code></td>
+                                                <td>@shipment.Origin</td>
+                                                <td>@shipment.Destination</td>
+                                                <td><span class="badge bg-@GetStatusColor(shipment.Status)">@GetStatusName(shipment.Status)</span></td>
+                                                <td>@shipment.Items.Count item(s)</td>
+                                                <td>@shipment.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewShipment(shipment.Id)">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                <p class="mt-2 mb-0">No shipments available</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blockchain Transparency Section -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Blockchain Transparency</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Chain Height</span>
+                                <strong>@blockchainHeight blocks</strong>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Pending Transactions</span>
+                                <strong>@pendingTransactions</strong>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: @GetPendingPercentage()%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Chain Valid</span>
+                                <strong>
+                                    @if (isChainValid)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                        <span class="text-success">Valid</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                                        <span class="text-danger">Invalid</span>
+                                    }
+                                </strong>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="d-grid gap-2">
+                            <a href="/blockchain" class="btn btn-outline-primary">
+                                <i class="bi bi-diagram-3 me-2"></i>Explore Blockchain
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-file-code me-2"></i>Smart Contracts</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">All shipments are managed by automated smart contracts that ensure:</p>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Automatic validation of shipments
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Delivery verification by recipients
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Immutable transaction history
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Transparent status tracking
+                            </li>
+                        </ul>
+                        <hr>
+                        <div class="d-grid gap-2">
+                            <a href="/contracts" class="btn btn-outline-primary">
+                                <i class="bi bi-file-code me-2"></i>View Smart Contracts
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<ShipmentDto> recentShipments = new();
+    private int totalShipments = 0;
+    private int deliveredCount = 0;
+    private int inTransitCount = 0;
+    private int blockchainHeight = 0;
+    private int pendingTransactions = 0;
+    private bool isChainValid = false;
+    private bool hasLoadedData = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasLoadedData)
+        {
+            hasLoadedData = true;
+            await LoadDashboardData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Load shipments
+            var shipments = await ApiClient.GetAsync<List<ShipmentDto>>("/api/shipments");
+            recentShipments = shipments?.OrderByDescending(s => s.CreatedAt).ToList() ?? new();
+            totalShipments = recentShipments.Count;
+            deliveredCount = recentShipments.Count(s => s.Status == 3 || s.Status == 4);
+            inTransitCount = recentShipments.Count(s => s.Status == 2);
+
+            // Load blockchain info
+            var blockchainInfo = await ApiClient.GetAsync<BlockchainInfoDto>("/api/blockchain/chain");
+            blockchainHeight = blockchainInfo?.Blocks?.Count ?? 0;
+
+            var pendingTx = await ApiClient.GetAsync<List<TransactionDto>>("/api/blockchain/pending");
+            pendingTransactions = pendingTx?.Count ?? 0;
+
+            var validationResult = await ApiClient.PostAsync<ValidationResultDto>("/api/blockchain/validate", null);
+            isChainValid = validationResult?.IsValid ?? false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ViewShipment(string id)
+    {
+        Navigation.NavigateTo($"/shipments/{id}");
+    }
+
+    private string GetStatusName(int status)
+    {
+        return status switch
+        {
+            0 => "Created",
+            1 => "Validated",
+            2 => "In Transit",
+            3 => "Delivered",
+            4 => "Confirmed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusColor(int status)
+    {
+        return status switch
+        {
+            0 => "secondary",
+            1 => "info",
+            2 => "warning",
+            3 => "success",
+            4 => "success",
+            _ => "secondary"
+        };
+    }
+
+    private int GetPendingPercentage()
+    {
+        if (pendingTransactions == 0) return 0;
+        return Math.Min(100, (pendingTransactions * 10)); // Arbitrary scale
+    }
+
+    private class ShipmentDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string RecipientId { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public List<ShipmentItemDto> Items { get; set; } = new();
+    }
+
+    private class ShipmentItemDto
+    {
+        public string Description { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
+    }
+
+    private class BlockchainInfoDto
+    {
+        public List<BlockDto>? Blocks { get; set; }
+    }
+
+    private class BlockDto
+    {
+        public int Index { get; set; }
+    }
+
+    private class TransactionDto
+    {
+        public string Id { get; set; } = string.Empty;
+    }
+
+    private class ValidationResultDto
+    {
+        public bool IsValid { get; set; }
+    }
+}

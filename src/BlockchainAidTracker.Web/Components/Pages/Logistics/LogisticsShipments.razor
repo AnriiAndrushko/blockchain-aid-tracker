@@ -1,0 +1,350 @@
+@page "/logistics/shipments"
+@attribute [Authorize(Roles = "LogisticsPartner,Administrator")]
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Authorization
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Logistics - Shipments</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-truck me-2"></i>Logistics - Shipment Management</h2>
+            <p class="text-muted">Update shipment status during transit and delivery</p>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search shipments..." @bind="searchText" @bind:event="oninput" @onkeyup="FilterShipments" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="statusFilter" @bind:after="FilterShipments">
+                <option value="">All Statuses</option>
+                <option value="1">Validated (Ready for Transit)</option>
+                <option value="2">In Transit</option>
+                <option value="3">Delivered</option>
+            </select>
+        </div>
+        <div class="col-md-auto">
+            <button class="btn btn-outline-secondary" @onclick="LoadShipments">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@successMessage
+            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading shipments...</p>
+        </div>
+    }
+    else if (filteredShipments.Any())
+    {
+        <div class="row g-3">
+            @foreach (var shipment in filteredShipments)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <span class="badge bg-@GetStatusColor(shipment.Status)">@GetStatusName(shipment.Status)</span>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar me-1"></i>
+                                @shipment.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                            </small>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <code class="text-primary">@(shipment.Id.Length > 8 ? shipment.Id.Substring(0, 8) : shipment.Id)</code>
+                            </h5>
+                            <div class="mb-2">
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-geo-alt-fill text-success me-1"></i>
+                                    From: <strong>@shipment.Origin</strong>
+                                </small>
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                    To: <strong>@shipment.Destination</strong>
+                                </small>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-box me-1"></i>
+                                    @shipment.Items.Count item(s)
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white">
+                            <div class="d-grid gap-2">
+                                @if (shipment.Status == 1) // Validated - can move to InTransit
+                                {
+                                    <button class="btn btn-warning btn-sm" @onclick="() => ShowUpdateStatusModal(shipment, 2)">
+                                        <i class="bi bi-truck me-2"></i>Mark as In Transit
+                                    </button>
+                                }
+                                else if (shipment.Status == 2) // InTransit - can mark as Delivered
+                                {
+                                    <button class="btn btn-success btn-sm" @onclick="() => ShowUpdateStatusModal(shipment, 3)">
+                                        <i class="bi bi-check-circle me-2"></i>Mark as Delivered
+                                    </button>
+                                }
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => ViewShipment(shipment.Id)">
+                                    <i class="bi bi-eye me-2"></i>View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (filteredShipments.Count > 0)
+        {
+            <div class="mt-3 text-muted text-center">
+                Showing @filteredShipments.Count of @allShipments.Count shipments
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">No shipments found</h4>
+                <p class="text-muted">
+                    @if (!string.IsNullOrEmpty(searchText) || !string.IsNullOrEmpty(statusFilter))
+                    {
+                        <span>Try adjusting your filters</span>
+                    }
+                    else
+                    {
+                        <span>No shipments available for logistics management</span>
+                    }
+                </p>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Update Status Confirmation Modal -->
+@if (showUpdateStatusModal && selectedShipment != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-@(newStatus == 2 ? "truck" : "check-circle") me-2"></i>
+                        Update Shipment Status
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseUpdateStatusModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Update shipment status to <strong>@GetStatusName(newStatus)</strong>?</p>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Shipment ID:</strong> <code>@selectedShipment.Id</code></p>
+                            <p class="mb-1"><strong>From:</strong> @selectedShipment.Origin</p>
+                            <p class="mb-1"><strong>To:</strong> @selectedShipment.Destination</p>
+                            <p class="mb-0"><strong>Current Status:</strong> <span class="badge bg-@GetStatusColor(selectedShipment.Status)">@GetStatusName(selectedShipment.Status)</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseUpdateStatusModal">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="UpdateShipmentStatus" disabled="@isUpdating">
+                        @if (isUpdating)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>Updating...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-@(newStatus == 2 ? "truck" : "check-circle") me-2"></i>
+                            <span>Confirm Update</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isUpdating = false;
+    private List<ShipmentDto> allShipments = new();
+    private List<ShipmentDto> filteredShipments = new();
+    private string searchText = string.Empty;
+    private string statusFilter = string.Empty;
+    private bool hasLoadedData = false;
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool showUpdateStatusModal = false;
+    private ShipmentDto? selectedShipment = null;
+    private int newStatus = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasLoadedData)
+        {
+            hasLoadedData = true;
+            await LoadShipments();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadShipments()
+    {
+        try
+        {
+            isLoading = true;
+            var shipments = await ApiClient.GetAsync<List<ShipmentDto>>("/api/shipments");
+            allShipments = shipments ?? new();
+            FilterShipments();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading shipments: {ex.Message}";
+            allShipments = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterShipments()
+    {
+        filteredShipments = allShipments.Where(s =>
+            // Only show shipments that LogisticsPartner can act on (Validated, InTransit, Delivered)
+            (s.Status == 1 || s.Status == 2 || s.Status == 3) &&
+            (string.IsNullOrEmpty(searchText) ||
+             s.Origin.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             s.Destination.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             s.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(statusFilter) || s.Status == int.Parse(statusFilter))
+        ).OrderByDescending(s => s.CreatedAt).ToList();
+    }
+
+    private void ShowUpdateStatusModal(ShipmentDto shipment, int status)
+    {
+        selectedShipment = shipment;
+        newStatus = status;
+        showUpdateStatusModal = true;
+    }
+
+    private void CloseUpdateStatusModal()
+    {
+        showUpdateStatusModal = false;
+        selectedShipment = null;
+    }
+
+    private async Task UpdateShipmentStatus()
+    {
+        if (selectedShipment == null) return;
+
+        try
+        {
+            isUpdating = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            var request = new { NewStatus = newStatus };
+            await ApiClient.PutAsync($"/api/shipments/{selectedShipment.Id}/status", request);
+
+            successMessage = $"Shipment successfully updated to {GetStatusName(newStatus)}!";
+            CloseUpdateStatusModal();
+            await LoadShipments();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to update shipment: {ex.Message}";
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private void ViewShipment(string id)
+    {
+        Navigation.NavigateTo($"/shipments/{id}");
+    }
+
+    private string GetStatusName(int status)
+    {
+        return status switch
+        {
+            0 => "Created",
+            1 => "Validated",
+            2 => "In Transit",
+            3 => "Delivered",
+            4 => "Confirmed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusColor(int status)
+    {
+        return status switch
+        {
+            0 => "secondary",  // Created
+            1 => "info",       // Validated
+            2 => "warning",    // InTransit
+            3 => "success",    // Delivered
+            4 => "success",    // Confirmed
+            _ => "secondary"
+        };
+    }
+
+    private class ShipmentDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string RecipientId { get; set; } = string.Empty;
+        public DateTime ExpectedDeliveryDate { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
+        public int Status { get; set; }
+        public string QrCode { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public List<ShipmentItemDto> Items { get; set; } = new();
+        public List<string> TransactionIds { get; set; } = new();
+    }
+
+    private class ShipmentItemDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
+    }
+}

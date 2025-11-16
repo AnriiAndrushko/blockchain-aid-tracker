@@ -195,6 +195,9 @@ public class ShipmentService : IShipmentService
             throw new NotFoundException($"User with ID '{updatedBy}' not found");
         }
 
+        // Role-based authorization for status updates
+        ValidateStatusUpdateAuthorization(user.Role, newStatus);
+
         // Validate status transition
         if (!shipment.CanTransitionTo(newStatus))
         {
@@ -331,6 +334,44 @@ public class ShipmentService : IShipmentService
 
         var transactionIds = await GetShipmentBlockchainHistoryAsync(shipmentId);
         return transactionIds.Any();
+    }
+
+    /// <summary>
+    /// Validates that the user's role has permission to update shipment to the specified status
+    /// </summary>
+    /// <param name="userRole">Role of the user attempting the update</param>
+    /// <param name="newStatus">Target status for the shipment</param>
+    /// <exception cref="UnauthorizedException">Thrown when the user's role lacks permission</exception>
+    private static void ValidateStatusUpdateAuthorization(UserRole userRole, ShipmentStatus newStatus)
+    {
+        switch (userRole)
+        {
+            case UserRole.Administrator:
+            case UserRole.Coordinator:
+                // Administrators and Coordinators can update to any status
+                break;
+
+            case UserRole.LogisticsPartner:
+                // LogisticsPartners can only update to InTransit or Delivered
+                if (newStatus != ShipmentStatus.InTransit && newStatus != ShipmentStatus.Delivered)
+                {
+                    throw new UnauthorizedException(
+                        $"LogisticsPartner role can only update shipment status to InTransit or Delivered, not {newStatus}");
+                }
+                break;
+
+            case UserRole.Recipient:
+                // Recipients should use ConfirmDeliveryAsync endpoint, not this one
+                throw new UnauthorizedException(
+                    "Recipient role cannot update shipment status directly. Use the confirm delivery endpoint instead.");
+
+            case UserRole.Donor:
+            case UserRole.Validator:
+            default:
+                // Donors and Validators have read-only access
+                throw new UnauthorizedException(
+                    $"{userRole} role does not have permission to update shipment status");
+        }
     }
 
     private async Task<string> CreateBlockchainTransactionAsync(
