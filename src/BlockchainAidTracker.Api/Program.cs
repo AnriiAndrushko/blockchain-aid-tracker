@@ -220,9 +220,9 @@ if (persistenceSettings.Enabled && persistenceSettings.AutoLoadOnStartup && !app
     try
     {
         await app.Services.LoadBlockchainFromPersistenceAsync();
-        var blockchain = app.Services.GetRequiredService<Blockchain>();
+        var loadedBlockchain = app.Services.GetRequiredService<Blockchain>();
         app.Logger.LogInformation("Blockchain loaded successfully with {BlockCount} blocks and {PendingTxCount} pending transactions",
-            blockchain.Chain.Count, blockchain.PendingTransactions.Count);
+            loadedBlockchain.Chain.Count, loadedBlockchain.PendingTransactions.Count);
     }
     catch (Exception ex)
     {
