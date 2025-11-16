@@ -32,6 +32,20 @@ public interface IShipmentService
     Task<List<ShipmentDto>> GetShipmentsAsync(ShipmentStatus? status = null, string? recipientId = null);
 
     /// <summary>
+    /// Gets shipments funded by a specific donor
+    /// </summary>
+    /// <param name="donorId">Donor user ID</param>
+    /// <returns>List of shipment DTOs</returns>
+    Task<List<ShipmentDto>> GetShipmentsByDonorAsync(string donorId);
+
+    /// <summary>
+    /// Gets shipments assigned to a specific logistics partner
+    /// </summary>
+    /// <param name="logisticsPartnerId">Logistics partner user ID</param>
+    /// <returns>List of shipment DTOs</returns>
+    Task<List<ShipmentDto>> GetShipmentsByLogisticsPartnerAsync(string logisticsPartnerId);
+
+    /// <summary>
     /// Updates shipment status and records on blockchain
     /// </summary>
     /// <param name="shipmentId">Shipment ID</param>

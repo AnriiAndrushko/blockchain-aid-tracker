@@ -73,6 +73,26 @@ public class ShipmentRepository : Repository<Shipment>, IShipmentRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<Shipment>> GetByDonorIdAsync(string donorId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(s => s.Items)
+            .Where(s => s.DonorId == donorId)
+            .OrderByDescending(s => s.CreatedTimestamp)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<Shipment>> GetByLogisticsPartnerIdAsync(string logisticsPartnerId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(s => s.Items)
+            .Where(s => s.AssignedLogisticsPartnerId == logisticsPartnerId)
+            .OrderByDescending(s => s.CreatedTimestamp)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<Shipment?> GetByQrCodeAsync(string qrCodeData, CancellationToken cancellationToken = default)
     {
         return await _dbSet

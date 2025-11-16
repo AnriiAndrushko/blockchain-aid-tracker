@@ -60,6 +60,25 @@
                             <small class="form-text text-muted">Enter the UUID of the assigned recipient</small>
                         </div>
 
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="donor" class="form-label">Donor (Optional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-heart"></i></span>
+                                    <InputText id="donor" class="form-control" @bind-Value="shipmentModel.DonorId" placeholder="Enter donor user ID" />
+                                </div>
+                                <small class="form-text text-muted">Enter the UUID of the funding donor</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="logisticsPartner" class="form-label">Logistics Partner (Optional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-truck"></i></span>
+                                    <InputText id="logisticsPartner" class="form-control" @bind-Value="shipmentModel.LogisticsPartnerId" placeholder="Enter logistics partner ID" />
+                                </div>
+                                <small class="form-text text-muted">Enter the UUID of the logistics partner</small>
+                            </div>
+                        </div>
+
                         <h5 class="mb-3">Delivery Timeframe</h5>
                         <div class="mb-3">
                             <label for="expectedDeliveryDate" class="form-label">Expected Delivery Date *</label>
@@ -206,6 +225,10 @@
 
         [Required(ErrorMessage = "Recipient ID is required")]
         public string RecipientId { get; set; } = string.Empty;
+
+        public string? DonorId { get; set; }
+
+        public string? LogisticsPartnerId { get; set; }
 
         [Required(ErrorMessage = "Expected delivery date is required")]
         public DateTime ExpectedDeliveryDate { get; set; } = DateTime.Now.AddDays(7);

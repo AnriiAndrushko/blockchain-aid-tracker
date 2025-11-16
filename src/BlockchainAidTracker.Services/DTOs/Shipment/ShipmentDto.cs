@@ -11,6 +11,8 @@ public class ShipmentDto
     public string Origin { get; set; } = string.Empty;
     public string Destination { get; set; } = string.Empty;
     public string RecipientId { get; set; } = string.Empty;
+    public string? DonorId { get; set; }
+    public string? LogisticsPartnerId { get; set; }
     public DateTime ExpectedDeliveryDate { get; set; }
     public DateTime? ActualDeliveryDate { get; set; }
     public ShipmentStatus Status { get; set; }

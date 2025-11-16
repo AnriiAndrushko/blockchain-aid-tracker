@@ -55,6 +55,22 @@ public interface IShipmentRepository : IRepository<Shipment>
     Task<List<Shipment>> GetByDonorAsync(string donorPublicKey, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets shipments by donor ID
+    /// </summary>
+    /// <param name="donorId">Donor's user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of shipments funded by the donor</returns>
+    Task<List<Shipment>> GetByDonorIdAsync(string donorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets shipments by logistics partner ID
+    /// </summary>
+    /// <param name="logisticsPartnerId">Logistics partner's user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of shipments assigned to the logistics partner</returns>
+    Task<List<Shipment>> GetByLogisticsPartnerIdAsync(string logisticsPartnerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a shipment by QR code data
     /// </summary>
     /// <param name="qrCodeData">QR code data</param>

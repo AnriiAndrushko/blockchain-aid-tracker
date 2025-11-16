@@ -1,0 +1,276 @@
+@page "/logistics/dashboard"
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>My Deliveries - Blockchain Aid Tracker</PageTitle>
+
+<AuthorizeView Roles="LogisticsPartner,Administrator">
+    <Authorized Context="authContext">
+        <div class="container mt-4">
+            <h3 class="mb-4"><i class="bi bi-truck me-2"></i>My Assigned Deliveries</h3>
+
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                    <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle me-2"></i>@successMessage
+                        <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+                    </div>
+                }
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-white bg-primary shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Assigned</h6>
+                                <h2 class="mb-0">@totalShipments</h2>
+                                <small>Deliveries</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-success shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">Delivered</h6>
+                                <h2 class="mb-0">@deliveredCount</h2>
+                                <small>Shipments</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-info shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">In Transit</h6>
+                                <h2 class="mb-0">@inTransitCount</h2>
+                                <small>Active</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-warning shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">Pending Pickup</h6>
+                                <h2 class="mb-0">@pendingCount</h2>
+                                <small>Awaiting</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipments List -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Assigned Shipments</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (shipments.Count == 0)
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox display-1 text-muted"></i>
+                                <p class="text-muted mt-3">No shipments assigned to you yet.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Route</th>
+                                            <th>Status</th>
+                                            <th>Expected Delivery</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var shipment in shipments)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <small class="font-monospace">@shipment.Id[..8]...</small>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <small>
+                                                            <i class="bi bi-geo-alt-fill text-success me-1"></i>
+                                                            @shipment.Origin
+                                                        </small>
+                                                        <small class="text-muted">
+                                                            <i class="bi bi-arrow-down me-1"></i>
+                                                        </small>
+                                                        <small>
+                                                            <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                                            @shipment.Destination
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(shipment.Status)">
+                                                        @shipment.Status
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <i class="bi bi-calendar me-1"></i>
+                                                    @shipment.ExpectedDeliveryDate.ToString("MMM dd, yyyy")
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary" @onclick="() => ViewShipment(shipment.Id)">
+                                                            <i class="bi bi-eye me-1"></i>View
+                                                        </button>
+                                                        @if (shipment.Status == "Validated" || shipment.Status == "Created")
+                                                        {
+                                                            <button class="btn btn-outline-success" @onclick="() => MarkAsInTransit(shipment.Id)">
+                                                                <i class="bi bi-truck me-1"></i>Start Transit
+                                                            </button>
+                                                        }
+                                                        @if (shipment.Status == "InTransit")
+                                                        {
+                                                            <button class="btn btn-outline-warning" @onclick="() => MarkAsDelivered(shipment.Id)">
+                                                                <i class="bi bi-check-circle me-1"></i>Mark Delivered
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container mt-4">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be a Logistics Partner to view this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<ShipmentDto> shipments = new();
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private int totalShipments => shipments.Count;
+    private int deliveredCount => shipments.Count(s => s.Status == "Delivered" || s.Status == "Confirmed");
+    private int inTransitCount => shipments.Count(s => s.Status == "InTransit");
+    private int pendingCount => shipments.Count(s => s.Status == "Created" || s.Status == "Validated");
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShipments();
+    }
+
+    private async Task LoadShipments()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            shipments = await ApiClient.GetAsync<List<ShipmentDto>>("/api/shipments/logistics-partner/my-shipments") ?? new List<ShipmentDto>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load shipments: {ex.Message}";
+            Console.WriteLine($"Load shipments error: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ViewShipment(string shipmentId)
+    {
+        Navigation.NavigateTo($"/shipments/{shipmentId}");
+    }
+
+    private async Task MarkAsInTransit(string shipmentId)
+    {
+        try
+        {
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            await ApiClient.PutAsync($"/api/shipments/{shipmentId}/status", new { NewStatus = "InTransit" });
+            successMessage = "Shipment status updated to In Transit";
+            await LoadShipments();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to update status: {ex.Message}";
+            Console.WriteLine($"Update status error: {ex}");
+        }
+    }
+
+    private async Task MarkAsDelivered(string shipmentId)
+    {
+        try
+        {
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            await ApiClient.PutAsync($"/api/shipments/{shipmentId}/status", new { NewStatus = "Delivered" });
+            successMessage = "Shipment marked as delivered. Awaiting recipient confirmation.";
+            await LoadShipments();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to update status: {ex.Message}";
+            Console.WriteLine($"Update status error: {ex}");
+        }
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Created" => "bg-secondary",
+            "Validated" => "bg-info",
+            "InTransit" => "bg-primary",
+            "Delivered" => "bg-warning",
+            "Confirmed" => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private class ShipmentDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime ExpectedDeliveryDate { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
+    }
+}

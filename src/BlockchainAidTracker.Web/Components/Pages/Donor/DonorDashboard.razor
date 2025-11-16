@@ -1,0 +1,210 @@
+@page "/donor/dashboard"
+@using BlockchainAidTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>My Funded Shipments - Blockchain Aid Tracker</PageTitle>
+
+<AuthorizeView Roles="Donor,Administrator">
+    <Authorized Context="authContext">
+        <div class="container mt-4">
+            <h3 class="mb-4"><i class="bi bi-heart me-2"></i>My Funded Shipments</h3>
+
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                </div>
+            }
+            else
+            {
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-white bg-primary shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Funded</h6>
+                                <h2 class="mb-0">@totalShipments</h2>
+                                <small>Shipments</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-success shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">Delivered</h6>
+                                <h2 class="mb-0">@deliveredCount</h2>
+                                <small>Shipments</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-info shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">In Transit</h6>
+                                <h2 class="mb-0">@inTransitCount</h2>
+                                <small>Shipments</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-warning shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">Pending</h6>
+                                <h2 class="mb-0">@pendingCount</h2>
+                                <small>Shipments</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipments List -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Funded Shipments</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (shipments.Count == 0)
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox display-1 text-muted"></i>
+                                <p class="text-muted mt-3">You haven't funded any shipments yet.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Origin</th>
+                                            <th>Destination</th>
+                                            <th>Status</th>
+                                            <th>Expected Delivery</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var shipment in shipments)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <small class="font-monospace">@shipment.Id[..8]...</small>
+                                                </td>
+                                                <td>
+                                                    <i class="bi bi-geo-alt-fill text-success me-1"></i>
+                                                    @shipment.Origin
+                                                </td>
+                                                <td>
+                                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                                    @shipment.Destination
+                                                </td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(shipment.Status)">
+                                                        @shipment.Status
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <i class="bi bi-calendar me-1"></i>
+                                                    @shipment.ExpectedDeliveryDate.ToString("MMM dd, yyyy")
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewShipment(shipment.Id)">
+                                                        <i class="bi bi-eye me-1"></i>View
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container mt-4">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You must be a Donor to view this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<ShipmentDto> shipments = new();
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+
+    private int totalShipments => shipments.Count;
+    private int deliveredCount => shipments.Count(s => s.Status == "Delivered" || s.Status == "Confirmed");
+    private int inTransitCount => shipments.Count(s => s.Status == "InTransit");
+    private int pendingCount => shipments.Count(s => s.Status == "Created" || s.Status == "Validated");
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShipments();
+    }
+
+    private async Task LoadShipments()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            shipments = await ApiClient.GetAsync<List<ShipmentDto>>("/api/shipments/donor/my-shipments") ?? new List<ShipmentDto>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load shipments: {ex.Message}";
+            Console.WriteLine($"Load shipments error: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ViewShipment(string shipmentId)
+    {
+        Navigation.NavigateTo($"/shipments/{shipmentId}");
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Created" => "bg-secondary",
+            "Validated" => "bg-info",
+            "InTransit" => "bg-primary",
+            "Delivered" => "bg-warning",
+            "Confirmed" => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private class ShipmentDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime ExpectedDeliveryDate { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
+    }
+}

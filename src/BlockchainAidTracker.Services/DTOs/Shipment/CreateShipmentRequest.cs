@@ -12,6 +12,8 @@ public class CreateShipmentRequest
     public string RecipientId { get; set; } = string.Empty;
     public DateTime ExpectedDeliveryDate { get; set; }
     public List<ShipmentItemDto> Items { get; set; } = new();
+    public string? DonorId { get; set; }
+    public string? LogisticsPartnerId { get; set; }
 }
 
 /// <summary>

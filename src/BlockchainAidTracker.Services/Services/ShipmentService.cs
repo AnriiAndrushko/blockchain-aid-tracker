@@ -69,6 +69,36 @@ public class ShipmentService : IShipmentService
             throw new NotFoundException($"Recipient with ID '{request.RecipientId}' not found");
         }
 
+        // Validate donor if provided
+        User? donor = null;
+        if (!string.IsNullOrWhiteSpace(request.DonorId))
+        {
+            donor = await _userRepository.GetByIdAsync(request.DonorId);
+            if (donor == null)
+            {
+                throw new NotFoundException($"Donor with ID '{request.DonorId}' not found");
+            }
+            if (donor.Role != UserRole.Donor && donor.Role != UserRole.Administrator)
+            {
+                throw new BusinessException($"User '{request.DonorId}' is not a donor");
+            }
+        }
+
+        // Validate logistics partner if provided
+        User? logisticsPartner = null;
+        if (!string.IsNullOrWhiteSpace(request.LogisticsPartnerId))
+        {
+            logisticsPartner = await _userRepository.GetByIdAsync(request.LogisticsPartnerId);
+            if (logisticsPartner == null)
+            {
+                throw new NotFoundException($"Logistics partner with ID '{request.LogisticsPartnerId}' not found");
+            }
+            if (logisticsPartner.Role != UserRole.LogisticsPartner && logisticsPartner.Role != UserRole.Administrator)
+            {
+                throw new BusinessException($"User '{request.LogisticsPartnerId}' is not a logistics partner");
+            }
+        }
+
         // Create shipment entity
         var shipmentId = Guid.NewGuid().ToString();
         var qrCode = _qrCodeService.GenerateQrCode(shipmentId);
@@ -82,6 +112,10 @@ public class ShipmentService : IShipmentService
             Origin = request.Origin,
             Destination = request.Destination,
             AssignedRecipient = request.RecipientId,
+            DonorId = donor?.Id,
+            DonorPublicKey = donor?.PublicKey,
+            AssignedLogisticsPartnerId = logisticsPartner?.Id,
+            LogisticsPartnerPublicKey = logisticsPartner?.PublicKey,
             ExpectedDeliveryTimeframe = expectedTimeframe,
             Status = ShipmentStatus.Created,
             QrCodeData = qrCode,
@@ -164,6 +198,44 @@ public class ShipmentService : IShipmentService
         foreach (var shipment in shipments)
         {
             // Use private method since we already have the shipment (no need to check existence)
+            var transactionIds = GetBlockchainTransactionsForShipment(shipment.Id);
+            shipmentDtos.Add(MapToDto(shipment, transactionIds));
+        }
+
+        return shipmentDtos;
+    }
+
+    public async Task<List<ShipmentDto>> GetShipmentsByDonorAsync(string donorId)
+    {
+        if (string.IsNullOrWhiteSpace(donorId))
+        {
+            throw new ArgumentException("Donor ID cannot be null or empty", nameof(donorId));
+        }
+
+        var shipments = await _shipmentRepository.GetByDonorIdAsync(donorId);
+        var shipmentDtos = new List<ShipmentDto>();
+
+        foreach (var shipment in shipments)
+        {
+            var transactionIds = GetBlockchainTransactionsForShipment(shipment.Id);
+            shipmentDtos.Add(MapToDto(shipment, transactionIds));
+        }
+
+        return shipmentDtos;
+    }
+
+    public async Task<List<ShipmentDto>> GetShipmentsByLogisticsPartnerAsync(string logisticsPartnerId)
+    {
+        if (string.IsNullOrWhiteSpace(logisticsPartnerId))
+        {
+            throw new ArgumentException("Logistics partner ID cannot be null or empty", nameof(logisticsPartnerId));
+        }
+
+        var shipments = await _shipmentRepository.GetByLogisticsPartnerIdAsync(logisticsPartnerId);
+        var shipmentDtos = new List<ShipmentDto>();
+
+        foreach (var shipment in shipments)
+        {
             var transactionIds = GetBlockchainTransactionsForShipment(shipment.Id);
             shipmentDtos.Add(MapToDto(shipment, transactionIds));
         }
@@ -395,6 +467,8 @@ public class ShipmentService : IShipmentService
             Origin = shipment.Origin,
             Destination = shipment.Destination,
             RecipientId = shipment.AssignedRecipient,
+            DonorId = shipment.DonorId,
+            LogisticsPartnerId = shipment.AssignedLogisticsPartnerId,
             ExpectedDeliveryDate = expectedDate ?? DateTime.UtcNow.AddDays(7), // Default if not parseable
             ActualDeliveryDate = shipment.ActualDeliveryDate,
             Status = shipment.Status,

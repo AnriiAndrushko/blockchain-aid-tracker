@@ -189,6 +189,77 @@ public class ShipmentController : ControllerBase
     }
 
     /// <summary>
+    /// Gets shipments funded by a specific donor
+    /// </summary>
+    /// <returns>List of shipments funded by the donor</returns>
+    /// <response code="200">Shipments retrieved successfully</response>
+    /// <response code="401">Unauthorized - requires authentication</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("donor/my-shipments")]
+    [ProducesResponseType(typeof(List<ShipmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<ShipmentDto>>> GetMyDonorShipments()
+    {
+        try
+        {
+            var userId = GetUserIdFromClaims();
+            _logger.LogInformation("Retrieving shipments funded by donor {DonorId}", userId);
+
+            var shipments = await _shipmentService.GetShipmentsByDonorAsync(userId);
+
+            _logger.LogInformation("Retrieved {Count} shipments for donor {DonorId}", shipments.Count, userId);
+            return Ok(shipments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving donor shipments");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Internal Server Error",
+                Detail = "An error occurred while processing your request",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Gets shipments assigned to a specific logistics partner
+    /// </summary>
+    /// <returns>List of shipments assigned to the logistics partner</returns>
+    /// <response code="200">Shipments retrieved successfully</response>
+    /// <response code="401">Unauthorized - requires authentication</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("logistics-partner/my-shipments")]
+    [ProducesResponseType(typeof(List<ShipmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<ShipmentDto>>> GetMyLogisticsPartnerShipments()
+    {
+        try
+        {
+            var userId = GetUserIdFromClaims();
+            _logger.LogInformation("Retrieving shipments for logistics partner {LogisticsPartnerId}", userId);
+
+            var shipments = await _shipmentService.GetShipmentsByLogisticsPartnerAsync(userId);
+
+            _logger.LogInformation("Retrieved {Count} shipments for logistics partner {LogisticsPartnerId}",
+                shipments.Count, userId);
+            return Ok(shipments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving logistics partner shipments");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Internal Server Error",
+                Detail = "An error occurred while processing your request",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
     /// Updates the status of a shipment and records the change on the blockchain
     /// </summary>
     /// <param name="id">Shipment ID</param>

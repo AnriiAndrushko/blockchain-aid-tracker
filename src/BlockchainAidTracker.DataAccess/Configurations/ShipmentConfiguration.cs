@@ -60,6 +60,15 @@ public class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         builder.Property(s => s.DonorPublicKey)
             .HasMaxLength(500);
 
+        builder.Property(s => s.DonorId)
+            .HasMaxLength(50);
+
+        builder.Property(s => s.AssignedLogisticsPartnerId)
+            .HasMaxLength(50);
+
+        builder.Property(s => s.LogisticsPartnerPublicKey)
+            .HasMaxLength(500);
+
         builder.Property(s => s.Notes)
             .HasMaxLength(2000);
 
@@ -78,6 +87,8 @@ public class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         builder.HasIndex(s => s.CreatedTimestamp);
         builder.HasIndex(s => s.AssignedRecipient);
         builder.HasIndex(s => s.CoordinatorPublicKey);
+        builder.HasIndex(s => s.DonorId);
+        builder.HasIndex(s => s.AssignedLogisticsPartnerId);
         builder.HasIndex(s => s.QrCodeData)
             .IsUnique();
     }

@@ -71,6 +71,21 @@ public class Shipment
     public string? DonorPublicKey { get; set; }
 
     /// <summary>
+    /// User ID of the donor who funded the shipment (optional)
+    /// </summary>
+    public string? DonorId { get; set; }
+
+    /// <summary>
+    /// User ID of the logistics partner assigned to transport the shipment (optional)
+    /// </summary>
+    public string? AssignedLogisticsPartnerId { get; set; }
+
+    /// <summary>
+    /// Public key of the logistics partner assigned to the shipment (optional)
+    /// </summary>
+    public string? LogisticsPartnerPublicKey { get; set; }
+
+    /// <summary>
     /// Additional notes or comments about the shipment
     /// </summary>
     public string? Notes { get; set; }
