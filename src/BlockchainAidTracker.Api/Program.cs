@@ -210,7 +210,7 @@ if (persistenceSettings.Enabled && persistenceSettings.AutoLoadOnStartup && !app
 {
     try
     {
-        var loaded = await app.Services.LoadBlockchainFromPersistenceAsync();
+        var loaded = await blockchain.LoadFromPersistenceAsync();
         if (loaded)
         {
             app.Logger.LogInformation("Blockchain loaded from persistence: {BlockCount} blocks", blockchain.Chain.Count);
