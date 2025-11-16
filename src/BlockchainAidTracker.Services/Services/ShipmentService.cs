@@ -365,10 +365,9 @@ public class ShipmentService : IShipmentService
 
         _blockchain.AddTransaction(transaction);
 
-        // Create a block to add pending transactions to the chain
-        // In production, this would be done by validator nodes through consensus
-        var block = _blockchain.CreateBlock(senderPublicKey);
-        _blockchain.AddBlock(block);
+        // Transaction is added to pending pool
+        // The background service will create blocks from pending transactions automatically
+        // No need to create blocks manually here - this prevents race conditions with the background service
 
         return await Task.FromResult(transaction.Id);
     }
