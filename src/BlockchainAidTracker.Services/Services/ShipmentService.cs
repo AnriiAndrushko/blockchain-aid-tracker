@@ -271,8 +271,10 @@ public class ShipmentService : IShipmentService
             {
                 ShipmentId = shipmentId,
                 RecipientId = recipientId,
+                RecipientPublicKey = recipient.PublicKey, // Add public key for smart contract verification
                 ConfirmedAt = shipment.UpdatedTimestamp,
-                ActualDeliveryDate = shipment.ActualDeliveryDate
+                ActualDeliveryDate = shipment.ActualDeliveryDate,
+                ExpectedDeliveryTimeframe = shipment.ExpectedDeliveryTimeframe
             },
             recipientId);
 

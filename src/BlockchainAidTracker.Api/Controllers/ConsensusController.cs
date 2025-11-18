@@ -41,9 +41,12 @@ public class ConsensusController : ControllerBase
     /// </summary>
     /// <returns>Consensus status information</returns>
     /// <response code="200">Consensus status retrieved successfully</response>
+    /// <response code="401">Unauthorized</response>
     /// <response code="500">Internal server error</response>
     [HttpGet("status")]
+    [Authorize]
     [ProducesResponseType(typeof(ConsensusStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ConsensusStatusDto>> GetConsensusStatus()
     {
@@ -278,9 +281,12 @@ public class ConsensusController : ControllerBase
     /// </summary>
     /// <returns>List of active validators</returns>
     /// <response code="200">Validators retrieved successfully</response>
+    /// <response code="401">Unauthorized</response>
     /// <response code="500">Internal server error</response>
     [HttpGet("validators")]
+    [Authorize]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> GetActiveValidators()
     {

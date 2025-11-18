@@ -61,16 +61,37 @@ public interface IRepository<TEntity> where TEntity : class
     void Update(TEntity entity);
 
     /// <summary>
+    /// Updates an existing entity asynchronously
+    /// </summary>
+    /// <param name="entity">Entity to update</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Removes an entity
     /// </summary>
     /// <param name="entity">Entity to remove</param>
     void Remove(TEntity entity);
 
     /// <summary>
+    /// Removes an entity asynchronously
+    /// </summary>
+    /// <param name="entity">Entity to remove</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task RemoveAsync(TEntity entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Removes multiple entities
     /// </summary>
     /// <param name="entities">Entities to remove</param>
     void RemoveRange(IEnumerable<TEntity> entities);
+
+    /// <summary>
+    /// Removes multiple entities asynchronously
+    /// </summary>
+    /// <param name="entities">Entities to remove</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task RemoveRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks if any entity matches the predicate

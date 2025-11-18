@@ -93,9 +93,9 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
         // Sign the block with the validator's private key
         block.SignBlock(validatorPrivateKey, _signatureService);
 
-        // Record block creation statistics
+        // Record block creation statistics and persist to database
         validator.RecordBlockCreation();
-        _validatorRepository.Update(validator);
+        await _validatorRepository.UpdateAsync(validator);
 
         return block;
     }
@@ -181,6 +181,6 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
         }
 
         validator.RecordBlockCreation();
-        _validatorRepository.Update(validator);
+        await _validatorRepository.UpdateAsync(validator);
     }
 }

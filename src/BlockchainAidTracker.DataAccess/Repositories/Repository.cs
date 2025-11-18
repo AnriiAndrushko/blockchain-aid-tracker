@@ -69,6 +69,13 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
     }
 
     /// <inheritdoc />
+    public virtual async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        _dbSet.Update(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public virtual void Remove(TEntity entity)
     {
         _dbSet.Remove(entity);
@@ -76,10 +83,24 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
     }
 
     /// <inheritdoc />
+    public virtual async Task RemoveAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        _dbSet.Remove(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public virtual void RemoveRange(IEnumerable<TEntity> entities)
     {
         _dbSet.RemoveRange(entities);
         _context.SaveChanges();
+    }
+
+    /// <inheritdoc />
+    public virtual async Task RemoveRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    {
+        _dbSet.RemoveRange(entities);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />

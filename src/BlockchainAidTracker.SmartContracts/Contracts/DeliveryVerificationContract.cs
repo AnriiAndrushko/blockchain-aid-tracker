@@ -46,19 +46,30 @@ public class DeliveryVerificationContract : SmartContract
                 return ContractExecutionResult.FailureResult("Shipment ID not found in payload");
             }
 
-            // Verify the sender is the assigned recipient
-            var assignedRecipient = shipmentData.TryGetValue("RecipientId", out var recipientElement)
-                ? recipientElement.GetString() ?? string.Empty
+            // Verify the sender is the assigned recipient by comparing public keys
+            var assignedRecipientPublicKey = shipmentData.TryGetValue("RecipientPublicKey", out var recipientKeyElement)
+                ? recipientKeyElement.GetString() ?? string.Empty
                 : string.Empty;
 
-            if (context.Transaction.SenderPublicKey != assignedRecipient)
+            if (string.IsNullOrEmpty(assignedRecipientPublicKey))
+            {
+                events.Add(EmitEvent("DeliveryVerificationFailed", new Dictionary<string, object>
+                {
+                    { "shipmentId", shipmentId },
+                    { "reason", "Recipient public key not found in payload" }
+                }));
+
+                return ContractExecutionResult.FailureResult("Recipient public key not found in transaction payload", events);
+            }
+
+            if (context.Transaction.SenderPublicKey != assignedRecipientPublicKey)
             {
                 events.Add(EmitEvent("DeliveryVerificationFailed", new Dictionary<string, object>
                 {
                     { "shipmentId", shipmentId },
                     { "reason", "Sender is not the assigned recipient" },
-                    { "expectedRecipient", assignedRecipient },
-                    { "actualSender", context.Transaction.SenderPublicKey }
+                    { "expectedRecipientPublicKey", assignedRecipientPublicKey },
+                    { "actualSenderPublicKey", context.Transaction.SenderPublicKey }
                 }));
 
                 return ContractExecutionResult.FailureResult("Delivery can only be confirmed by the assigned recipient", events);
@@ -88,7 +99,7 @@ public class DeliveryVerificationContract : SmartContract
 
             // Check delivery timeframe
             var actualDeliveryDate = context.ExecutionTime;
-            var expectedTimeframe = shipmentData.TryGetValue("expectedDeliveryTimeframe", out var timeframeElement)
+            var expectedTimeframe = shipmentData.TryGetValue("ExpectedDeliveryTimeframe", out var timeframeElement)
                 ? timeframeElement.GetString() ?? string.Empty
                 : string.Empty;
 
