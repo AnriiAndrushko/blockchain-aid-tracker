@@ -1,0 +1,381 @@
+@page "/donor"
+@attribute [Authorize(Roles = "Donor,Administrator")]
+@using BlockchainAidTracker.Core.Models
+@using BlockchainAidTracker.Services.DTOs.Shipment
+@using BlockchainAidTracker.Services.DTOs.Blockchain
+@using BlockchainAidTracker.Web.Services
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Donor Dashboard - Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>
+                <i class="bi bi-heart-fill me-2"></i>Donor Transparency Dashboard
+            </h2>
+            <p class="text-muted">Track humanitarian aid shipments and verify blockchain integrity</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading shipment data...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-primary h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-box-seam text-primary fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Total Shipments</h6>
+                                <h3 class="mb-0">@totalShipments</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-success h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-check-circle-fill text-success fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Successfully Delivered</h6>
+                                <h3 class="mb-0">@deliveredCount</h3>
+                                <small class="text-muted">@deliveryRate% delivery rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-warning h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-truck text-warning fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">In Transit</h6>
+                                <h3 class="mb-0">@inTransitCount</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-diagram-3 text-info fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Blockchain Height</h6>
+                                <h3 class="mb-0">@blockchainHeight</h3>
+                                <small class="text-@(isChainValid ? "success" : "danger")">
+                                    <i class="bi bi-@(isChainValid ? "shield-check" : "shield-x") me-1"></i>
+                                    @(isChainValid ? "Valid" : "Invalid")
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transparency Message -->
+        <div class="alert alert-info mb-4">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle fs-4 me-3"></i>
+                <div>
+                    <h5 class="alert-heading">Complete Transparency</h5>
+                    <p class="mb-0">
+                        All shipments are recorded on an immutable blockchain. You can verify any transaction by clicking on the blockchain explorer.
+                        Every status update is cryptographically signed and cannot be altered.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Status Filter</label>
+                        <select class="form-select" @bind="selectedStatus" @bind:after="FilterShipments">
+                            <option value="">All Statuses</option>
+                            <option value="Created">Created</option>
+                            <option value="Validated">Validated</option>
+                            <option value="InTransit">In Transit</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Confirmed">Confirmed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Search by Location</label>
+                        <input type="text" class="form-control" placeholder="Search origin or destination..."
+                               @bind="searchQuery" @bind:after="FilterShipments" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                            <i class="bi bi-x-circle me-1"></i>Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shipments List -->
+        @if (filteredShipments.Any())
+        {
+            <div class="row">
+                @foreach (var shipment in filteredShipments)
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-white">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-box me-1"></i>
+                                        Shipment @GetShipmentDisplayId(shipment.Id)
+                                    </h6>
+                                    <span class="badge bg-@GetStatusBadgeClass(shipment.Status)">
+                                        @shipment.Status
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Route</small>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-geo-alt text-success me-1"></i>
+                                        <strong>@shipment.Origin</strong>
+                                        <i class="bi bi-arrow-right mx-2"></i>
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                        <strong>@shipment.Destination</strong>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Items</small>
+                                    <div>
+                                        @if (shipment.Items.Count > 0)
+                                        {
+                                            @foreach (var item in shipment.Items.Take(3))
+                                            {
+                                                <div class="small">
+                                                    <i class="bi bi-box-fill me-1"></i>
+                                                    @item.Quantity @item.Unit - @item.Description
+                                                </div>
+                                            }
+                                            @if (shipment.Items.Count > 3)
+                                            {
+                                                <small class="text-muted">+@(shipment.Items.Count - 3) more item(s)</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">No items listed</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Timeline</small>
+                                    <div class="small">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        Created: @FormatDate(shipment.CreatedTimestamp)
+                                    </div>
+                                    @if (shipment.Status != ShipmentStatus.Created)
+                                    {
+                                        <div class="small">
+                                            <i class="bi bi-calendar-check me-1"></i>
+                                            Updated: @FormatDate(shipment.UpdatedTimestamp)
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Blockchain Verification</small>
+                                    <div class="small text-success">
+                                        <i class="bi bi-shield-check me-1"></i>
+                                        @shipment.BlockchainTransactionIds.Count transaction(s) recorded
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => ViewShipmentDetails(shipment.Id)">
+                                        <i class="bi bi-eye me-1"></i>View Full Details
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" @onclick="() => ViewOnBlockchain(shipment.Id)">
+                                        <i class="bi bi-diagram-3 me-1"></i>View on Blockchain
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (filteredShipments.Count > 12)
+            {
+                <div class="text-center mt-3">
+                    <p class="text-muted">Showing @filteredShipments.Count shipment(s)</p>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-search me-2"></i>
+                No shipments found matching your criteria.
+            </div>
+        }
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+    private string selectedStatus = string.Empty;
+    private string searchQuery = string.Empty;
+
+    private List<ShipmentDto> allShipments = new();
+    private List<ShipmentDto> filteredShipments = new();
+
+    private int blockchainHeight = 0;
+    private bool isChainValid = true;
+
+    private int totalShipments => allShipments.Count;
+    private int deliveredCount => allShipments.Count(s => s.Status == ShipmentStatus.Delivered || s.Status == ShipmentStatus.Confirmed);
+    private int inTransitCount => allShipments.Count(s => s.Status == ShipmentStatus.InTransit);
+    private int deliveryRate => totalShipments > 0 ? (deliveredCount * 100 / totalShipments) : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            // Load shipments
+            allShipments = await ApiClient.GetAsync<List<ShipmentDto>>("/api/shipments") ?? new();
+            filteredShipments = allShipments;
+
+            // Load blockchain status
+            try
+            {
+                var blocks = await ApiClient.GetAsync<List<BlockDto>>("/api/blockchain/chain") ?? new();
+                blockchainHeight = blocks.Count;
+
+                var validationResult = await ApiClient.PostAsync<ValidationResultDto>("/api/blockchain/validate", null);
+                isChainValid = validationResult?.IsValid ?? true;
+            }
+            catch
+            {
+                // If blockchain endpoints fail, just use defaults
+                blockchainHeight = 0;
+                isChainValid = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterShipments()
+    {
+        filteredShipments = allShipments;
+
+        // Filter by status
+        if (!string.IsNullOrWhiteSpace(selectedStatus))
+        {
+            if (Enum.TryParse<ShipmentStatus>(selectedStatus, out var status))
+            {
+                filteredShipments = filteredShipments.Where(s => s.Status == status).ToList();
+            }
+        }
+
+        // Filter by search query
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var query = searchQuery.ToLower();
+            filteredShipments = filteredShipments.Where(s =>
+                s.Origin.ToLower().Contains(query) ||
+                s.Destination.ToLower().Contains(query) ||
+                s.Id.ToLower().Contains(query)
+            ).ToList();
+        }
+    }
+
+    private void ClearFilters()
+    {
+        selectedStatus = string.Empty;
+        searchQuery = string.Empty;
+        filteredShipments = allShipments;
+    }
+
+    private void ViewShipmentDetails(string shipmentId)
+    {
+        Navigation.NavigateTo($"/shipments/{shipmentId}");
+    }
+
+    private void ViewOnBlockchain(string shipmentId)
+    {
+        Navigation.NavigateTo($"/blockchain?shipment={shipmentId}");
+    }
+
+    private string GetShipmentDisplayId(string id)
+    {
+        return id.Length > 8 ? id.Substring(0, 8) : id;
+    }
+
+    private string GetStatusBadgeClass(ShipmentStatus status)
+    {
+        return status switch
+        {
+            ShipmentStatus.Created => "secondary",
+            ShipmentStatus.Validated => "warning",
+            ShipmentStatus.InTransit => "primary",
+            ShipmentStatus.Delivered => "success",
+            ShipmentStatus.Confirmed => "info",
+            _ => "secondary"
+        };
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        return date.ToString("MMM dd, yyyy HH:mm");
+    }
+}

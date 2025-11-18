@@ -195,6 +195,15 @@ public class ShipmentService : IShipmentService
             throw new NotFoundException($"User with ID '{updatedBy}' not found");
         }
 
+        // Validate user has permission to update shipment status
+        // Only Coordinators, Administrators, and LogisticsPartners can update shipment status
+        if (user.Role != UserRole.Coordinator &&
+            user.Role != UserRole.Administrator &&
+            user.Role != UserRole.LogisticsPartner)
+        {
+            throw new UnauthorizedException("Only coordinators, administrators, and logistics partners can update shipment status");
+        }
+
         // Validate status transition
         if (!shipment.CanTransitionTo(newStatus))
         {

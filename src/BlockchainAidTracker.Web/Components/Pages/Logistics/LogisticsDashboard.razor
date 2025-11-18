@@ -1,0 +1,371 @@
+@page "/logistics"
+@attribute [Authorize(Roles = "LogisticsPartner,Administrator")]
+@using BlockchainAidTracker.Core.Models
+@using BlockchainAidTracker.Services.DTOs.Shipment
+@using BlockchainAidTracker.Web.Services
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Logistics Dashboard - Aid Tracker</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>
+                <i class="bi bi-truck me-2"></i>Logistics Dashboard
+            </h2>
+            <p class="text-muted">Manage shipments and delivery operations</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading shipments...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-inbox-fill text-warning fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Ready for Pickup</h6>
+                                <h3 class="mb-0">@readyForPickupCount</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-primary">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-truck text-primary fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">In Transit</h6>
+                                <h3 class="mb-0">@inTransitCount</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-check-circle-fill text-success fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Delivered Today</h6>
+                                <h3 class="mb-0">@deliveredTodayCount</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-box-seam text-info fs-1 me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Total Assigned</h6>
+                                <h3 class="mb-0">@totalShipments</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ready for Pickup Section -->
+        @if (readyForPickupShipments.Any())
+        {
+            <div class="row mb-4">
+                <div class="col">
+                    <h4><i class="bi bi-inbox me-2"></i>Ready for Pickup</h4>
+                    <div class="row">
+                        @foreach (var shipment in readyForPickupShipments)
+                        {
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 border-warning">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-box me-1"></i>@GetShipmentDisplayId(shipment.Id)
+                                            </h6>
+                                            <span class="badge bg-warning">@shipment.Status</span>
+                                        </div>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi bi-geo-alt me-1"></i>
+                                            @shipment.Origin → @shipment.Destination
+                                        </p>
+                                        <p class="small mb-2">
+                                            <strong>Items:</strong> @shipment.Items.Count item(s)
+                                        </p>
+                                        <p class="small mb-3">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            @shipment.ExpectedDeliveryTimeframe
+                                        </p>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-primary flex-fill" @onclick="() => ViewShipmentDetails(shipment.Id)">
+                                                <i class="bi bi-eye me-1"></i>View
+                                            </button>
+                                            <button class="btn btn-sm btn-success" @onclick="() => MarkAsInTransit(shipment.Id)">
+                                                <i class="bi bi-truck me-1"></i>Start Delivery
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- In Transit Section -->
+        @if (inTransitShipments.Any())
+        {
+            <div class="row mb-4">
+                <div class="col">
+                    <h4><i class="bi bi-truck me-2"></i>Currently In Transit</h4>
+                    <div class="row">
+                        @foreach (var shipment in inTransitShipments)
+                        {
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-box me-1"></i>@GetShipmentDisplayId(shipment.Id)
+                                            </h6>
+                                            <span class="badge bg-primary">@shipment.Status</span>
+                                        </div>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi bi-geo-alt me-1"></i>
+                                            @shipment.Origin → @shipment.Destination
+                                        </p>
+                                        <p class="small mb-2">
+                                            <strong>Items:</strong> @shipment.Items.Count item(s)
+                                        </p>
+                                        <p class="small mb-3">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            @shipment.ExpectedDeliveryTimeframe
+                                        </p>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-primary flex-fill" @onclick="() => ViewShipmentDetails(shipment.Id)">
+                                                <i class="bi bi-eye me-1"></i>View
+                                            </button>
+                                            <button class="btn btn-sm btn-success" @onclick="() => MarkAsDelivered(shipment.Id)">
+                                                <i class="bi bi-check-circle me-1"></i>Delivered
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Recently Delivered Section -->
+        @if (recentlyDeliveredShipments.Any())
+        {
+            <div class="row mb-4">
+                <div class="col">
+                    <h4><i class="bi bi-check-circle me-2"></i>Recently Delivered</h4>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Shipment ID</th>
+                                    <th>Route</th>
+                                    <th>Items</th>
+                                    <th>Delivered At</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var shipment in recentlyDeliveredShipments)
+                                {
+                                    <tr>
+                                        <td><i class="bi bi-box me-1"></i>@GetShipmentDisplayId(shipment.Id)</td>
+                                        <td>@shipment.Origin → @shipment.Destination</td>
+                                        <td>@shipment.Items.Count item(s)</td>
+                                        <td>@FormatDate(shipment.UpdatedTimestamp)</td>
+                                        <td>
+                                            <span class="badge bg-@GetStatusBadgeClass(shipment.Status)">
+                                                @shipment.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewShipmentDetails(shipment.Id)">
+                                                <i class="bi bi-eye me-1"></i>View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!readyForPickupShipments.Any() && !inTransitShipments.Any() && !recentlyDeliveredShipments.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                No shipments assigned yet. New shipments will appear here when they're ready for pickup.
+            </div>
+        }
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            @successMessage
+            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private List<ShipmentDto> allShipments = new();
+    private List<ShipmentDto> readyForPickupShipments = new();
+    private List<ShipmentDto> inTransitShipments = new();
+    private List<ShipmentDto> recentlyDeliveredShipments = new();
+
+    private int readyForPickupCount => readyForPickupShipments.Count;
+    private int inTransitCount => inTransitShipments.Count;
+    private int deliveredTodayCount => recentlyDeliveredShipments.Count(s =>
+        s.UpdatedTimestamp.Date == DateTime.UtcNow.Date);
+    private int totalShipments => allShipments.Count;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShipments();
+    }
+
+    private async Task LoadShipments()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            allShipments = await ApiClient.GetAsync<List<ShipmentDto>>("/api/shipments") ?? new();
+
+            // Categorize shipments
+            readyForPickupShipments = allShipments
+                .Where(s => s.Status == ShipmentStatus.Created || s.Status == ShipmentStatus.Validated)
+                .OrderBy(s => s.CreatedTimestamp)
+                .ToList();
+
+            inTransitShipments = allShipments
+                .Where(s => s.Status == ShipmentStatus.InTransit)
+                .OrderBy(s => s.UpdatedTimestamp)
+                .ToList();
+
+            recentlyDeliveredShipments = allShipments
+                .Where(s => s.Status == ShipmentStatus.Delivered || s.Status == ShipmentStatus.Confirmed)
+                .OrderByDescending(s => s.UpdatedTimestamp)
+                .Take(10)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load shipments: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task MarkAsInTransit(string shipmentId)
+    {
+        try
+        {
+            var request = new { Status = ShipmentStatus.InTransit };
+            await ApiClient.PutAsync<ShipmentDto>($"/api/shipments/{shipmentId}/status", request);
+            successMessage = "Shipment marked as in transit successfully!";
+            await LoadShipments();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to update shipment status: {ex.Message}";
+        }
+    }
+
+    private async Task MarkAsDelivered(string shipmentId)
+    {
+        try
+        {
+            var request = new { Status = ShipmentStatus.Delivered };
+            await ApiClient.PutAsync<ShipmentDto>($"/api/shipments/{shipmentId}/status", request);
+            successMessage = "Shipment marked as delivered successfully!";
+            await LoadShipments();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to update shipment status: {ex.Message}";
+        }
+    }
+
+    private void ViewShipmentDetails(string shipmentId)
+    {
+        Navigation.NavigateTo($"/shipments/{shipmentId}");
+    }
+
+    private string GetShipmentDisplayId(string id)
+    {
+        return id.Length > 8 ? id.Substring(0, 8) : id;
+    }
+
+    private string GetStatusBadgeClass(ShipmentStatus status)
+    {
+        return status switch
+        {
+            ShipmentStatus.Created => "secondary",
+            ShipmentStatus.Validated => "warning",
+            ShipmentStatus.InTransit => "primary",
+            ShipmentStatus.Delivered => "success",
+            ShipmentStatus.Confirmed => "info",
+            _ => "secondary"
+        };
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        return date.ToString("MMM dd, yyyy HH:mm");
+    }
+}

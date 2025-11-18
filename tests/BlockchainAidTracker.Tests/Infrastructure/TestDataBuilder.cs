@@ -105,6 +105,18 @@ public class UserBuilder
         return this;
     }
 
+    public UserBuilder AsRecipient()
+    {
+        _role = UserRole.Recipient;
+        return this;
+    }
+
+    public UserBuilder AsLogisticsPartner()
+    {
+        _role = UserRole.LogisticsPartner;
+        return this;
+    }
+
     public User Build()
     {
         return new User(

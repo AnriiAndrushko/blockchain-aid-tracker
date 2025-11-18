@@ -32,11 +32,31 @@
                     </NavLink>
                 </div>
 
-                <AuthorizeView Roles="Coordinator" Context="coordinatorContext">
+                <AuthorizeView Roles="Coordinator,Administrator" Context="coordinatorContext">
                     <Authorized>
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="shipments/create">
                                 <i class="bi bi-plus-circle me-2"></i> Create Shipment
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="LogisticsPartner" Context="logisticsContext">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="logistics">
+                                <i class="bi bi-truck me-2"></i> Logistics Dashboard
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Donor" Context="donorContext">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="donor">
+                                <i class="bi bi-heart-fill me-2"></i> Donor Dashboard
                             </NavLink>
                         </div>
                     </Authorized>
