@@ -9,7 +9,20 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
 **Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, **blockchain persistence**, cryptographic key management, and **Blazor Web UI** complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, blockchain persistence, and all API endpoints are fully implemented and tested with 594 passing tests (487 unit + 107 integration). The Blazor Web UI is fully functional with authentication, dashboard, shipment management, and blockchain explorer.
 
 **Recently Completed** (Latest):
-- ✅ **Complete Blazor Web UI with Role-Based Behavior** NEWEST
+- ✅ **Docker Configuration** NEWEST
+  - **Dockerfile.api** - Multi-stage build for API (.NET 9.0 SDK → ASP.NET runtime)
+  - **Dockerfile.web** - Multi-stage build for Blazor Web UI
+  - **docker-compose.yml** - Complete orchestration for API + Web UI
+  - **.dockerignore** - Optimized build context exclusions
+  - Volume persistence for database and blockchain data
+  - Health checks for both API and Web services
+  - Service dependency management (Web depends on healthy API)
+  - Environment variable configuration
+  - Network isolation with bridge network
+  - Production-ready configuration with configurable JWT secrets
+  - Data backup and restore procedures documented
+
+- ✅ **Complete Blazor Web UI with Role-Based Behavior**
   - **16 Blazor pages** covering all system functionality
   - Complete authentication system (login, registration, JWT token management)
   - CustomAuthenticationStateProvider with automatic token refresh
@@ -115,12 +128,70 @@ dotnet build blockchain-aid-tracker/blockchain-aid-tracker.csproj -c Release
 ```
 
 ### Docker
-```bash
-# Build and run with Docker Compose
-docker compose up --build
 
-# Build Docker image manually
-docker build -t blockchain-aid-tracker -f blockchain-aid-tracker/Dockerfile .
+#### Quick Start (Recommended)
+```bash
+# Build and run all services (API + Web UI)
+docker-compose up --build
+
+# Run in detached mode (background)
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+```
+
+#### Individual Service Commands
+```bash
+# Build API image only
+docker build -t blockchain-aid-tracker-api -f Dockerfile.api .
+
+# Build Web UI image only
+docker build -t blockchain-aid-tracker-web -f Dockerfile.web .
+
+# Run API container manually
+docker run -p 5000:8080 -v api-data:/app/data blockchain-aid-tracker-api
+
+# Run Web UI container manually
+docker run -p 5002:8080 blockchain-aid-tracker-web
+```
+
+#### Docker Configuration
+
+**Service URLs (when running with docker-compose)**:
+- API: http://localhost:5000 (Swagger: http://localhost:5000/swagger)
+- Web UI: http://localhost:5002
+
+**Environment Variables** (can be set in docker-compose.yml):
+- `JWT_SECRET_KEY`: JWT secret key (min 32 characters, required for production)
+- `ASPNETCORE_ENVIRONMENT`: Environment (Development/Production)
+- `BlockchainPersistence__Enabled`: Enable blockchain persistence (true/false)
+- `ConsensusSettings__BlockCreationIntervalSeconds`: Block creation interval (default: 30)
+
+**Data Persistence**:
+- Database: Stored in `api-database` volume at `/app/data/database/blockchain-aid-tracker.db`
+- Blockchain: Stored in `api-blockchain` volume at `/app/data/blockchain/blockchain.json`
+- Backups: Stored in `api-blockchain` volume at `/app/data/blockchain/backups/`
+
+**Accessing Volumes**:
+```bash
+# List volumes
+docker volume ls
+
+# Inspect volume
+docker volume inspect blockchain-aid-tracker_api-database
+
+# Backup database
+docker cp blockchain-aid-tracker-api:/app/data/database/blockchain-aid-tracker.db ./backup.db
+
+# Backup blockchain
+docker cp blockchain-aid-tracker-api:/app/data/blockchain ./blockchain-backup
 ```
 
 ### Database Operations

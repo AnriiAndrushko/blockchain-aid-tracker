@@ -1,0 +1,62 @@
+# Multi-stage Dockerfile for BlockchainAidTracker API
+# Stage 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy solution file
+COPY blockchain-aid-tracker.sln ./
+
+# Copy all project files
+COPY src/BlockchainAidTracker.Core/*.csproj ./src/BlockchainAidTracker.Core/
+COPY src/BlockchainAidTracker.Blockchain/*.csproj ./src/BlockchainAidTracker.Blockchain/
+COPY src/BlockchainAidTracker.Cryptography/*.csproj ./src/BlockchainAidTracker.Cryptography/
+COPY src/BlockchainAidTracker.DataAccess/*.csproj ./src/BlockchainAidTracker.DataAccess/
+COPY src/BlockchainAidTracker.Services/*.csproj ./src/BlockchainAidTracker.Services/
+COPY src/BlockchainAidTracker.SmartContracts/*.csproj ./src/BlockchainAidTracker.SmartContracts/
+COPY src/BlockchainAidTracker.Api/*.csproj ./src/BlockchainAidTracker.Api/
+
+# Restore dependencies
+RUN dotnet restore src/BlockchainAidTracker.Api/BlockchainAidTracker.Api.csproj
+
+# Copy all source files
+COPY src/ ./src/
+
+# Build the API project
+WORKDIR /src/src/BlockchainAidTracker.Api
+RUN dotnet build BlockchainAidTracker.Api.csproj -c Release -o /app/build
+
+# Stage 2: Publish
+FROM build AS publish
+RUN dotnet publish BlockchainAidTracker.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# Stage 3: Final runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+
+# Create directories for data persistence
+RUN mkdir -p /app/data/database && \
+    mkdir -p /app/data/blockchain && \
+    chown -R $APP_UID:$APP_UID /app/data
+
+# Copy published files from publish stage
+COPY --from=publish /app/publish .
+
+# Expose ports
+EXPOSE 8080
+EXPOSE 8081
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Configure database and blockchain persistence paths
+ENV ConnectionStrings__DefaultConnection="Data Source=/app/data/database/blockchain-aid-tracker.db"
+ENV BlockchainPersistence__FilePath="/app/data/blockchain/blockchain.json"
+ENV BlockchainPersistence__BackupDirectory="/app/data/blockchain/backups"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the application
+ENTRYPOINT ["dotnet", "BlockchainAidTracker.Api.dll"]

@@ -8,8 +8,9 @@ A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demons
 
 **Current Metrics:**
 -  **594 tests passing** (100% success rate: 487 unit + 107 integration)
--  **Complete Blazor Web UI with 16 pages** (auth, dashboard, shipments, users, validators, consensus, contracts, blockchain explorer) NEWEST
--  **Full role-based UI behavior** (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner) NEWEST
+-  **Complete Docker configuration with docker-compose** (API + Web UI with persistent volumes) NEWEST
+-  **Complete Blazor Web UI with 16 pages** (auth, dashboard, shipments, users, validators, consensus, contracts, blockchain explorer)
+-  **Full role-based UI behavior** (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner)
 -  **Blockchain persistence with automatic save/load and backup rotation**
 -  **Consensus API with 4 endpoints for block creation and validation**
 -  **Automated background service creating blocks every 30 seconds**
@@ -220,11 +221,169 @@ dotnet ef database drop --project src/BlockchainAidTracker.DataAccess
 dotnet ef database update --project src/BlockchainAidTracker.DataAccess
 ```
 
-### Docker
+### Docker (Recommended for Quick Start)
+
+#### Quick Start with Docker Compose
+
+The easiest way to run the entire application stack (API + Web UI) with persistent data:
 
 ```bash
-# Build and run with Docker Compose
-docker compose up --build
+# Build and run all services (API + Web UI)
+docker-compose up --build
+
+# Run in detached mode (background)
+docker-compose up -d --build
+
+# View logs from all services
+docker-compose logs -f
+
+# View logs from a specific service
+docker-compose logs -f api
+docker-compose logs -f web
+
+# Stop all services (keeps data)
+docker-compose down
+
+# Stop and remove all data (clean slate)
+docker-compose down -v
+```
+
+#### Service URLs (Docker)
+
+When running with Docker Compose, access the services at:
+- **Web UI**: http://localhost:5002
+- **API**: http://localhost:5000
+- **Swagger UI**: http://localhost:5000/swagger
+
+#### Production Configuration
+
+For production use, set a strong JWT secret key:
+
+```bash
+# Set JWT secret key as environment variable (Linux/macOS)
+export JWT_SECRET_KEY="your-very-secure-secret-key-at-least-32-characters-long"
+docker-compose up -d --build
+
+# Or edit docker-compose.yml and set JWT_SECRET_KEY directly
+```
+
+#### Data Persistence
+
+Docker volumes automatically persist data between container restarts:
+- **Database**: SQLite database stored in `api-database` volume
+- **Blockchain**: JSON blockchain data stored in `api-blockchain` volume
+- **Backups**: Blockchain backups stored in `api-blockchain` volume
+
+#### Managing Docker Volumes
+
+```bash
+# List all volumes
+docker volume ls
+
+# Inspect the database volume
+docker volume inspect blockchain-aid-tracker_api-database
+
+# Backup database from container
+docker cp blockchain-aid-tracker-api:/app/data/database/blockchain-aid-tracker.db ./backup.db
+
+# Backup blockchain data from container
+docker cp blockchain-aid-tracker-api:/app/data/blockchain ./blockchain-backup
+
+# Restore database to container
+docker cp ./backup.db blockchain-aid-tracker-api:/app/data/database/blockchain-aid-tracker.db
+
+# Remove all volumes (WARNING: deletes all data)
+docker-compose down -v
+```
+
+#### Individual Docker Commands
+
+If you need to build or run services separately:
+
+```bash
+# Build API image
+docker build -t blockchain-aid-tracker-api -f Dockerfile.api .
+
+# Build Web UI image
+docker build -t blockchain-aid-tracker-web -f Dockerfile.web .
+
+# Run API container manually
+docker run -p 5000:8080 \
+  -v api-data:/app/data \
+  -e JWT_SECRET_KEY="your-secret-key" \
+  blockchain-aid-tracker-api
+
+# Run Web UI container manually (requires API running)
+docker run -p 5002:8080 \
+  -e ApiSettings__BaseUrl=http://api:8080 \
+  blockchain-aid-tracker-web
+```
+
+#### Docker Environment Variables
+
+Customize the application behavior via environment variables in `docker-compose.yml`:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `JWT_SECRET_KEY` | JWT signing key (min 32 chars) | `your-secret-key-min-32-characters-long-for-production-use` |
+| `ASPNETCORE_ENVIRONMENT` | Environment mode | `Production` |
+| `BlockchainPersistence__Enabled` | Enable blockchain persistence | `true` |
+| `BlockchainPersistence__MaxBackupCount` | Max blockchain backups | `5` |
+| `ConsensusSettings__BlockCreationIntervalSeconds` | Block creation interval | `30` |
+| `ConsensusSettings__MinTransactionsPerBlock` | Min transactions per block | `1` |
+
+#### Health Checks
+
+Both containers include health checks:
+
+```bash
+# Check container health status
+docker ps
+
+# Check API health directly
+curl http://localhost:5000/health
+
+# Check Web UI health
+curl http://localhost:5002/health
+```
+
+#### Troubleshooting Docker
+
+**Port already in use:**
+```bash
+# Find process using port 5000
+lsof -i :5000
+
+# Kill the process
+kill -9 <PID>
+
+# Or change ports in docker-compose.yml
+```
+
+**Container won't start:**
+```bash
+# View container logs
+docker-compose logs api
+docker-compose logs web
+
+# Restart containers
+docker-compose restart
+
+# Rebuild from scratch
+docker-compose down -v
+docker-compose up --build
+```
+
+**Database locked error:**
+```bash
+# Stop containers
+docker-compose down
+
+# Remove volumes
+docker volume rm blockchain-aid-tracker_api-database
+
+# Restart
+docker-compose up --build
 ```
 
 ## Project Structure
@@ -303,6 +462,10 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and implementation status.
 - ✅ **User Profile management for all users** NEWEST
 - ✅ **Blockchain Explorer with block and transaction details** NEWEST
 - ✅ **Responsive Bootstrap 5 UI with Bootstrap Icons** NEWEST
+- ✅ **Complete Docker configuration with multi-stage builds** NEWEST
+- ✅ **Docker Compose orchestration for API + Web UI** NEWEST
+- ✅ **Persistent Docker volumes for database and blockchain data** NEWEST
+- ✅ **Container health checks and dependency management** NEWEST
 
 ### Planned 📋
 - 📋 Multi-node validator network communication (P2P)

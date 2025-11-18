@@ -1,25 +1,96 @@
-﻿**/.dockerignore
-**/.env
-**/.git
-**/.gitignore
-**/.project
-**/.settings
-**/.toolstarget
-**/.vs
-**/.vscode
-**/.idea
-**/*.*proj.user
-**/*.dbmdl
-**/*.jfm
-**/azds.yaml
-**/bin
-**/charts
-**/docker-compose*
-**/Dockerfile*
-**/node_modules
-**/npm-debug.log
-**/obj
-**/secrets.dev.yaml
-**/values.dev.yaml
-LICENSE
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!CLAUDE.md
+docs/
 README.md
+
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+**/.vscode/
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+
+# Test results
+**/TestResults/
+**/*.trx
+**/*.coverage
+
+# Database files (will be in volumes)
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# Blockchain persistence files (will be in volumes)
+**/blockchain.json
+**/blockchain-backup-*.json
+
+# Node modules (if any)
+**/node_modules/
+
+# IDE folders
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker files (except Dockerfiles)
+docker-compose*.yml
+!docker-compose.yml
+compose.yaml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+azure-pipelines.yml
+
+# Temporary files
+**/temp/
+**/tmp/
+**/*.tmp
+**/*.log
+
+# Package files
+**/*.nupkg
+**/*.snupkg
+
+# User secrets and environment files
+**/*.env
+**/*.env.*
+**/secrets.json
+
+# Build cache
+**/.dotnet/
+**/.nuget/
+
+# Test coverage
+**/coverage/
+**/*.opencover.xml
+
+# Rider
+**/.idea/
+**/*.sln.iml
+
+# Visual Studio Code
+**/.vscode/settings.json
+**/.vscode/tasks.json
+**/.vscode/launch.json
+**/.vscode/extensions.json
+
+# JetBrains Rider
+**/.idea/
