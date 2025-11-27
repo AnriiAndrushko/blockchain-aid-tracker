@@ -4,16 +4,43 @@ using Microsoft.EntityFrameworkCore;
 namespace BlockchainAidTracker.DataAccess.Repositories;
 
 /// <summary>
+/// Validator selection strategy enumeration
+/// </summary>
+public enum ValidatorSelectionStrategyType
+{
+    /// <summary>
+    /// Select validators in round-robin order by priority
+    /// </summary>
+    RoundRobin = 0,
+
+    /// <summary>
+    /// Select validators randomly from active validators
+    /// </summary>
+    Random = 1
+}
+
+/// <summary>
 /// Repository implementation for Validator-specific operations
 /// </summary>
 public class ValidatorRepository : Repository<Validator>, IValidatorRepository
 {
+    private int _roundRobinIndex = 0;
+    private ValidatorSelectionStrategyType _selectionStrategy = ValidatorSelectionStrategyType.RoundRobin;
+
     /// <summary>
     /// Constructor
     /// </summary>
     /// <param name="context">Database context</param>
     public ValidatorRepository(ApplicationDbContext context) : base(context)
     {
+    }
+
+    /// <summary>
+    /// Sets the validator selection strategy
+    /// </summary>
+    public void SetSelectionStrategy(ValidatorSelectionStrategyType strategy)
+    {
+        _selectionStrategy = strategy;
     }
 
     /// <inheritdoc />
@@ -87,7 +114,30 @@ public class ValidatorRepository : Repository<Validator>, IValidatorRepository
             return activeValidators[0];
         }
 
-        // Select a random validator from active validators
+        // Select based on configured strategy
+        return _selectionStrategy switch
+        {
+            ValidatorSelectionStrategyType.RoundRobin => SelectValidatorRoundRobin(activeValidators),
+            ValidatorSelectionStrategyType.Random => SelectValidatorRandom(activeValidators),
+            _ => activeValidators[0]
+        };
+    }
+
+    /// <summary>
+    /// Select validator using round-robin strategy (fair distribution)
+    /// </summary>
+    private Validator SelectValidatorRoundRobin(List<Validator> activeValidators)
+    {
+        var validator = activeValidators[_roundRobinIndex];
+        _roundRobinIndex = (_roundRobinIndex + 1) % activeValidators.Count;
+        return validator;
+    }
+
+    /// <summary>
+    /// Select validator using random strategy
+    /// </summary>
+    private Validator SelectValidatorRandom(List<Validator> activeValidators)
+    {
         var random = new Random();
         var randomIndex = random.Next(activeValidators.Count);
         return activeValidators[randomIndex];

@@ -318,6 +318,9 @@ public class ContractsControllerTests : IClassFixture<CustomWebApplicationFactor
         // Arrange - Create a shipment to generate a real transaction
         var (shipment, coordinatorToken) = await CreateTestShipmentAsync();
 
+        // Create a block to include the transaction
+        await _factory.TriggerBlockCreationAsync();
+
         // Get the transaction ID from the shipment history
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", coordinatorToken);
         var historyResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}/history");

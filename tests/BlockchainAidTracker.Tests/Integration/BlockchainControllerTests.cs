@@ -154,6 +154,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange
         await CreateTestShipmentAsync();
+        await _factory.TriggerBlockCreationAsync();
 
         // Act
         var response = await _client.GetAsync("/api/blockchain/chain");
@@ -244,6 +245,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange
         await CreateTestShipmentAsync();
+        await _factory.TriggerBlockCreationAsync();
 
         // Get the chain to find a transaction ID
         var chainResponse = await _client.GetAsync("/api/blockchain/chain");
@@ -279,6 +281,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange
         await CreateTestShipmentAsync();
+        await _factory.TriggerBlockCreationAsync();
 
         // Get a transaction ID from the chain
         var chainResponse = await _client.GetAsync("/api/blockchain/chain");
@@ -362,6 +365,10 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task GetPendingTransactions_ShouldReturnEmptyList_WhenNoPendingTransactions()
     {
+        // Arrange - create a shipment and create a block to clear pending transactions
+        await CreateTestShipmentAsync();
+        await _factory.TriggerBlockCreationAsync();
+
         // Act
         var response = await _client.GetAsync("/api/blockchain/pending");
 
@@ -369,7 +376,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var transactions = await response.Content.ReadFromJsonAsync<List<TransactionDto>>();
         transactions.Should().NotBeNull();
-        transactions.Should().BeEmpty(); // No pending transactions initially
+        transactions.Should().BeEmpty(); // No pending transactions after block creation
     }
 
     [Fact]
@@ -393,6 +400,7 @@ public class BlockchainControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange & Act - Create shipment (generates blockchain data)
         var shipment = await CreateTestShipmentAsync();
+        await _factory.TriggerBlockCreationAsync();
 
         // Act 1 - Get the complete chain
         var chainResponse = await _client.GetAsync("/api/blockchain/chain");

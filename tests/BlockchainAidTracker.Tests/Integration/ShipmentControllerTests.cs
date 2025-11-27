@@ -311,6 +311,9 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
             Notes = "Shipment departed warehouse"
         };
 
+        // Create a block before checking transaction IDs
+        await _factory.TriggerBlockCreationAsync();
+
         // Act
         var response = await _client.PutAsJsonAsync($"/api/shipments/{createdShipment.Id}/status", updateRequest);
 
@@ -401,6 +404,9 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         };
         await _client.PutAsJsonAsync($"/api/shipments/{createdShipment.Id}/status", deliveredRequest);
 
+        // Create a block to include all the status updates
+        await _factory.TriggerBlockCreationAsync();
+
         // Switch to recipient token
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", recipientToken);
 
@@ -457,6 +463,9 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         var createRequest = CreateValidShipmentRequest(recipientId);
         var createResponse = await _client.PostAsJsonAsync("/api/shipments", createRequest);
         var createdShipment = await createResponse.Content.ReadFromJsonAsync<ShipmentDto>();
+
+        // Create a block to include the transaction
+        await _factory.TriggerBlockCreationAsync();
 
         // Act
         var response = await _client.GetAsync($"/api/shipments/{createdShipment!.Id}/history");
@@ -596,6 +605,9 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         var deliveredShipment = await deliveredResponse.Content.ReadFromJsonAsync<ShipmentDto>();
         deliveredShipment!.Status.Should().Be(ShipmentStatus.Delivered);
 
+        // Create a block to include all status updates
+        await _factory.TriggerBlockCreationAsync();
+
         // Step 5: Confirm delivery as recipient
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", recipientToken);
         var confirmResponse = await _client.PostAsync($"/api/shipments/{shipment.Id}/confirm-delivery", null);
@@ -603,6 +615,9 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         var confirmedShipment = await confirmResponse.Content.ReadFromJsonAsync<ShipmentDto>();
         confirmedShipment!.Status.Should().Be(ShipmentStatus.Confirmed);
         confirmedShipment.ActualDeliveryDate.Should().NotBeNull();
+
+        // Create another block for the confirm delivery transaction
+        await _factory.TriggerBlockCreationAsync();
 
         // Step 6: Verify blockchain history
         var historyResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}/history");

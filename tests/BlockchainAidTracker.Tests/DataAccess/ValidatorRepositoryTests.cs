@@ -12,6 +12,8 @@ public class ValidatorRepositoryTests : DatabaseTestBase
     public ValidatorRepositoryTests()
     {
         _validatorRepository = new ValidatorRepository(Context);
+        // Default strategy is RoundRobin for deterministic tests
+        _validatorRepository.SetSelectionStrategy(ValidatorSelectionStrategyType.RoundRobin);
     }
 
     [Fact]
@@ -90,35 +92,44 @@ public class ValidatorRepositoryTests : DatabaseTestBase
     }
 
     [Fact]
-    public async Task GetNextValidatorForBlockCreationAsync_ShouldReturnValidatorWithOldestBlockCreation()
+    public async Task GetNextValidatorForBlockCreationAsync_ShouldReturnValidatorsInRoundRobinOrder()
     {
         // Arrange
         var validator1 = TestData.CreateValidator()
             .WithName("V1")
-            .WithBlocksCreated(5)
+            .WithPriority(0)
             .Build();
-        validator1.LastBlockCreatedTimestamp = DateTime.UtcNow.AddHours(-2);
 
         var validator2 = TestData.CreateValidator()
             .WithName("V2")
-            .WithBlocksCreated(3)
+            .WithPriority(1)
             .Build();
-        validator2.LastBlockCreatedTimestamp = DateTime.UtcNow.AddHours(-1);
 
         var validator3 = TestData.CreateValidator()
             .WithName("V3")
-            .Build(); // No blocks created yet
+            .WithPriority(2)
+            .Build();
 
         await Context.Validators.AddRangeAsync(validator1, validator2, validator3);
         await Context.SaveChangesAsync();
         DetachAllEntities();
 
-        // Act
-        var result = await _validatorRepository.GetNextValidatorForBlockCreationAsync();
+        // Act & Assert - Round-robin order by priority
+        var result1 = await _validatorRepository.GetNextValidatorForBlockCreationAsync();
+        Assert.NotNull(result1);
+        Assert.Equal("V1", result1.Name); // First should be V1 (priority 0)
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("V3", result.Name); // Never created a block
+        var result2 = await _validatorRepository.GetNextValidatorForBlockCreationAsync();
+        Assert.NotNull(result2);
+        Assert.Equal("V2", result2.Name); // Second should be V2 (priority 1)
+
+        var result3 = await _validatorRepository.GetNextValidatorForBlockCreationAsync();
+        Assert.NotNull(result3);
+        Assert.Equal("V3", result3.Name); // Third should be V3 (priority 2)
+
+        var result4 = await _validatorRepository.GetNextValidatorForBlockCreationAsync();
+        Assert.NotNull(result4);
+        Assert.Equal("V1", result4.Name); // Fourth should wrap around to V1
     }
 
     [Fact]

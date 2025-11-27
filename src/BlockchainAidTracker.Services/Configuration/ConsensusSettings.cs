@@ -35,4 +35,11 @@ public class ConsensusSettings
     /// Default: true
     /// </summary>
     public bool EnableAutomatedBlockCreation { get; set; } = true;
+
+    /// <summary>
+    /// Validator selection strategy for block creation.
+    /// Options: "RoundRobin" (deterministic), "Random" (production-like)
+    /// Default: "RoundRobin"
+    /// </summary>
+    public string ValidatorSelectionStrategy { get; set; } = "RoundRobin";
 }

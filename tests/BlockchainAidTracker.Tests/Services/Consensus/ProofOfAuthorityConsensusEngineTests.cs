@@ -18,7 +18,7 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
     private readonly Mock<IKeyManagementService> _mockKeyManagementService;
     private readonly IDigitalSignatureService _signatureService;
     private readonly IHashService _hashService;
-    private readonly IValidatorRepository _validatorRepository;
+    private readonly ValidatorRepository _validatorRepository;
     private readonly ProofOfAuthorityConsensusEngine _consensusEngine;
 
     public ProofOfAuthorityConsensusEngineTests()
@@ -27,6 +27,8 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
         _signatureService = new DigitalSignatureService();
         _hashService = new HashService();
         _validatorRepository = new ValidatorRepository(Context);
+        // Use RoundRobin strategy for deterministic test behavior
+        _validatorRepository.SetSelectionStrategy(ValidatorSelectionStrategyType.RoundRobin);
         _consensusEngine = new ProofOfAuthorityConsensusEngine(
             _validatorRepository,
             _mockKeyManagementService.Object,
@@ -325,7 +327,7 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
     }
 
     [Fact]
-    public async Task CreateBlockAsync_SelectsValidatorRandomly()
+    public async Task CreateBlockAsync_SelectsValidatorsInRoundRobinOrder()
     {
         // Arrange
         var blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService);
@@ -352,8 +354,8 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
         await Context.Validators.AddRangeAsync(validators);
         await Context.SaveChangesAsync();
 
-        // Act - Create 3 blocks
-        var selectedValidators = new HashSet<string>();
+        // Act - Create 3 blocks and verify round-robin selection
+        var selectedValidators = new List<string>();
         for (int i = 0; i < 3; i++)
         {
             // Add transaction
@@ -376,9 +378,11 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
             blockchain.AddBlock(block);
         }
 
-        // Assert - At least 2 different validators should be selected in 3 blocks (high probability with randomness)
-        selectedValidators.Should().HaveCountGreaterThanOrEqualTo(2);
-        selectedValidators.Should().BeSubsetOf(validators.Select(v => v.PublicKey));
+        // Assert - Round-robin should cycle through all validators: 0, 1, 2
+        selectedValidators.Should().HaveCount(3);
+        selectedValidators[0].Should().Be(validators[0].PublicKey);
+        selectedValidators[1].Should().Be(validators[1].PublicKey);
+        selectedValidators[2].Should().Be(validators[2].PublicKey);
     }
 
     #endregion

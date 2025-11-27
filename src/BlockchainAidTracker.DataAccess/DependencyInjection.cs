@@ -31,7 +31,7 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IValidatorRepository, ValidatorRepository>();
+        services.AddScoped<IValidatorRepository>(provider => CreateValidatorRepository(provider, configuration));
 
         return services;
     }
@@ -57,7 +57,7 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IValidatorRepository, ValidatorRepository>();
+        services.AddScoped<IValidatorRepository>(provider => CreateValidatorRepository(provider, configuration));
 
         return services;
     }
@@ -83,5 +83,24 @@ public static class DependencyInjection
         services.AddScoped<IValidatorRepository, ValidatorRepository>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Creates a ValidatorRepository instance with configured selection strategy
+    /// </summary>
+    private static ValidatorRepository CreateValidatorRepository(IServiceProvider provider, IConfiguration configuration)
+    {
+        var context = provider.GetRequiredService<ApplicationDbContext>();
+        var repository = new ValidatorRepository(context);
+
+        // Read validator selection strategy from configuration
+        var strategy = configuration.GetSection("ConsensusSettings")["ValidatorSelectionStrategy"] ?? "RoundRobin";
+
+        var strategyType = strategy.Equals("Random", StringComparison.OrdinalIgnoreCase)
+            ? ValidatorSelectionStrategyType.Random
+            : ValidatorSelectionStrategyType.RoundRobin;
+
+        repository.SetSelectionStrategy(strategyType);
+        return repository;
     }
 }

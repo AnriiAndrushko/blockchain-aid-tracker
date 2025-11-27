@@ -10,6 +10,7 @@ using BlockchainAidTracker.Services.DTOs.Consensus;
 using BlockchainAidTracker.Services.DTOs.Shipment;
 using BlockchainAidTracker.Services.Interfaces;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BlockchainAidTracker.Tests.Integration;
@@ -273,8 +274,16 @@ public class ConsensusControllerTests : IClassFixture<CustomWebApplicationFactor
         var uniqueId = Guid.NewGuid().ToString("N")[..8];
         var adminToken = await CreateUserAndGetTokenAsync($"admin_{uniqueId}", UserRole.Administrator);
 
-        // Directly add a transaction to the blockchain to ensure there are pending transactions
+        // Deactivate all validators so the test has no active validators
         using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var validators = await dbContext.Validators.ToListAsync();
+        foreach (var validator in validators)
+        {
+            validator.IsActive = false;
+        }
+        await dbContext.SaveChangesAsync();
+
         var blockchain = scope.ServiceProvider.GetRequiredService<BlockchainAidTracker.Blockchain.Blockchain>();
 
         var testTransaction = new Transaction
