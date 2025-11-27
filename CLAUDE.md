@@ -9,7 +9,16 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
 **Current Status**: Foundation, business logic, authentication API, user management API, shipment API, blockchain query API, smart contract framework, smart contract API integration, validator node system, **Proof-of-Authority consensus engine**, **consensus API endpoints**, **automated block creation background service**, **blockchain persistence**, cryptographic key management, and **Blazor Web UI** complete. The blockchain engine with real ECDSA signature validation, cryptography services, data access layer, services layer, smart contracts, validator management, consensus engine with API integration, blockchain persistence, and all API endpoints are fully implemented and tested with 594 passing tests (487 unit + 107 integration). The Blazor Web UI is fully functional with authentication, dashboard, shipment management, and blockchain explorer.
 
 **Recently Completed** (Latest):
-- ✅ **Complete Blazor Web UI with Role-Based Behavior** NEWEST
+- 📋 **Customer Role Implementation (NEW)** - Detailed TODO for suppliers/vendors automatic payment system
+  - Supplier entity management with verification workflow
+  - Automatic payment on shipment completion via smart contract
+  - Payment gateway integration (bank transfers and crypto)
+  - Complete audit trail on blockchain
+  - Supplier shipment tracking and payment history
+  - Full API endpoints and UI components planned
+  - 99 total TODO items across 11 sections (A-K)
+
+- ✅ **Complete Blazor Web UI with Role-Based Behavior**
   - **16 Blazor pages** covering all system functionality
   - Complete authentication system (login, registration, JWT token management)
   - CustomAuthenticationStateProvider with automatic token refresh
@@ -25,7 +34,7 @@ This is a .NET 9.0 blockchain-based humanitarian aid supply chain tracking syste
   - Modal-based forms for all create/update/confirmation operations
   - Hash and signature verification display
   - Responsive Bootstrap 5 UI with Bootstrap Icons
-  - **Full role-based access control** for all 6 roles (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner)
+  - **Full role-based access control** for all 7 roles (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner, Customer)
   - Role-based navigation with conditional menu items
   - API client service for backend communication
   - Blazored.LocalStorage for client-side token storage
@@ -192,498 +201,81 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 
 ### ✅ Core Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Core/`
-
-**Domain Models**:
-- `Block` - Blockchain block with index, timestamp, transactions, hashes, and validator signature
-- `Transaction` - Blockchain transaction with type, sender, payload, and signature
-- `TransactionType` - Enum (ShipmentCreated, StatusUpdated, DeliveryConfirmed)
-- `Shipment` - Shipment entity with full lifecycle management
-- `ShipmentItem` - Individual items within shipments
-- `ShipmentStatus` - Enum (Created, Validated, InTransit, Delivered, Confirmed)
-- `User` - User entity with authentication fields and role-based access
-- `UserRole` - Enum (Recipient, Donor, Coordinator, LogisticsPartner, Validator, Administrator)
-- `Validator` - Validator node entity for PoA consensus NEW
-
-**Interfaces**:
-- `IHashService` - SHA-256 hashing interface
-- `IDigitalSignatureService` - ECDSA signature interface
-
-**Extensions**:
-- `BlockExtensions` - Block signing and verification
-- `TransactionExtensions` - Transaction signing and verification
+- Domain Models: `Block`, `Transaction`, `TransactionType`, `Shipment`, `ShipmentItem`, `ShipmentStatus`, `User`, `UserRole`, `Validator`
+- Interfaces: `IHashService`, `IDigitalSignatureService`
+- Extensions: `BlockExtensions`, `TransactionExtensions`
 
 ### ✅ Cryptography Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Cryptography/`
-
-**Services**:
-- `HashService` - SHA-256 hashing implementation (string and byte array overloads)
-- `DigitalSignatureService` - ECDSA (P-256 curve) for signing and verification
-  - Key pair generation (base64 encoded)
-  - Data signing with SHA-256
-  - Signature verification
-
-**Test Coverage**: 31 unit tests (100% passing)
+- `HashService` - SHA-256 hashing
+- `DigitalSignatureService` - ECDSA (P-256 curve) signing/verification with key generation
+- **Test Coverage**: 31 unit tests (100% passing)
 
 ### ✅ Blockchain Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Blockchain/`
-
-**Implementation**:
-- `Blockchain` - Complete blockchain engine with:
-  - Genesis block initialization
-  - Transaction management (pending pool, validation)
-  - Block creation and validation
-  - Chain validation (hashes, signatures, integrity)
-  - Query methods (GetBlockByIndex, GetTransactionById, etc.)
-  - Persistence support (SaveToPersistenceAsync, LoadFromPersistenceAsync)
-- `IBlockchainPersistence` - Interface for blockchain persistence operations
-- `JsonBlockchainPersistence` - File-based JSON persistence implementation with:
-  - Automatic save/load operations
-  - Backup file creation and rotation
-  - Thread-safe file operations
-  - Chain integrity validation on load
-- `BlockchainPersistenceSettings` - Configuration for persistence behavior
-- `DependencyInjection` - Extension methods for blockchain registration with persistence
-
-**Test Coverage**: 61 unit tests (42 blockchain + 12 persistence + 7 persistence integration, 100% passing)
+- `Blockchain` - Engine with genesis block, transaction management, block creation/validation, chain validation, persistence
+- `IBlockchainPersistence` + `JsonBlockchainPersistence` - File-based persistence with backup/rotation
+- `BlockchainPersistenceSettings` - Configuration
+- **Test Coverage**: 61 unit tests (blockchain + persistence, 100% passing)
 
 ### ✅ DataAccess Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.DataAccess/`
-
-**Database Context**:
-- `ApplicationDbContext` - EF Core DbContext with:
-  - DbSets for Shipments, ShipmentItems, Users, Validators NEW
-  - Automatic timestamp updates (Shipment, User, Validator) NEW
-  - Fluent API entity configurations
-
-**Entity Configurations**:
-- `ShipmentConfiguration` - Shipment table schema, indexes, relationships
-- `ShipmentItemConfiguration` - ShipmentItem with foreign key to Shipment
-- `UserConfiguration` - User table with unique constraints
-- `ValidatorConfiguration` - Validator table schema with composite indexes NEW
-
-**Repository Pattern**:
-- `IRepository<T>` - Generic repository interface (12 operations)
-- `Repository<T>` - Generic repository implementation
-- `IShipmentRepository` - Specialized shipment queries (8 methods)
-- `ShipmentRepository` - Shipment repository with eager loading
-- `IUserRepository` - User-specific queries (7 methods)
-- `UserRepository` - User repository implementation
-- `IValidatorRepository` - Validator-specific queries (9 methods) NEW
-- `ValidatorRepository` - Validator repository with round-robin selection NEW
-
-**Dependency Injection**:
-- `DependencyInjection` class with extension methods:
-  - `AddDataAccess()` - SQLite configuration (includes ValidatorRepository) NEW
-  - `AddDataAccessWithPostgreSQL()` - PostgreSQL configuration (includes ValidatorRepository) NEW
-  - `AddDataAccessWithInMemoryDatabase()` - In-memory for testing (includes ValidatorRepository) NEW
-- `DesignTimeDbContextFactory` - For EF Core design-time operations
-
-**Migrations**:
-- `InitialCreate` - Initial database schema with 3 tables (Users, Shipments, ShipmentItems)
-- `AddValidatorEntity` - Adds Validators table (migration ready) NEW
-- Comprehensive indexes and foreign key constraints
-
-**Database Schema**:
-- **Users**: 14 columns, unique indexes on Username/Email/PublicKey, role-based filtering
-- **Shipments**: 11 columns, unique QR code, foreign key relationships
-- **ShipmentItems**: 7 columns, cascade delete from Shipments
-- **Validators**: 11 columns, unique indexes on Name/PublicKey, composite index on IsActive+Priority NEW
+- `ApplicationDbContext` - EF Core DbContext with DbSets for Shipments, ShipmentItems, Users, Validators
+- Entity Configurations: `ShipmentConfiguration`, `ShipmentItemConfiguration`, `UserConfiguration`, `ValidatorConfiguration`
+- Repositories: `IRepository<T>`, `IShipmentRepository`, `IUserRepository`, `IValidatorRepository` (34 total methods)
+- DI Extensions: `AddDataAccess()`, `AddDataAccessWithPostgreSQL()`, `AddDataAccessWithInMemoryDatabase()`
+- Migrations: `InitialCreate`, `AddValidatorEntity` with optimized indexes and constraints
 
 ### ✅ Services Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Services/`
+- **Core Services** (8): `PasswordService` (BCrypt), `TokenService` (JWT), `KeyManagementService` (AES-256), `TransactionSigningContext`, `AuthenticationService`, `UserService`, `QrCodeService`, `ShipmentService`
+- **Consensus**: `IConsensusEngine` + `ProofOfAuthorityConsensusEngine` with round-robin validator selection, block signing, statistics tracking
+- **DTOs**: Authentication, User, Shipment, Blockchain (15+ DTOs)
+- **Exceptions**: `BusinessException`, `UnauthorizedException`, `NotFoundException`
+- **Security**: AES-256 key encryption, ECDSA signing, JWT auth (60min access + 7day refresh), real signature validation
+- **Test Coverage**: 153 unit tests (services + consensus, 100% passing)
 
-**Core Services**:
-- `PasswordService` - BCrypt password hashing and verification (work factor: 12)
-- `TokenService` - JWT access token and refresh token generation/validation
-- `KeyManagementService` - AES-256 encryption/decryption of private keys with PBKDF2
-- `TransactionSigningContext` - Thread-safe in-memory storage for decrypted private keys
-- `AuthenticationService` - User registration, login, token refresh, validation with key management
-- `UserService` - User CRUD operations, role assignment, activation/deactivation
-- `QrCodeService` - QR code generation for shipment tracking (Base64 and PNG formats)
-- `ShipmentService` - Complete shipment lifecycle with blockchain integration and real signatures
-
-**DTOs (Data Transfer Objects)**:
-- Authentication: `RegisterRequest`, `LoginRequest`, `AuthenticationResponse`, `RefreshTokenRequest`
-- User: `UserDto`, `UpdateUserRequest`, `AssignRoleRequest`
-- Shipment: `CreateShipmentRequest`, `ShipmentDto`, `UpdateShipmentStatusRequest`, `ShipmentItemDto`
-- Blockchain: `BlockDto`, `TransactionDto`, `ValidationResultDto`
-
-**Exception Classes**:
-- `BusinessException` - Business logic validation errors
-- `UnauthorizedException` - Authentication/authorization failures
-- `NotFoundException` - Resource not found errors
-
-**Consensus Engine** (NEW):
-- `IConsensusEngine` - Interface for consensus mechanisms
-- `ProofOfAuthorityConsensusEngine` - PoA consensus implementation with:
-  - Automated block creation with validator selection
-  - Round-robin block proposer selection from active validators
-  - Validator signature-based block validation
-  - Private key decryption for secure block signing
-  - Validator statistics tracking (blocks created, timestamps)
-  - Integration with validator repository and key management
-
-**Configuration**:
-- `JwtSettings` - JWT token configuration (secret key, issuer, audience, expiration times)
-- `DependencyInjection` - Service registration extension methods (includes AddProofOfAuthorityConsensus)
-
-**Key Features**:
-- JWT-based authentication with access tokens (60 min) and refresh tokens (7 days)
-- BCrypt password hashing for secure credential storage
-- **AES-256 private key encryption with user passwords (PBKDF2, 10000 iterations)**
-- **Real ECDSA transaction signing with cryptographically verified signatures**
-- **Blockchain transaction signature validation ENABLED**
-- Automatic key decryption and secure in-memory storage during user sessions
-- QR code generation for shipment tracking
-- Complete shipment lifecycle with cryptographically signed blockchain transactions
-- Role-based access control validation
-- Complete CRUD operations for users and shipments
-
-**Security Implementation**:
-- Private keys encrypted at rest with user passwords
-- Keys decrypted and stored in memory only during active sessions
-- All blockchain transactions signed with real ECDSA private keys
-- Transaction signatures validated before adding to blockchain
-- AES-256-CBC encryption with random salt and IV per key
-- PBKDF2 key derivation with 10,000 iterations and SHA-256
-
-**Production Considerations**:
-- Current implementation uses in-memory key storage (suitable for prototype/demo)
-- For production, consider:
-  - Azure Key Vault, AWS KMS, or Hardware Security Module (HSM)
-  - Session expiration for decrypted keys
-  - Key rotation mechanisms
-  - Proper logout to clear signing context
-
-**NuGet Packages**:
-- BCrypt.Net-Next 4.0.3
-- QRCoder 1.6.0
-- System.IdentityModel.Tokens.Jwt 8.2.1
-- Microsoft.IdentityModel.Tokens 8.2.1
-
-**Test Coverage**: 153 unit tests (123 services + 30 consensus, 100% passing)
-
-### ✅ API Module (95% - Authentication, Shipments, User Management, Blockchain Query, Smart Contracts & Validators Complete)
+### ✅ API Module (100% - All endpoints complete)
 **Location**: `src/BlockchainAidTracker.Api/`
-
-**Controllers**:
-- `AuthenticationController` - Complete authentication endpoints (5 endpoints)
-  - POST /api/authentication/register
-  - POST /api/authentication/login
-  - POST /api/authentication/refresh-token
-  - POST /api/authentication/logout (requires auth)
-  - GET /api/authentication/validate (requires auth)
-- `ShipmentController` - Complete shipment management endpoints (6 endpoints)
-  - POST /api/shipments - Create new shipment (Coordinator only)
-  - GET /api/shipments - List all shipments with optional filtering
-  - GET /api/shipments/{id} - Get shipment details
-  - PUT /api/shipments/{id}/status - Update shipment status
-  - POST /api/shipments/{id}/confirm-delivery - Confirm delivery (Recipient only)
-  - GET /api/shipments/{id}/history - Get blockchain transaction history
-  - GET /api/shipments/{id}/qrcode - Get shipment QR code as PNG
-- `UserController` - Complete user management endpoints (7 endpoints)
-  - GET /api/users/profile - Get current user's profile
-  - PUT /api/users/profile - Update current user's profile
-  - GET /api/users/{id} - Get user by ID (Admin/Coordinator or own profile)
-  - GET /api/users - List all users with optional role filter (Admin only)
-  - POST /api/users/assign-role - Assign role to user (Admin only)
-  - POST /api/users/{id}/deactivate - Deactivate user account (Admin only)
-  - POST /api/users/{id}/activate - Activate user account (Admin only)
-- `BlockchainController` - Complete blockchain query endpoints (5 endpoints)
-  - GET /api/blockchain/chain - Get complete blockchain with all blocks
-  - GET /api/blockchain/blocks/{index} - Get specific block by index
-  - GET /api/blockchain/transactions/{id} - Get transaction details by ID
-  - POST /api/blockchain/validate - Validate entire blockchain integrity
-  - GET /api/blockchain/pending - Get pending transactions awaiting block creation
-- `ContractsController` - Complete smart contract management endpoints (4 endpoints)
-  - GET /api/contracts - Get all deployed smart contracts
-  - GET /api/contracts/{contractId} - Get specific contract details
-  - GET /api/contracts/{contractId}/state - Get contract state
-  - POST /api/contracts/execute - Execute contract for a transaction (requires auth)
-- `ValidatorController` - Complete validator management endpoints (6 endpoints)
-  - POST /api/validators - Register new validator (Admin only)
-  - GET /api/validators - List all validators (Admin/Validator)
-  - GET /api/validators/{id} - Get validator by ID (Admin/Validator)
-  - PUT /api/validators/{id} - Update validator (Admin only)
-  - POST /api/validators/{id}/activate - Activate validator (Admin only)
-  - POST /api/validators/{id}/deactivate - Deactivate validator (Admin only)
-  - GET /api/validators/next - Get next validator for block creation
-- `ConsensusController` - Complete consensus operations endpoints (4 endpoints) NEW
-  - GET /api/consensus/status - Get consensus status and chain information
-  - POST /api/consensus/create-block - Manually create block (Admin/Validator only)
-  - POST /api/consensus/validate-block/{index} - Validate block by consensus rules (Admin/Validator only)
-  - GET /api/consensus/validators - Get all active validators
-
-**Background Services**:
-- `BlockCreationBackgroundService` - Automated block creation service NEW
-  - Runs every 30 seconds (configurable) to check for pending transactions
-  - Creates blocks automatically when minimum transaction threshold is met
-  - Uses consensus engine with round-robin validator selection
-  - Configurable via ConsensusSettings in appsettings.json
-  - Can be disabled for testing or manual control
-
-**Configuration** (Program.cs):
-- JWT Bearer authentication with token validation
-- **Blockchain with transaction signature validation ENABLED**
-- **Smart contracts with auto-deployment on startup**
-- **Proof-of-Authority consensus engine registered**
-- **Automated block creation background service**
-- Swagger/OpenAPI with JWT authentication UI
-- CORS policy for cross-origin requests
-- Health checks with database context monitoring
-- Environment-specific database initialization
-- All service layers registered (Cryptography, Blockchain, DataAccess, Services, KeyManagement, SmartContracts, Consensus)
-
-**NuGet Packages**:
-- Microsoft.AspNetCore.Authentication.JwtBearer 9.0.10
-- Swashbuckle.AspNetCore 7.2.0
-- Microsoft.AspNetCore.Mvc.Testing 9.0.10
-- Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore 9.0.10
-
-**Configuration Files**:
-- `appsettings.json` - Production configuration
-- `appsettings.Testing.json` - Test environment configuration
+- **Controllers** (7): `AuthenticationController` (5), `ShipmentController` (7), `UserController` (7), `BlockchainController` (5), `ContractsController` (4), `ValidatorController` (7), `ConsensusController` (4) = **39 total API endpoints**
+- **Background Services**: `BlockCreationBackgroundService` (automated 30-sec block creation)
+- **Configuration**: JWT auth, signature validation, smart contracts auto-deploy, Swagger/OpenAPI, CORS, health checks
+- **Test Coverage**: 107 integration tests (100% passing)
 
 ### ✅ Web Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.Web/`
-
-**Pages & Components**:
-- **Authentication Pages** (`Components/Pages/Auth/`)
-  - `Login.razor` - User login with JWT authentication
-  - `Register.razor` - User registration with role selection
-  - Form validation with DataAnnotations
-  - Error handling and user feedback
-
-- **Dashboard** (`Components/Pages/`)
-  - `Dashboard.razor` - Main dashboard with statistics cards
-  - Total shipments, delivered, in-transit, blockchain height
-  - Recent shipments table with status badges
-  - Blockchain status indicators (chain height, pending transactions, validity)
-  - Quick navigation to shipments and blockchain explorer
-
-- **Shipment Management** (`Components/Pages/Shipments/`)
-  - `ShipmentsList.razor` - Shipment list with filtering and search
-    - Real-time search by location or shipment ID
-    - Status filtering (Created, Validated, InTransit, Delivered, Confirmed)
-    - Card-based responsive layout
-    - Pagination support
-  - `CreateShipment.razor` - Shipment creation form (Coordinator role only)
-    - Multi-section form (location, recipient, timeframe, items)
-    - Dynamic item list management (add/remove items)
-    - Form validation with error messages
-    - Navigation after successful creation
-  - `ShipmentDetail.razor` - Detailed shipment view
-    - Complete shipment information display
-    - Shipment items table
-    - QR code display with image rendering
-    - Blockchain transaction timeline with timestamps
-    - Quick action buttons (view on blockchain, back to list)
-
-- **Blockchain Explorer** (`Components/Pages/Blockchain/`)
-  - `BlockchainExplorer.razor` - Blockchain block list and viewer
-    - Statistics cards (chain height, total transactions, pending, validity)
-    - Block list table with hash, timestamp, transaction count
-    - Block detail modal with complete block information
-    - Transaction list within blocks
-    - Hash and signature verification display
-    - Visual transaction type badges
-
-- **Layout Components** (`Components/Layout/`)
-  - `MainLayout.razor` - Main application layout
-  - `NavMenu.razor` - Navigation menu with role-based display
-    - Conditional navigation items based on authentication
-    - Role-based menu items (Coordinator-only create shipment)
-    - User profile display with username
-    - Logout functionality
-
-**Services** (`Services/`)
-- `CustomAuthenticationStateProvider` - Authentication state management
-  - JWT token storage in local storage
-  - Automatic token refresh on expiration
-  - Authentication state change notifications
-  - Secure logout with token cleanup
-- `ApiClientService` - HTTP client wrapper for API calls
-  - Generic GET/POST/PUT/DELETE methods
-  - Centralized error handling
-  - JSON serialization with case-insensitive options
-  - Base URL configuration from appsettings
-- `ApiSettings` - Configuration class for API base URL
-
-**Configuration** (Program.cs):
-- Blazor Server with Interactive Server render mode
-- Blazored.LocalStorage for token persistence
-- Microsoft.AspNetCore.Components.Authorization for auth
-- HttpClient configuration with ApiClientService
-- CascadingAuthenticationState for auth context
-- Authorization core services
-
-**NuGet Packages**:
-- Blazored.LocalStorage 4.5.0
-- Microsoft.AspNetCore.Components.Authorization 9.0.0
-- System.IdentityModel.Tokens.Jwt (for token parsing)
-
-**Features**:
-- JWT-based authentication with automatic refresh
-- Role-based access control (Coordinator, Recipient, Donor, etc.)
-- Responsive Bootstrap 5 UI with Bootstrap Icons
-- Real-time data fetching from API
-- Client-side filtering and search
-- Modal dialogs for detailed views
-- Form validation with user feedback
-- Loading states and error handling
-- QR code image display from API
-- Timeline visualization for blockchain transactions
-- Hash and signature display with truncation
-- Breadcrumb navigation
-- Status badge color coding
-
-**Configuration Files**:
-- `appsettings.json` - API base URL configuration
-- `appsettings.Development.json` - Development settings
+- **16 Blazor Pages**: Auth (Login, Register), Dashboard, Shipments (List, Create, Detail), Blockchain Explorer, User/Validator/Consensus Management, Smart Contracts, User Profile
+- **Services**: `CustomAuthenticationStateProvider` (JWT auth + auto-refresh), `ApiClientService` (HTTP wrapper), `ApiSettings` (config)
+- **Features**: Role-based access, Bootstrap 5 UI, filtering/search, modals, QR codes, blockchain timeline, real-time data, breadcrumbs
+- **Configuration**: Blazor Server, Blazored.LocalStorage, auto auth state refresh
 
 ### ✅ SmartContracts Module (100% Complete)
 **Location**: `src/BlockchainAidTracker.SmartContracts/`
+- **Framework**: `ISmartContract`, `SmartContract` (base), `ContractExecutionContext`, `ContractExecutionResult`, `SmartContractEngine`
+- **Contracts**: `DeliveryVerificationContract`, `ShipmentTrackingContract` (with state transitions, event emission, validation)
+- **Features**: Thread-safe state management, event-driven, error handling, multiple concurrent executions
+- **Test Coverage**: 90 unit tests (100% passing)
 
-**Core Framework**:
-- `ISmartContract` - Interface for smart contracts with execution lifecycle
-- `SmartContract` - Abstract base class with state management and event emission
-- `ContractExecutionContext` - Execution context with transaction, block, and custom data
-- `ContractExecutionResult` - Result wrapper with success/failure, output, state changes, and events
-- `ContractEvent` - Event emission for contract actions
-- `SmartContractEngine` - Contract deployment and execution engine
-
-**Built-in Contracts**:
-- `DeliveryVerificationContract` - Validates delivery confirmations
-  - Verifies recipient identity matches assigned recipient
-  - Optional QR code verification for physical scanning
-  - Checks delivery timeframe (on-time vs delayed)
-  - Emits DeliveryVerified, QRCodeVerificationFailed, and DeliveryDelayed events
-  - Updates contract state with verification status and timestamps
-- `ShipmentTrackingContract` - Manages shipment lifecycle
-  - Validates shipment creation with required fields
-  - Auto-validation logic for shipments with items
-  - Enforces valid state transitions (Created → Validated → InTransit → Delivered → Confirmed)
-  - Emits ShipmentCreated, ShipmentAutoValidated, ShipmentStatusUpdated, InvalidStateTransition events
-  - Tracks shipment state, timestamps, and update history
-  - Complete lifecycle management from creation to confirmation
-
-**Dependency Injection**:
-- `AddSmartContracts()` - Registers smart contract services
-- `AddSmartContractsWithAutoDeployment()` - Auto-deploys registered contracts on startup
-
-**Features**:
-- Thread-safe state management with lock-based synchronization
-- Event-driven architecture for contract actions
-- Flexible execution context with custom data support
-- Comprehensive error handling and validation
-- State change tracking and persistence
-- Support for multiple concurrent contract executions
-
-**Test Coverage**: 90 unit tests (100% passing)
-
-### ✅ Validator Module (100% Complete) NEW
-**Location**: Multiple (`src/BlockchainAidTracker.Core/Models/`, `src/BlockchainAidTracker.DataAccess/`, `src/BlockchainAidTracker.Services/`, `src/BlockchainAidTracker.Api/`)
-
-**Domain Model**:
-- `Validator` - Validator entity with full lifecycle management
-  - Unique name and public key for identification
-  - Priority-based ordering for block proposer selection
-  - Network address for validator communication
-  - Activity status tracking (active/inactive)
-  - Block creation statistics (count and last timestamp)
-  - Encrypted private key storage with password-based encryption
-
-**Data Access Layer**:
-- `ValidatorConfiguration` - EF Core entity configuration with indexes
-- `IValidatorRepository` - Validator-specific repository interface (9 methods)
-- `ValidatorRepository` - Repository implementation with specialized queries
-  - Query by name, public key, priority
-  - Get active validators ordered by priority
-  - Round-robin block proposer selection
-  - Block creation tracking
-
-**Services Layer**:
-- `IValidatorService` - Validator management service interface (11 methods)
-- `ValidatorService` - Business logic implementation
-  - Validator registration with key pair generation
-  - Key encryption with validator passwords
-  - Activation/deactivation management
-  - Priority and address updates
-  - Block creation statistics tracking
-  - Next validator selection for consensus
-
-**DTOs**:
-- `ValidatorDto` - Validator data transfer object
-- `CreateValidatorRequest` - Validator registration request
-- `UpdateValidatorRequest` - Validator update request
-
-**API Endpoints (ValidatorController)** (6 endpoints):
-- POST /api/validators - Register new validator (Admin only)
-- GET /api/validators - List all validators (Admin/Validator)
-- GET /api/validators/{id} - Get validator by ID (Admin/Validator)
-- PUT /api/validators/{id} - Update validator (Admin only)
-- POST /api/validators/{id}/activate - Activate validator (Admin only)
-- POST /api/validators/{id}/deactivate - Deactivate validator (Admin only)
-- GET /api/validators/next - Get next validator for block creation
-
-**Key Features**:
-- ECDSA key pair generation for validators
-- AES-256 encryption of validator private keys
-- Round-robin block proposer selection
-- Priority-based validator ordering
-- Block creation tracking and statistics
-- Role-based access control (Administrator access required)
-- Complete CRUD operations with validation
-
-**Test Coverage**: 30 unit tests (22 entity + 8 repository)
+### ✅ Validator Module (100% Complete)
+**Location**: Multiple modules
+- **Entity**: `Validator` (name, pubkey, priority, network address, statistics, encrypted privkey)
+- **Repository**: `IValidatorRepository` (9 methods: queries, round-robin selection, tracking)
+- **Service**: `IValidatorService` (11 methods: registration, encryption, activation, consensus)
+- **API**: 7 endpoints (register, list, get, update, activate, deactivate, next)
+- **Features**: ECDSA keys, AES-256 encryption, round-robin selection, statistics
+- **Test Coverage**: 30 unit tests
 
 ### ✅ Test Suite (594 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
-- **Services tests: 159 tests** (123 services + 30 consensus + 6 background service)
-  - PasswordService tests: 13 tests
-  - TokenService tests: 17 tests
-  - AuthenticationService tests: 21 tests
-  - UserService tests: 16 tests
-  - QrCodeService tests: 14 tests
-  - ShipmentService tests: 42 tests
-  - ProofOfAuthorityConsensusEngine tests: 30 tests
-  - BlockCreationBackgroundService tests: 6 tests
-- **SmartContracts tests: 90 tests**
-  - SmartContractEngine tests: 24 tests
-  - DeliveryVerificationContract tests: 15 tests
-  - ShipmentTrackingContract tests: 51 tests
-- Core model tests: 75 tests
-  - Shipment/ShipmentItem tests: 53 tests
-  - Validator tests: 22 tests
-- Database tests: 71 tests
-  - UserRepository tests: 31 tests
-  - ShipmentRepository tests: 32 tests
-  - ValidatorRepository tests: 8 tests
-  - ApplicationDbContext tests: 20 tests
-- **Blockchain tests: 61 tests** (42 blockchain + 12 persistence + 7 persistence integration) NEW
-  - Blockchain core tests: 42 tests
-  - **JsonBlockchainPersistence tests: 12 tests** NEWEST
-  - **Blockchain persistence integration tests: 7 tests** NEWEST
-- Cryptography tests: 31 tests
-- **Integration tests: 107 tests**
-  - AuthenticationController API tests: 17 tests
-  - ShipmentController API tests: 22 tests
-  - UserController API tests: 28 tests
-  - BlockchainController API tests: 16 tests
-  - ContractsController API tests: 11 tests
-  - ConsensusController API tests: 13 tests
-  - Full end-to-end workflows (authentication, shipment, user management, blockchain query, smart contracts, consensus)
-  - Real ECDSA signature generation and validation in tests
-  - In-memory database for test isolation
-  - WebApplicationFactory for API testing
-- **Test Infrastructure**:
-  - `DatabaseTestBase` - Base class with automatic cleanup and isolation (unit tests)
-  - `CustomWebApplicationFactory` - API test factory with in-memory database (integration tests)
-  - `TestDataBuilder` - Fluent builders (UserBuilder, ShipmentBuilder, ValidatorBuilder)
-  - In-memory database with unique instances per test
-  - Moq framework for mocking dependencies in service tests
-  - All tests pass with real cryptographic signature validation
-- Execution time: ~27 seconds
+- **Services** (159): Password, Token, Auth, User, QrCode, Shipment, Consensus, Background Service
+- **SmartContracts** (90): Engine, DeliveryVerification, ShipmentTracking
+- **Models** (75): Shipment/Items, Validator
+- **Database** (71): Repositories (User, Shipment, Validator), DbContext
+- **Blockchain** (61): Core, Persistence, Integration
+- **Cryptography** (31): SHA-256, ECDSA
+- **Integration** (107): Auth, Shipments, Users, Blockchain, Contracts, Consensus API (with end-to-end workflows, real signatures, WebApplicationFactory)
+- **Test Infrastructure**: `DatabaseTestBase`, `CustomWebApplicationFactory`, builders (User, Shipment, Validator), in-memory DB isolation, Moq
+- **Execution**: ~27 seconds
 
 ---
 
@@ -773,6 +365,249 @@ All features below are planned for step-by-step implementation. Each section rep
 - [ ] Build user profile management page
 - [ ] Implement role assignment interface (admin only)
 - [ ] Add user authentication state management
+
+---
+
+### 2.5. Customer Role Implementation (NEW)
+
+#### TODO: Customer Role - Core Domain & Data Model
+**Purpose**: Suppliers/vendors who provide goods/resources upfront and receive automatic payment via smart contract upon shipment pipeline completion
+**Location**: Multiple modules (Core, DataAccess, Services, Api, Web)
+
+**A. Domain Model Updates**:
+- [ ] Add `Customer` to UserRole enum (extending existing 6 roles: Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner)
+- [ ] Create `Supplier` entity with customer-specific fields:
+  - [ ] Supplier ID (unique identifier)
+  - [ ] Company name and registration ID
+  - [ ] Contact information (email, phone)
+  - [ ] Business category/type (Food, Medicine, Supplies, etc.)
+  - [ ] Bank account details (encrypted: IBAN/Swift code for payment settlement)
+  - [ ] Payment threshold (minimum shipment value to trigger automatic payment)
+  - [ ] Tax ID and business registration number
+  - [ ] Verification status (Pending, Verified, Rejected)
+  - [ ] Created and Updated timestamps
+  - [ ] IsActive flag
+- [ ] Create `SupplierShipment` junction entity linking Suppliers to Shipments:
+  - [ ] Supplier ID (FK)
+  - [ ] Shipment ID (FK)
+  - [ ] Goods provided (description and quantity)
+  - [ ] Value of goods (decimal with 2 places)
+  - [ ] Currency (USD, EUR, etc.)
+  - [ ] Provided timestamp
+  - [ ] Payment released flag (boolean)
+  - [ ] Payment released timestamp (nullable)
+  - [ ] Payment transaction reference (blockchain transaction ID)
+  - [ ] Payment status (Pending, Completed, Failed, Disputed)
+- [ ] Create `PaymentRecord` entity for tracking automatic payments:
+  - [ ] Payment ID (unique)
+  - [ ] Supplier ID (FK)
+  - [ ] Shipment ID (FK)
+  - [ ] Amount (decimal)
+  - [ ] Currency
+  - [ ] Payment method (Bank Transfer, Blockchain Token, etc.)
+  - [ ] Status (Initiated, Completed, Failed, Reversed)
+  - [ ] Blockchain transaction hash (for token transfers)
+  - [ ] Created timestamp
+  - [ ] Completed timestamp (nullable)
+  - [ ] Failure reason (nullable)
+
+**B. Database & Migrations**:
+- [ ] Create EF Core entity configurations for Supplier, SupplierShipment, PaymentRecord
+- [ ] Add DbSet properties to ApplicationDbContext:
+  - [ ] DbSet<Supplier> Suppliers
+  - [ ] DbSet<SupplierShipment> SupplierShipments
+  - [ ] DbSet<PaymentRecord> PaymentRecords
+- [ ] Create database migration: `AddCustomerSupplierPaymentSystem`
+- [ ] Add indexes for query optimization:
+  - [ ] Supplier: (IsActive, VerificationStatus)
+  - [ ] SupplierShipment: (SupplierId, ShipmentId), (SupplierId, PaymentStatus)
+  - [ ] PaymentRecord: (SupplierId, Status), (CreatedTimestamp)
+- [ ] Configure foreign key constraints with cascade delete rules
+- [ ] Create repository interfaces and implementations:
+  - [ ] `ISupplierRepository` with methods (8 methods):
+    - [ ] GetByIdAsync(supplierId)
+    - [ ] GetByCompanyNameAsync(companyName)
+    - [ ] GetAllAsync() / GetAllActiveAsync()
+    - [ ] GetByVerificationStatusAsync(status)
+    - [ ] GetSupplierShipmentsAsync(supplierId)
+    - [ ] AddAsync(supplier) / UpdateAsync(supplier)
+  - [ ] `ISupplierShipmentRepository` with methods (6 methods):
+    - [ ] GetByShipmentIdAsync(shipmentId)
+    - [ ] GetBySupplierIdAsync(supplierId)
+    - [ ] GetPendingPaymentsAsync(supplierId)
+    - [ ] AddAsync(supplierShipment)
+    - [ ] UpdatePaymentStatusAsync(supplierShipmentId, status)
+  - [ ] `IPaymentRepository` with methods (7 methods):
+    - [ ] GetByIdAsync(paymentId)
+    - [ ] GetBySupplierIdAsync(supplierId)
+    - [ ] GetByShipmentIdAsync(shipmentId)
+    - [ ] GetPendingPaymentsAsync()
+    - [ ] AddAsync(paymentRecord)
+    - [ ] UpdateStatusAsync(paymentId, status)
+
+**C. Services Layer**:
+- [ ] Create `ISupplierService` interface with business logic methods
+- [ ] Implement `SupplierService` class:
+  - [ ] `RegisterSupplierAsync(request)` - Register new supplier with verification workflow
+  - [ ] `UpdateSupplierAsync(id, request)` - Update supplier information
+  - [ ] `VerifySupplierAsync(id, status)` - Admin verification (change from Pending → Verified/Rejected)
+  - [ ] `GetSupplierAsync(id)` - Get supplier details
+  - [ ] `ListSuppliersAsync(filter)` - List all suppliers with filtering by status
+  - [ ] `ActivateSupplierAsync(id)` / `DeactivateSupplierAsync(id)` - Activation control
+  - [ ] `GetSupplierShipmentsAsync(supplierId)` - Get supplier's associated shipments
+  - [ ] Role-based access control (Customer/Admin only for own supplier ops)
+- [ ] Create `IPaymentService` interface for automated payment processing
+- [ ] Implement `PaymentService` class:
+  - [ ] `CalculatePaymentAmountAsync(shipmentId, supplierId)` - Calculate total payment from supplier shipments
+  - [ ] `InitiatePaymentAsync(shipmentId)` - Trigger payment on shipment completion (called by smart contract)
+  - [ ] `ProcessPaymentAsync(paymentId)` - Execute actual payment (bank transfer or token transfer)
+  - [ ] `CompletePaymentAsync(paymentId, transactionReference)` - Mark payment as completed
+  - [ ] `HandlePaymentFailureAsync(paymentId, reason)` - Handle failed payments
+  - [ ] `GetPaymentHistoryAsync(supplierId)` - Get supplier's payment history
+  - [ ] `VerifyPaymentStatusAsync(paymentId)` - Check payment status from blockchain
+  - [ ] Integration with bank/payment gateway (extensible interface)
+  - [ ] Integration with blockchain for token transfers (optional)
+- [ ] Create DTOs:
+  - [ ] `SupplierDto` (read)
+  - [ ] `CreateSupplierRequest` (request)
+  - [ ] `UpdateSupplierRequest` (request)
+  - [ ] `SupplierVerificationRequest` (admin action)
+  - [ ] `PaymentDto` (read)
+  - [ ] `PaymentHistoryDto` (read)
+  - [ ] `SupplierShipmentDto` (read - showing goods provided)
+- [ ] Create custom exceptions:
+  - [ ] `SupplierNotVerifiedException` - When unverified supplier attempts payment
+  - [ ] `PaymentProcessingException` - When payment processing fails
+  - [ ] `InsufficientFundsException` - When payment amount below threshold
+
+**D. Smart Contract - Automatic Payment Contract**:
+- [ ] Create `PaymentReleaseContract` smart contract:
+  - [ ] Triggered when shipment reaches "Confirmed" status
+  - [ ] Validates all suppliers associated with shipment have met requirements
+  - [ ] Calculates total payment for each supplier
+  - [ ] Checks payment threshold requirements
+  - [ ] Executes payment release for qualifying suppliers
+  - [ ] Emits `PaymentInitiated`, `PaymentCompleted`, `PaymentFailed` events
+  - [ ] Updates PaymentRecord status in database via event handler
+  - [ ] State tracking: supplier balance, payment history, dispute flags
+  - [ ] Error handling: failed payments tracked for retry logic
+- [ ] Update `ShipmentTrackingContract`:
+  - [ ] Add trigger to call PaymentReleaseContract on "Confirmed" status
+  - [ ] Emit supplier payment event with supplier IDs
+- [ ] Create `IPaymentGateway` interface for external payment integration:
+  - [ ] `ProcessBankTransferAsync(supplier, amount, currency)` - SEPA/ACH transfers
+  - [ ] `ProcessCryptoTransferAsync(supplier, amount, tokenAddress)` - Blockchain transfers (optional)
+  - [ ] `VerifyPaymentStatusAsync(transactionReference)` - Check payment completion
+
+**E. API Endpoints (SupplierController)**:
+- [ ] POST /api/suppliers - Register new supplier (auth required, Customer role)
+  - [ ] Request: CompanyName, ContactEmail, ContactPhone, Category, BankDetails (encrypted), PaymentThreshold, TaxId
+  - [ ] Response: SupplierId, VerificationStatus (Pending)
+  - [ ] Create blockchain transaction: SUPPLIER_REGISTERED
+- [ ] GET /api/suppliers/{id} - Get supplier details (auth required, Admin or owner)
+- [ ] GET /api/suppliers - List all suppliers (Admin only)
+  - [ ] Filtering: VerificationStatus, IsActive
+  - [ ] Pagination support
+- [ ] PUT /api/suppliers/{id} - Update supplier (auth required, Owner or Admin)
+  - [ ] Allow updates: ContactInfo, PaymentThreshold, BankDetails
+  - [ ] Restrict updates: CompanyName, TaxId (to prevent fraud)
+  - [ ] Create blockchain transaction: SUPPLIER_UPDATED
+- [ ] POST /api/suppliers/{id}/verify - Verify/reject supplier (Admin only)
+  - [ ] Request: Status (Verified/Rejected), Notes (optional)
+  - [ ] Create blockchain transaction: SUPPLIER_VERIFIED
+- [ ] POST /api/suppliers/{id}/activate - Activate supplier (Admin only)
+- [ ] POST /api/suppliers/{id}/deactivate - Deactivate supplier (Admin only)
+- [ ] GET /api/suppliers/{id}/shipments - Get supplier's shipments (Auth, Owner or Admin)
+- [ ] GET /api/suppliers/{id}/payments - Get supplier's payment history (Auth, Owner or Admin)
+  - [ ] Filtering: Status, DateRange
+  - [ ] Summary: TotalEarned, PendingPayments, CompletedPayments
+
+**F. Payment Processing Endpoints (PaymentController)**:
+- [ ] GET /api/payments/{id} - Get payment details (Auth required)
+- [ ] POST /api/payments/{paymentId}/retry - Retry failed payment (Admin/Owner)
+- [ ] POST /api/payments/{paymentId}/dispute - Dispute payment (Owner/Admin)
+- [ ] GET /api/payments - List payments (Admin: all, User: own payments)
+  - [ ] Filtering: Status, SupplierStatus, DateRange
+- [ ] GET /api/payments/pending - Get all pending payments (Admin only)
+- [ ] POST /api/payments/{paymentId}/confirm - Confirm payment completion (Admin, after external verification)
+- [ ] GET /api/payments/report - Get payment report (Admin only)
+  - [ ] Aggregate metrics: Total paid, Pending, Failed, by currency, by supplier
+
+**G. Transaction Types Extension**:
+- [ ] Add new TransactionType enum values:
+  - [ ] `SUPPLIER_REGISTERED` - When supplier registers
+  - [ ] `SUPPLIER_VERIFIED` - When admin verifies supplier
+  - [ ] `SUPPLIER_UPDATED` - When supplier updates profile
+  - [ ] `PAYMENT_INITIATED` - When payment process starts
+  - [ ] `PAYMENT_RELEASED` - When payment completes (immutable audit trail)
+  - [ ] `PAYMENT_FAILED` - When payment fails (attempts tracked)
+
+**H. Database Tests (Unit Tests)**:
+- [ ] SupplierRepository tests (10 tests):
+  - [ ] GetByIdAsync with various states
+  - [ ] GetByCompanyNameAsync (exact and case-insensitive)
+  - [ ] GetByVerificationStatusAsync (filter by Pending/Verified/Rejected)
+  - [ ] Unique constraint on CompanyName and TaxId
+  - [ ] Active/Inactive filtering
+- [ ] SupplierShipmentRepository tests (8 tests):
+  - [ ] Create supplier shipment association
+  - [ ] Get shipments by supplier
+  - [ ] Payment status tracking
+  - [ ] Cascade delete when shipment deleted
+- [ ] PaymentRepository tests (8 tests):
+  - [ ] Create and retrieve payment records
+  - [ ] Status transitions
+  - [ ] Query by supplier and shipment
+  - [ ] Timestamp tracking
+  - [ ] Find pending payments
+
+**I. Services Layer Tests (Unit Tests)**:
+- [ ] SupplierService tests (15 tests):
+  - [ ] RegisterSupplierAsync - success and validation
+  - [ ] VerifySupplierAsync - state transitions
+  - [ ] UpdateSupplierAsync - field restrictions
+  - [ ] Activation/deactivation
+  - [ ] Access control validation
+- [ ] PaymentService tests (20 tests):
+  - [ ] CalculatePaymentAmountAsync - accurate totals
+  - [ ] InitiatePaymentAsync - correct state management
+  - [ ] ProcessPaymentAsync - payment gateway integration
+  - [ ] Error handling (insufficient funds, failed payments)
+  - [ ] Payment history retrieval
+  - [ ] Retry logic for failed payments
+
+**J. API Integration Tests (Integration Tests)**:
+- [ ] SupplierController tests (18 tests):
+  - [ ] Register supplier (success, validation errors)
+  - [ ] Get supplier (access control)
+  - [ ] List suppliers (pagination, filtering)
+  - [ ] Update supplier (allowed/disallowed fields)
+  - [ ] Verify supplier (admin only, state transitions)
+  - [ ] Activate/deactivate
+  - [ ] Get supplier shipments and payments
+  - [ ] Blockchain transaction creation for each operation
+- [ ] PaymentController tests (16 tests):
+  - [ ] Get payment details (access control)
+  - [ ] List payments (filtering, pagination)
+  - [ ] Retry failed payment
+  - [ ] Dispute payment
+  - [ ] Generate payment report
+  - [ ] Pending payment queries
+  - [ ] Status verification
+
+**K. Smart Contract Tests (Unit Tests)**:
+- [ ] PaymentReleaseContract tests (14 tests):
+  - [ ] Calculate payment amounts correctly
+  - [ ] Validate supplier verification status
+  - [ ] Check payment thresholds
+  - [ ] Execute payment on shipment completion
+  - [ ] Emit correct events
+  - [ ] Handle failed payments
+  - [ ] State management (balances, history)
+- [ ] Shipment contract integration with payment (6 tests):
+  - [ ] Trigger payment contract on confirmed status
+  - [ ] Handle multiple suppliers per shipment
+  - [ ] Payment ordering and sequencing
 
 ---
 
@@ -1078,6 +913,500 @@ All features below are planned for step-by-step implementation. Each section rep
 - [ ] Implement pagination for large datasets
 - [ ] Add accessibility features (enhanced ARIA labels, keyboard navigation)
 - [ ] Create print-friendly views
+
+#### TODO: LogisticsPartner Backend & UI Implementation
+**Purpose**: Enable logistics partners to track and manage shipment delivery across the supply chain
+**Location**: API (Controllers, Services), DataAccess (Repositories), Web (Blazor Pages/Components)
+
+**A. Backend - LogisticsPartner Service Layer**:
+- [ ] Create `ILogisticsPartnerService` interface:
+  - [ ] `GetAssignedShipmentsAsync(userId, filter)` - Get shipments assigned to this partner
+  - [ ] `GetShipmentLocationAsync(shipmentId)` - Get current shipment location/status
+  - [ ] `UpdateLocationAsync(shipmentId, location)` - Update shipment location with coordinates
+  - [ ] `ConfirmDeliveryInitiationAsync(shipmentId)` - Confirm delivery started
+  - [ ] `GetDeliveryHistoryAsync(shipmentId)` - Get delivery tracking history
+  - [ ] `GetShipmentDocumentsAsync(shipmentId)` - Get delivery documents (proof of delivery, etc.)
+  - [ ] `ReportDeliveryIssueAsync(shipmentId, issue)` - Report delivery problems
+  - [ ] Role-based access control (LogisticsPartner role validation)
+- [ ] Implement `LogisticsPartnerService` class with 8 methods above
+- [ ] Create DTOs:
+  - [ ] `LogisticsPartnerShipmentDto` (shipment info for partner view)
+  - [ ] `ShipmentLocationDto` (location + timestamp)
+  - [ ] `DeliveryHistoryDto` (tracking events)
+  - [ ] `DeliveryDocumentDto` (proof of delivery)
+  - [ ] `DeliveryIssueDto` (problem reporting)
+
+**B. Backend - Location & Tracking Entities**:
+- [ ] Create `ShipmentLocation` entity:
+  - [ ] Shipment ID (FK)
+  - [ ] Latitude & Longitude (coordinates)
+  - [ ] Location name/address
+  - [ ] Timestamp
+  - [ ] GPS accuracy (optional)
+  - [ ] Updated by user ID
+- [ ] Create `DeliveryEvent` entity for tracking:
+  - [ ] Shipment ID (FK)
+  - [ ] Event type (LocationUpdate, DeliveryStarted, IssueReported, Delivered, etc.)
+  - [ ] Description
+  - [ ] CreatedAt timestamp
+  - [ ] CreatedBy user ID
+  - [ ] Related metadata (JSON)
+- [ ] Create EF Core configurations for both entities
+- [ ] Add DbSet properties to ApplicationDbContext
+- [ ] Create repositories:
+  - [ ] `IShipmentLocationRepository` with 5 methods:
+    - [ ] GetLatestAsync(shipmentId)
+    - [ ] GetHistoryAsync(shipmentId, dateRange)
+    - [ ] AddAsync(location)
+    - [ ] GetAllByShipmentAsync(shipmentId)
+  - [ ] `IDeliveryEventRepository` with 6 methods:
+    - [ ] GetByShipmentAsync(shipmentId)
+    - [ ] GetByTypeAsync(eventType)
+    - [ ] GetRecentAsync(shipmentId, count)
+    - [ ] AddAsync(event)
+    - [ ] GetWithDateRangeAsync(shipmentId, startDate, endDate)
+
+**C. Backend - API Endpoints (LogisticsPartnerShipmentsController)**:
+- [ ] GET /api/logistics/shipments - List assigned shipments (LogisticsPartner role required)
+  - [ ] Filtering: Status, Date range, Destination
+  - [ ] Pagination
+  - [ ] Sorting: Priority, Date, Status
+- [ ] GET /api/logistics/shipments/{id} - Get shipment details with location history
+- [ ] PUT /api/logistics/shipments/{id}/location - Update current location
+  - [ ] Request: Latitude, Longitude, LocationName (optional)
+  - [ ] Create blockchain transaction: LOCATION_UPDATED
+  - [ ] Response: Confirmation + updated location
+- [ ] POST /api/logistics/shipments/{id}/delivery-started - Mark delivery as started
+  - [ ] Create blockchain transaction: DELIVERY_STARTED
+- [ ] POST /api/logistics/shipments/{id}/report-issue - Report delivery issue
+  - [ ] Request: IssueType, Description, Priority
+  - [ ] Create blockchain transaction: DELIVERY_ISSUE_REPORTED
+- [ ] GET /api/logistics/shipments/{id}/tracking-history - Get full delivery history
+  - [ ] Include all location updates and delivery events
+  - [ ] Include blockchain transaction hashes
+- [ ] GET /api/logistics/shipments/{id}/documents - Get delivery documents
+- [ ] POST /api/logistics/shipments/{id}/confirm-receipt - Confirm final receipt
+  - [ ] Create blockchain transaction: DELIVERY_RECEIPT_CONFIRMED
+
+**D. Backend - Database Migration & Tests**:
+- [ ] Create migration: `AddLogisticsPartnerTrackingSystem`
+- [ ] Add indexes:
+  - [ ] ShipmentLocation: (ShipmentId, CreatedAt DESC)
+  - [ ] DeliveryEvent: (ShipmentId, CreatedAt), (EventType, CreatedAt)
+- [ ] Create database tests (12 tests):
+  - [ ] ShipmentLocationRepository tests (6 tests): CRUD, queries, ordering
+  - [ ] DeliveryEventRepository tests (6 tests): By type, date range, recent events
+- [ ] Create service tests (10 tests):
+  - [ ] LogisticsPartnerService tests (10 tests): Location updates, issue reporting, access control
+
+**E. Frontend - LogisticsPartner UI Pages**:
+- [ ] Create `LogisticsPartnerShipments.razor` page (LogisticsPartner role required):
+  - [ ] List assigned shipments with cards or table
+  - [ ] Filtering: Status (In Transit, Delivered, etc.), Date range
+  - [ ] Sorting options: Priority, Date, Status
+  - [ ] Search by shipment ID or destination
+  - [ ] Status badges with color coding
+  - [ ] Quick action buttons: View details, Update location, Report issue
+- [ ] Create `LogisticsPartnerShipmentDetail.razor` component:
+  - [ ] Full shipment information display
+  - [ ] Current location map view (using free mapping library or static map)
+  - [ ] Location history with timestamps
+  - [ ] Delivery events timeline
+  - [ ] Delivery documents (if any)
+  - [ ] Blockchain transaction history
+  - [ ] Action buttons: Update location modal, Report issue modal, Confirm receipt
+- [ ] Create `UpdateLocation.razor` modal component:
+  - [ ] Form with: Latitude, Longitude, Location name (optional)
+  - [ ] Map picker (optional, for better UX)
+  - [ ] Validation: Coordinates within valid range (-90 to 90 lat, -180 to 180 lon)
+  - [ ] Submit action: POST to /api/logistics/shipments/{id}/location
+  - [ ] Success message with blockchain transaction hash
+- [ ] Create `ReportDeliveryIssue.razor` modal component:
+  - [ ] Form with: IssueType (dropdown: Delay, Damage, Lost, Other), Description, Priority (Low/Medium/High)
+  - [ ] Validation: Required fields
+  - [ ] Submit action: POST to /api/logistics/shipments/{id}/report-issue
+  - [ ] Confirmation message
+- [ ] Create `ShipmentTrackingTimeline.razor` component (reusable):
+  - [ ] Display delivery events as timeline
+  - [ ] Color-coded event types
+  - [ ] Timestamps for each event
+  - [ ] Icons for different event types (location pin, checkmark, alert, etc.)
+- [ ] Update NavMenu.razor:
+  - [ ] Add "Shipments" link for LogisticsPartner role (routes to LogisticsPartnerShipments)
+
+**F. Frontend - UI/UX Enhancements**:
+- [ ] Implement map display for shipment location (using Leaflet.js or similar)
+- [ ] Add map markers for current location and destination
+- [ ] Create location update confirmation dialog
+- [ ] Add success/error notifications for all actions
+- [ ] Implement loading spinners for API calls
+- [ ] Add breadcrumb navigation: Dashboard > Shipments > [Shipment ID]
+- [ ] Responsive design for mobile devices (important for field work)
+
+---
+
+#### TODO: Donor UI Implementation
+**Purpose**: Enable donors to track their funded shipments and verify supply chain transparency
+**Location**: Web (Blazor Pages/Components)
+
+**A. Backend - Donor Query Service (Optional Enhancement)**:
+- [ ] Create `IDonorService` interface:
+  - [ ] `GetFundedShipmentsAsync(userId, filter)` - Get shipments funded by this donor
+  - [ ] `GetShipmentDetailsAsync(shipmentId)` - Get full shipment details with blockchain verification
+  - [ ] `VerifyShipmentIntegrityAsync(shipmentId)` - Verify all blockchain transactions
+  - [ ] `GetShipmentBlockchainHistoryAsync(shipmentId)` - Get immutable transaction history
+  - [ ] `VerifyDeliveryAsync(shipmentId)` - Verify delivery was completed
+- [ ] Note: Most data retrieval already exists; this service wraps and organizes for donor perspective
+
+**B. Frontend - Donor Dashboard Page**:
+- [ ] Create `DonorDashboard.razor` page (Donor role required):
+  - [ ] Statistics cards:
+    - [ ] Total shipments funded
+    - [ ] Completed deliveries (percentage)
+    - [ ] Pending shipments
+    - [ ] Total value of shipments
+  - [ ] Funded shipments list with cards:
+    - [ ] Shipment ID, destination, total value
+    - [ ] Status badge (Created, Validated, InTransit, Delivered, Confirmed)
+    - [ ] Delivery progress bar (percentage based on status)
+    - [ ] Recent activity timestamp
+  - [ ] Filter options: Status, Date range, Destination
+  - [ ] Click to view details
+  - [ ] Sort by: Date, Status, Value
+
+**C. Frontend - Donor Shipment Detail Page**:
+- [ ] Create `DonorShipmentDetail.razor` page (accessible for shipment donor only):
+  - [ ] Complete shipment information:
+    - [ ] Shipment ID, origin, destination, recipient info
+    - [ ] Items list with quantities and descriptions
+    - [ ] Total value breakdown
+    - [ ] Expected delivery date
+  - [ ] Current status with visual indicator
+  - [ ] Blockchain verification section:
+    - [ ] Display all blockchain transactions for this shipment
+    - [ ] "Verify on Blockchain" button - validates chain integrity
+    - [ ] Transaction details modal showing:
+      - [ ] Transaction type (SHIPMENT_CREATED, STATUS_UPDATED, DELIVERY_CONFIRMED)
+      - [ ] Sender public key
+      - [ ] Digital signature (with verification status)
+      - [ ] Blockchain hash
+      - [ ] Block index
+      - [ ] Timestamp
+  - [ ] Delivery timeline:
+    - [ ] Visual timeline showing: Created → Validated → InTransit → Delivered → Confirmed
+    - [ ] Timestamps for each status change
+    - [ ] Actual vs expected delivery comparison (if delayed)
+  - [ ] QR code display (if available)
+  - [ ] Action button: "Verify Blockchain Integrity" - runs full chain validation
+
+**D. Frontend - Blockchain Verification Component**:
+- [ ] Create `BlockchainVerification.razor` component:
+  - [ ] Displays blockchain verification results:
+    - [ ] Chain valid: Yes/No (visual checkmark or X)
+    - [ ] All signatures verified: Yes/No
+    - [ ] All hashes correct: Yes/No
+    - [ ] No tampering detected: Yes/No
+  - [ ] Shows warnings if any verification fails
+  - [ ] Technical details (collapsible):
+    - [ ] Chain length
+    - [ ] Number of transactions
+    - [ ] Hash of genesis block
+    - [ ] Hash of last block
+  - [ ] "View on Blockchain Explorer" button link
+
+**E. Frontend - Transaction Details Modal**:
+- [ ] Create `TransactionDetailsModal.razor` component:
+  - [ ] Transaction type badge
+  - [ ] Sender public key (abbreviated with copy button)
+  - [ ] Full transaction hash
+  - [ ] Digital signature (abbreviated with copy button)
+  - [ ] Signature verification status (✓ Valid / ✗ Invalid)
+  - [ ] Block index and timestamp
+  - [ ] Payload data (for STATUS_UPDATED: old status → new status)
+  - [ ] Option to view full transaction in JSON
+  - [ ] "View Block" button to navigate to blockchain explorer
+
+**F. Frontend - Audit Trail Component**:
+- [ ] Create `ShipmentAuditTrail.razor` component (reusable):
+  - [ ] Chronological list of all events (blockchain + delivery)
+  - [ ] Event types with icons:
+    - [ ] 📦 Shipment Created
+    - [ ] ✓ Shipment Validated
+    - [ ] 🚚 In Transit
+    - [ ] 📍 Location Updated
+    - [ ] ⚠️ Issue Reported
+    - [ ] 🏁 Delivered
+    - [ ] ✅ Confirmed
+  - [ ] Timestamps and actor information
+  - [ ] Blockchain transaction hash links (clickable to view details)
+  - [ ] Color-coded by status
+
+**G. Frontend - Navigation & Menu Updates**:
+- [ ] Update NavMenu.razor:
+  - [ ] Add "My Shipments" or "Funded Shipments" link for Donor role
+  - [ ] Routes to DonorDashboard page
+- [ ] Update Dashboard.razor:
+  - [ ] Show donor-specific statistics when user is Donor role
+  - [ ] Display summary of funded shipments
+
+**H. Frontend - UI/UX Features**:
+- [ ] Responsive design for all pages (mobile-friendly)
+- [ ] Loading spinners for blockchain verification (async operation)
+- [ ] Success/error notifications for all operations
+- [ ] Breadcrumb navigation
+- [ ] Print-friendly view of shipment details
+- [ ] Export shipment data (PDF report)
+- [ ] Share shipment details (copy link to clipboard)
+
+**I. Database & API Tests (Donor-specific)**:
+- [ ] API integration tests (8 tests):
+  - [ ] DonorShipmentQuery tests: Access control, filtering
+  - [ ] Blockchain verification endpoint tests
+  - [ ] Test that non-donors can't view other donors' shipments
+- [ ] Note: Most database queries already exist; tests focus on donor-specific access control
+
+---
+
+#### TODO: Comprehensive Integration Test - Full Shipment Pipeline with All User Roles
+**Purpose**: End-to-end test covering complete supply chain from creation to payment with all 7 user roles
+**Location**: `tests/BlockchainAidTracker.Tests/Integration/CompleteShipmentPipelineTests.cs` (NEW)
+
+**A. Test Setup & Fixtures**:
+- [ ] Create `CompleteShipmentPipelineTests` class inheriting from `CustomWebApplicationFactory`
+- [ ] Create comprehensive test data builders:
+  - [ ] `AdminUserBuilder` - Full admin account
+  - [ ] `CoordinatorUserBuilder` - Coordinator for shipment creation
+  - [ ] `CustomerUserBuilder` - Customer/Supplier providing goods
+  - [ ] `LogisticsPartnerUserBuilder` - Logistics partner for delivery
+  - [ ] `RecipientUserBuilder` - Recipient for delivery confirmation
+  - [ ] `DonorUserBuilder` - Donor funding the shipment
+  - [ ] `ValidatorUserBuilder` - Validator for consensus
+- [ ] Create test database with all users pre-registered
+- [ ] Create test configurations (appsettings.Testing.json values)
+- [ ] Set up blockchain with genesis block and 2-3 validators
+
+**B. Test Case 1: User Registration & Authentication (9 tests)**:
+- [ ] Test register Admin with all required fields
+- [ ] Test register Coordinator and validate permissions
+- [ ] Test register Customer/Supplier and validate verification workflow
+- [ ] Test register LogisticsPartner and validate role
+- [ ] Test register Recipient and validate role
+- [ ] Test register Donor and validate role
+- [ ] Test register Validator and validate key pair generation
+- [ ] Test login for each role and token generation
+- [ ] Test token refresh for each user type
+
+**C. Test Case 2: Supplier/Customer Workflow (8 tests)**:
+- [ ] Customer registers as supplier (status: Pending)
+- [ ] Admin verifies supplier (status: Verified)
+- [ ] Customer/Supplier updates profile (contact info, payment threshold)
+- [ ] Retrieve supplier details and validate all fields
+- [ ] Deactivate and reactivate supplier
+- [ ] Get supplier shipments (initially empty)
+- [ ] Get supplier payment history (initially empty)
+- [ ] Test error handling: Unverified supplier cannot participate in payments
+
+**D. Test Case 3: Shipment Creation (6 tests)**:
+- [ ] Coordinator creates shipment with:
+  - [ ] Origin, destination, recipient, items, value
+  - [ ] Assign suppliers/customers to provide goods
+  - [ ] Assign logistics partner for delivery
+  - [ ] Assign donor as funder
+- [ ] Verify blockchain transaction: SHIPMENT_CREATED
+- [ ] Verify shipment status: Created
+- [ ] Verify QR code generation
+- [ ] Retrieve created shipment and validate all data
+- [ ] Test error: Non-coordinator cannot create shipment
+
+**E. Test Case 4: Shipment Validation (5 tests)**:
+- [ ] Shipment auto-validates (ShipmentTrackingContract triggers)
+- [ ] Status changes: Created → Validated
+- [ ] Verify blockchain transaction: STATUS_UPDATED (Created→Validated)
+- [ ] SmartContract validates all required fields
+- [ ] Retrieve validated shipment and confirm status
+
+**F. Test Case 5: Logistics Partner Tracking (8 tests)**:
+- [ ] LogisticsPartner retrieves assigned shipments
+  - [ ] Pagination works
+  - [ ] Filtering by status works
+  - [ ] Sorting works
+- [ ] LogisticsPartner confirms delivery started
+  - [ ] Blockchain transaction: DELIVERY_STARTED
+  - [ ] Status updated internally
+- [ ] LogisticsPartner updates location 3 times:
+  - [ ] Location 1: In warehouse
+  - [ ] Location 2: In transit (midpoint)
+  - [ ] Location 3: At destination
+  - [ ] Each creates blockchain transaction: LOCATION_UPDATED
+  - [ ] Verify location history retrieval
+- [ ] LogisticsPartner can report issues (then clears issue after resolution)
+  - [ ] Blockchain transaction: DELIVERY_ISSUE_REPORTED
+- [ ] Retrieve full delivery history
+  - [ ] All locations in order
+  - [ ] All events with timestamps
+  - [ ] Blockchain hashes for each
+
+**G. Test Case 6: Shipment Status Updates (4 tests)**:
+- [ ] Coordinator updates shipment: Validated → InTransit
+  - [ ] Blockchain transaction: STATUS_UPDATED
+- [ ] SmartContract validates state transition
+- [ ] Verify status change reflected in database
+- [ ] Retrieve shipment and confirm status
+
+**H. Test Case 7: Recipient Delivery Confirmation (5 tests)**:
+- [ ] Recipient retrieves their assigned shipment
+- [ ] Recipient confirms delivery with QR code verification
+  - [ ] Blockchain transaction: DELIVERY_CONFIRMED
+  - [ ] DeliveryVerificationContract executes
+- [ ] Status changes: InTransit → Delivered
+- [ ] Verify blockchain record of delivery
+- [ ] Test error: Non-recipient cannot confirm delivery
+
+**I. Test Case 8: Shipment Confirmation & Final Status (4 tests)**:
+- [ ] Coordinator confirms shipment completion
+  - [ ] Status: Delivered → Confirmed
+  - [ ] Blockchain transaction: SHIPMENT_CONFIRMED
+- [ ] PaymentReleaseContract triggers (from SmartContractEngine)
+  - [ ] Verifies supplier is verified
+  - [ ] Calculates payment amount
+  - [ ] Checks payment threshold
+  - [ ] Initiates payment (PaymentInitiated event)
+- [ ] Verify final status
+- [ ] Retrieve complete shipment history (all 5 status changes)
+
+**J. Test Case 9: Payment Processing (7 tests)**:
+- [ ] Supplier/Customer receives payment initiated event
+- [ ] Verify payment record created with:
+  - [ ] Correct amount (from SupplierShipment)
+  - [ ] Currency
+  - [ ] Status: Initiated
+- [ ] Admin confirms payment completed (simulating bank/crypto transfer)
+  - [ ] Payment status: Completed
+  - [ ] Blockchain transaction: PAYMENT_RELEASED
+- [ ] Supplier retrieves payment history
+  - [ ] Shows completed payment with date and amount
+- [ ] Test payment retry for failed payment
+- [ ] Verify payment record in database
+- [ ] Verify blockchain immutable record of payment
+
+**K. Test Case 10: Donor Transparency & Verification (8 tests)**:
+- [ ] Donor retrieves funded shipments list
+  - [ ] Filtering works
+  - [ ] Shows all shipments funded by this donor
+- [ ] Donor views shipment details
+  - [ ] All information displayed correctly
+  - [ ] Status matches blockchain record
+- [ ] Donor verifies blockchain integrity:
+  - [ ] Chain validation passes
+  - [ ] All signatures valid
+  - [ ] All hashes correct
+  - [ ] No tampering detected
+- [ ] Donor views transaction details:
+  - [ ] Can see each blockchain transaction
+  - [ ] Can verify transaction signature
+  - [ ] Can view transaction hash
+- [ ] Donor views audit trail:
+  - [ ] All events displayed chronologically
+  - [ ] Blockchain transaction hashes linked
+- [ ] Donor tests access control: Cannot view other donors' shipments
+
+**L. Test Case 11: Consensus & Block Creation (6 tests)**:
+- [ ] Track all blockchain transactions created during pipeline
+- [ ] Verify pending transaction pool has transactions:
+  - [ ] SHIPMENT_CREATED
+  - [ ] STATUS_UPDATED (multiple)
+  - [ ] LOCATION_UPDATED (multiple)
+  - [ ] DELIVERY_CONFIRMED
+  - [ ] PAYMENT_RELEASED
+- [ ] Trigger block creation (automated or manual):
+  - [ ] Block created with multiple transactions
+  - [ ] Block properly signed by validator
+  - [ ] Block added to chain
+  - [ ] Verify block structure
+- [ ] Validate consensus rules:
+  - [ ] Validator properly selected
+  - [ ] Block signature valid
+  - [ ] Block index correct
+  - [ ] Previous hash matches
+- [ ] Verify blockchain chain integrity
+  - [ ] All blocks linked correctly
+  - [ ] No blocks skipped
+  - [ ] Chain is valid
+
+**M. Test Case 12: Access Control & Authorization (6 tests)**:
+- [ ] Test that each role can only access allowed endpoints:
+  - [ ] Coordinator cannot create validators
+  - [ ] Recipient cannot update shipment status
+  - [ ] Donor cannot modify shipments
+  - [ ] LogisticsPartner cannot see shipments not assigned to them
+  - [ ] Customer cannot verify other suppliers
+  - [ ] Validator cannot assign roles
+- [ ] Test that Admin can access all endpoints
+- [ ] Test that unauthenticated users cannot access protected endpoints
+- [ ] Test that roles cannot escalate their privileges
+- [ ] Test endpoint guards for each role
+
+**N. Test Case 13: Data Integrity & Consistency (5 tests)**:
+- [ ] Verify all blockchain transactions properly formatted
+- [ ] Verify all database records match blockchain records
+- [ ] Verify shipment status in database matches SmartContract state
+- [ ] Verify payment amounts match supplier shipment values
+- [ ] Verify all timestamps are chronologically ordered
+
+**O. Test Case 14: Error Handling & Edge Cases (8 tests)**:
+- [ ] Test creating shipment with missing required fields
+- [ ] Test updating shipment with invalid status transition
+- [ ] Test logistics partner updating location with invalid coordinates
+- [ ] Test payment processing with unverified supplier
+- [ ] Test recipient confirming delivery for wrong shipment
+- [ ] Test double-spending prevention (payment cannot be released twice)
+- [ ] Test orphaned records cleanup
+- [ ] Test concurrent operations on same shipment
+
+**P. Test Case 15: Performance & Scalability (4 tests)**:
+- [ ] Create and track 10 shipments in parallel
+- [ ] Verify blockchain performance with 50+ transactions
+- [ ] Test pagination with large datasets
+- [ ] Verify location history queries with 100+ location updates
+
+**Q. Test Data & Assertions**:
+- [ ] Create comprehensive test data seed:
+  - [ ] 7 users (all roles)
+  - [ ] 1 shipment with multiple items
+  - [ ] 2 suppliers
+  - [ ] 1 logistics partner
+  - [ ] 1 recipient
+  - [ ] 1 donor
+  - [ ] 3 validators
+- [ ] Use assertion helpers for common checks:
+  - [ ] AssertBlockchainTransactionExists(type, shipmentId)
+  - [ ] AssertShipmentStatusEquals(shipmentId, expectedStatus)
+  - [ ] AssertPaymentRecordExists(supplierId, amount)
+  - [ ] AssertUserHasRole(userId, role)
+  - [ ] AssertBlockchainValid()
+- [ ] Verify complete audit trail with all transactions
+
+**R. Test Organization & Naming**:
+- [ ] Group tests by test class per major workflow:
+  - [ ] `SupplierWorkflowTests` (8 tests)
+  - [ ] `ShipmentCreationAndValidationTests` (10 tests)
+  - [ ] `LogisticsPartnerTrackingTests` (8 tests)
+  - [ ] `PaymentProcessingTests` (7 tests)
+  - [ ] `DonorTransparencyTests` (8 tests)
+  - [ ] `ConsensusAndBlockchainTests` (6 tests)
+  - [ ] `AccessControlTests` (6 tests)
+  - [ ] `DataIntegrityTests` (5 tests)
+  - [ ] `ErrorHandlingTests` (8 tests)
+  - [ ] `PerformanceTests` (4 tests)
+- [ ] Total: **70 comprehensive integration tests** covering complete pipeline
+
+**S. Execution & CI/CD**:
+- [ ] Tests run in isolated in-memory database per test
+- [ ] Tests run sequentially (one test class at a time)
+- [ ] All blockchain operations validated
+- [ ] All assertions pass (100% success rate expected)
+- [ ] Execution time target: < 2 minutes for all 70 tests
+- [ ] Can be run as part of CI/CD pipeline before deployment
 
 ---
 
