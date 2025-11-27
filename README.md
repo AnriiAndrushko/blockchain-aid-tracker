@@ -2,6 +2,19 @@
 
 A .NET 9.0 blockchain-based humanitarian aid supply chain tracking system demonstrating decentralized control, transparency, and Proof-of-Authority consensus.
 
+## ⚠️ Project Information
+
+**This is a showcase/diploma project** demonstrating blockchain concepts and supply chain tracking architecture. It is **not intended for production use** and does not require full implementation of all features (such as complete payment processing, real banking integrations, etc.).
+
+The project serves as a **proof-of-concept** to demonstrate:
+- Blockchain technology fundamentals (blocks, transactions, signatures, consensus)
+- Proof-of-Authority consensus mechanism
+- Supply chain transparency and immutability
+- Role-based authorization and smart contracts
+- Integration of blockchain with traditional web architecture
+
+**Focus areas**: Core blockchain functionality, consensus mechanisms, shipment tracking, user authentication, and UI/UX. Payment functionality is partially implemented as a domain model and service layer to demonstrate the concept.
+
 ## Project Status
 
 **Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, Proof-of-Authority Consensus Engine, Consensus API Integration, Automated Block Creation Background Service, Blockchain Persistence, Cryptographic Key Management, and Blazor Web UI Complete** - The core blockchain engine with real ECDSA signature validation, PoA consensus, automated block creation, blockchain persistence, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, all API endpoints, and full Blazor Web UI are fully implemented and tested.
