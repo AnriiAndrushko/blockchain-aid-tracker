@@ -33,5 +33,10 @@ public enum UserRole
     /// <summary>
     /// System administrator with full access
     /// </summary>
-    Administrator = 5
+    Administrator = 5,
+
+    /// <summary>
+    /// Customer/Supplier who provides goods and receives automatic payment
+    /// </summary>
+    Customer = 6
 }

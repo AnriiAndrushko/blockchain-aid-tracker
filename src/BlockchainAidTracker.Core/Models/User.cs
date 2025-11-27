@@ -91,6 +91,11 @@ public class User
     public DateTime? RefreshTokenExpiresAt { get; set; }
 
     /// <summary>
+    /// Navigation property for suppliers created by this user (if user is a Customer)
+    /// </summary>
+    public List<Supplier>? Suppliers { get; set; }
+
+    /// <summary>
     /// Default constructor - initializes a new user with default values
     /// </summary>
     public User()

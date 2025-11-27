@@ -30,6 +30,21 @@ public class ApplicationDbContext : DbContext
     public DbSet<Validator> Validators { get; set; } = null!;
 
     /// <summary>
+    /// DbSet for Supplier entities
+    /// </summary>
+    public DbSet<Supplier> Suppliers { get; set; } = null!;
+
+    /// <summary>
+    /// DbSet for SupplierShipment entities
+    /// </summary>
+    public DbSet<SupplierShipment> SupplierShipments { get; set; } = null!;
+
+    /// <summary>
+    /// DbSet for PaymentRecord entities
+    /// </summary>
+    public DbSet<PaymentRecord> PaymentRecords { get; set; } = null!;
+
+    /// <summary>
     /// Constructor for dependency injection
     /// </summary>
     /// <param name="options">DbContext options</param>
@@ -51,6 +66,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ShipmentItemConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new ValidatorConfiguration());
+        modelBuilder.ApplyConfiguration(new SupplierConfiguration());
+        modelBuilder.ApplyConfiguration(new SupplierShipmentConfiguration());
+        modelBuilder.ApplyConfiguration(new PaymentRecordConfiguration());
     }
 
     /// <summary>
@@ -99,6 +117,14 @@ public class ApplicationDbContext : DbContext
             .Where(e => e.State == EntityState.Modified);
 
         foreach (var entry in validatorEntries)
+        {
+            entry.Entity.UpdatedTimestamp = DateTime.UtcNow;
+        }
+
+        var supplierEntries = ChangeTracker.Entries<Supplier>()
+            .Where(e => e.State == EntityState.Modified);
+
+        foreach (var entry in supplierEntries)
         {
             entry.Entity.UpdatedTimestamp = DateTime.UtcNow;
         }
