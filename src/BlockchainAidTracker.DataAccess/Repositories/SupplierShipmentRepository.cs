@@ -30,8 +30,8 @@ public class SupplierShipmentRepository : Repository<SupplierShipment>, ISupplie
     public async Task<List<SupplierShipment>> GetBySupplierIdAsync(string supplierId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Where(ss => ss.SupplierId == supplierId)
             .Include(ss => ss.Shipment)
+            .Where(ss => ss.SupplierId == supplierId)
             .OrderByDescending(ss => ss.ProvidedTimestamp)
             .ToListAsync(cancellationToken);
     }
@@ -40,8 +40,8 @@ public class SupplierShipmentRepository : Repository<SupplierShipment>, ISupplie
     public async Task<List<SupplierShipment>> GetPendingPaymentsAsync(string supplierId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Where(ss => ss.SupplierId == supplierId && !ss.PaymentReleased && ss.PaymentStatus == SupplierShipmentPaymentStatus.Pending)
             .Include(ss => ss.Shipment)
+            .Where(ss => ss.SupplierId == supplierId && !ss.PaymentReleased && ss.PaymentStatus == SupplierShipmentPaymentStatus.Pending)
             .OrderByDescending(ss => ss.ProvidedTimestamp)
             .ToListAsync(cancellationToken);
     }
@@ -50,8 +50,8 @@ public class SupplierShipmentRepository : Repository<SupplierShipment>, ISupplie
     public async Task<List<SupplierShipment>> GetByPaymentStatusAsync(string supplierId, SupplierShipmentPaymentStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Where(ss => ss.SupplierId == supplierId && ss.PaymentStatus == status)
             .Include(ss => ss.Shipment)
+            .Where(ss => ss.SupplierId == supplierId && ss.PaymentStatus == status)
             .OrderByDescending(ss => ss.ProvidedTimestamp)
             .ToListAsync(cancellationToken);
     }

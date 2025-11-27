@@ -349,6 +349,196 @@ public class ValidatorBuilder
 }
 
 /// <summary>
+/// Builder for creating test Supplier entities
+/// </summary>
+public class SupplierBuilder
+{
+    private string _id = Guid.NewGuid().ToString();
+    private string _userId = Guid.NewGuid().ToString();
+    private string _companyName = "Test Company " + Guid.NewGuid().ToString().Substring(0, 8);
+    private string _registrationId = "REG-" + Guid.NewGuid().ToString().Substring(0, 8);
+    private string _contactEmail = "supplier@test.com";
+    private string _contactPhone = "+1-555-0100";
+    private string _businessCategory = "Medical Supplies";
+    private string _encryptedBankDetails = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("IBAN123456789"));
+    private decimal _paymentThreshold = 1000m;
+    private string _taxId = "TAX-" + Guid.NewGuid().ToString().Substring(0, 8);
+    private SupplierVerificationStatus _verificationStatus = SupplierVerificationStatus.Pending;
+    private bool _isActive = true;
+
+    public SupplierBuilder WithId(string id)
+    {
+        _id = id;
+        return this;
+    }
+
+    public SupplierBuilder WithUserId(string userId)
+    {
+        _userId = userId;
+        return this;
+    }
+
+    public SupplierBuilder WithCompanyName(string companyName)
+    {
+        _companyName = companyName;
+        return this;
+    }
+
+    public SupplierBuilder WithEmail(string email)
+    {
+        _contactEmail = email;
+        return this;
+    }
+
+    public SupplierBuilder WithVerificationStatus(SupplierVerificationStatus status)
+    {
+        _verificationStatus = status;
+        return this;
+    }
+
+    public SupplierBuilder AsInactive()
+    {
+        _isActive = false;
+        return this;
+    }
+
+    public SupplierBuilder WithPaymentThreshold(decimal threshold)
+    {
+        _paymentThreshold = threshold;
+        return this;
+    }
+
+    public Supplier Build()
+    {
+        return new Supplier(
+            _userId,
+            _companyName,
+            _registrationId,
+            _contactEmail,
+            _contactPhone,
+            _businessCategory,
+            _encryptedBankDetails,
+            _paymentThreshold,
+            _taxId)
+        {
+            Id = _id,
+            VerificationStatus = _verificationStatus,
+            IsActive = _isActive
+        };
+    }
+}
+
+/// <summary>
+/// Builder for creating test SupplierShipment entities
+/// </summary>
+public class SupplierShipmentBuilder
+{
+    private string _id = Guid.NewGuid().ToString();
+    private string _supplierId = Guid.NewGuid().ToString();
+    private string _shipmentId = Guid.NewGuid().ToString();
+    private string _goodsDescription = "Test Goods";
+    private decimal _quantity = 100m;
+    private string _unit = "units";
+    private decimal _value = 5000m;
+    private string _currency = "USD";
+    private SupplierShipmentPaymentStatus _paymentStatus = SupplierShipmentPaymentStatus.Pending;
+
+    public SupplierShipmentBuilder WithSupplierId(string supplierId)
+    {
+        _supplierId = supplierId;
+        return this;
+    }
+
+    public SupplierShipmentBuilder WithShipmentId(string shipmentId)
+    {
+        _shipmentId = shipmentId;
+        return this;
+    }
+
+    public SupplierShipmentBuilder WithValue(decimal value)
+    {
+        _value = value;
+        return this;
+    }
+
+    public SupplierShipmentBuilder WithPaymentStatus(SupplierShipmentPaymentStatus status)
+    {
+        _paymentStatus = status;
+        return this;
+    }
+
+    public SupplierShipment Build()
+    {
+        return new SupplierShipment(
+            _supplierId,
+            _shipmentId,
+            _goodsDescription,
+            _quantity,
+            _unit,
+            _value,
+            _currency)
+        {
+            Id = _id,
+            PaymentStatus = _paymentStatus
+        };
+    }
+}
+
+/// <summary>
+/// Builder for creating test PaymentRecord entities
+/// </summary>
+public class PaymentRecordBuilder
+{
+    private string _id = Guid.NewGuid().ToString();
+    private string _supplierId = Guid.NewGuid().ToString();
+    private string _shipmentId = Guid.NewGuid().ToString();
+    private decimal _amount = 5000m;
+    private string _currency = "USD";
+    private PaymentMethod _paymentMethod = PaymentMethod.BankTransfer;
+    private PaymentRecordStatus _status = PaymentRecordStatus.Initiated;
+    private int _attemptCount = 1;
+
+    public PaymentRecordBuilder WithSupplierId(string supplierId)
+    {
+        _supplierId = supplierId;
+        return this;
+    }
+
+    public PaymentRecordBuilder WithAmount(decimal amount)
+    {
+        _amount = amount;
+        return this;
+    }
+
+    public PaymentRecordBuilder WithStatus(PaymentRecordStatus status)
+    {
+        _status = status;
+        return this;
+    }
+
+    public PaymentRecordBuilder WithAttemptCount(int count)
+    {
+        _attemptCount = count;
+        return this;
+    }
+
+    public PaymentRecord Build()
+    {
+        return new PaymentRecord(
+            _supplierId,
+            _shipmentId,
+            _amount,
+            _currency,
+            _paymentMethod)
+        {
+            Id = _id,
+            Status = _status,
+            AttemptCount = _attemptCount
+        };
+    }
+}
+
+/// <summary>
 /// Static helper class for creating test data
 /// </summary>
 public static class TestData
@@ -358,6 +548,12 @@ public static class TestData
     public static ShipmentBuilder CreateShipment() => new ShipmentBuilder();
 
     public static ValidatorBuilder CreateValidator() => new ValidatorBuilder();
+
+    public static SupplierBuilder CreateSupplier() => new SupplierBuilder();
+
+    public static SupplierShipmentBuilder CreateSupplierShipment() => new SupplierShipmentBuilder();
+
+    public static PaymentRecordBuilder CreatePaymentRecord() => new PaymentRecordBuilder();
 
     public static ShipmentItem CreateShipmentItem(
         string description = "Test Item",
