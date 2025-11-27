@@ -73,7 +73,7 @@ public class ValidatorRepository : Repository<Validator>, IValidatorRepository
     /// <inheritdoc />
     public async Task<Validator?> GetNextValidatorForBlockCreationAsync(CancellationToken cancellationToken = default)
     {
-        // Get all active validators ordered by priority
+        // Get all active validators
         var activeValidators = await GetActiveValidatorsAsync(cancellationToken);
 
         if (activeValidators.Count == 0)
@@ -87,13 +87,9 @@ public class ValidatorRepository : Repository<Validator>, IValidatorRepository
             return activeValidators[0];
         }
 
-        // Find the validator that hasn't created a block in the longest time
-        // If none have created blocks, use the first one by priority
-        var validator = activeValidators
-            .OrderBy(v => v.LastBlockCreatedTimestamp ?? DateTime.MinValue)
-            .ThenBy(v => v.Priority)
-            .First();
-
-        return validator;
+        // Select a random validator from active validators
+        var random = new Random();
+        var randomIndex = random.Next(activeValidators.Count);
+        return activeValidators[randomIndex];
     }
 }

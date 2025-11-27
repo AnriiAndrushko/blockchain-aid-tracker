@@ -8,7 +8,7 @@ namespace BlockchainAidTracker.Services.Consensus;
 
 /// <summary>
 /// Implements Proof-of-Authority (PoA) consensus mechanism for the blockchain.
-/// In PoA, a set of authorized validators take turns creating blocks in a round-robin fashion.
+/// In PoA, a set of authorized validators are randomly selected to create blocks.
 /// </summary>
 public class ProofOfAuthorityConsensusEngine : IConsensusEngine
 {
@@ -38,7 +38,7 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
 
     /// <summary>
     /// Creates a new block from pending transactions using PoA consensus.
-    /// The next validator in round-robin order is selected to create and sign the block.
+    /// A random active validator is selected to create and sign the block.
     /// </summary>
     /// <param name="blockchain">The blockchain instance to create the block for.</param>
     /// <param name="validatorPassword">Password to decrypt the validator's private key for signing.</param>
@@ -65,7 +65,7 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
             throw new InvalidOperationException("No pending transactions to create a block.");
         }
 
-        // Get the next validator in round-robin order
+        // Get a random validator for block creation
         var validator = await _validatorRepository.GetNextValidatorForBlockCreationAsync();
         if (validator == null)
         {
@@ -153,7 +153,7 @@ public class ProofOfAuthorityConsensusEngine : IConsensusEngine
     }
 
     /// <summary>
-    /// Gets the ID of the validator who should propose the next block according to round-robin selection.
+    /// Gets the ID of a randomly selected validator who should propose the next block.
     /// </summary>
     /// <returns>The validator ID who should propose the next block, or null if no validators are available.</returns>
     public async Task<string?> GetCurrentBlockProposerAsync()

@@ -325,7 +325,7 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
     }
 
     [Fact]
-    public async Task CreateBlockAsync_SelectsValidatorInRoundRobinFashion()
+    public async Task CreateBlockAsync_SelectsValidatorRandomly()
     {
         // Arrange
         var blockchain = new BlockchainAidTracker.Blockchain.Blockchain(_hashService, _signatureService);
@@ -353,7 +353,7 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
         await Context.SaveChangesAsync();
 
         // Act - Create 3 blocks
-        var selectedValidators = new List<string>();
+        var selectedValidators = new HashSet<string>();
         for (int i = 0; i < 3; i++)
         {
             // Add transaction
@@ -376,11 +376,9 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
             blockchain.AddBlock(block);
         }
 
-        // Assert - Each validator should be selected exactly once in order
-        selectedValidators.Should().HaveCount(3);
-        selectedValidators[0].Should().Be(validators[0].PublicKey); // Priority 0
-        selectedValidators[1].Should().Be(validators[1].PublicKey); // Priority 1
-        selectedValidators[2].Should().Be(validators[2].PublicKey); // Priority 2
+        // Assert - At least 2 different validators should be selected in 3 blocks (high probability with randomness)
+        selectedValidators.Should().HaveCountGreaterThanOrEqualTo(2);
+        selectedValidators.Should().BeSubsetOf(validators.Select(v => v.PublicKey));
     }
 
     #endregion
@@ -551,7 +549,7 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
     }
 
     [Fact]
-    public async Task GetCurrentBlockProposerAsync_WithMultipleValidators_ReturnsRoundRobinSelection()
+    public async Task GetCurrentBlockProposerAsync_WithMultipleValidators_ReturnsRandomSelection()
     {
         // Arrange
         var validator1 = TestData.CreateValidator()
@@ -566,11 +564,16 @@ public class ProofOfAuthorityConsensusEngineTests : DatabaseTestBase
         await Context.Validators.AddRangeAsync(validator1, validator2);
         await Context.SaveChangesAsync();
 
-        // Act - First call should return validator with priority 0
-        var firstProposer = await _consensusEngine.GetCurrentBlockProposerAsync();
+        // Act - Call multiple times to verify randomness (statistical test)
+        var selectedValidators = new HashSet<string>();
+        for (int i = 0; i < 10; i++)
+        {
+            var proposer = await _consensusEngine.GetCurrentBlockProposerAsync();
+            selectedValidators.Add(proposer!);
+        }
 
-        // Assert
-        firstProposer.Should().Be(validator1.Id);
+        // Assert - Both validators should be selected at least once in 10 calls
+        selectedValidators.Should().Contain(new[] { validator1.Id, validator2.Id });
     }
 
     #endregion

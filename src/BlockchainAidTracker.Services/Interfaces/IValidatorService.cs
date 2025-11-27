@@ -43,7 +43,7 @@ public interface IValidatorService
     Task<List<ValidatorDto>> GetAllValidatorsAsync(bool activeOnly = false);
 
     /// <summary>
-    /// Gets the next validator for block creation based on round-robin selection
+    /// Gets a random validator for block creation
     /// </summary>
     /// <returns>Validator DTO or null if no active validators exist</returns>
     Task<ValidatorDto?> GetNextValidatorForBlockCreationAsync();

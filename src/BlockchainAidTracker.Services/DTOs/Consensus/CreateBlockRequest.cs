@@ -13,10 +13,4 @@ public class CreateBlockRequest
     /// </summary>
     [Required(ErrorMessage = "Validator password is required")]
     public string ValidatorPassword { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Optional: Specific validator ID to use for block creation.
-    /// If not provided, the next validator in round-robin order will be used.
-    /// </summary>
-    public string? ValidatorId { get; set; }
 }

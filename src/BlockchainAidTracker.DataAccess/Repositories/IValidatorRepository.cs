@@ -61,9 +61,9 @@ public interface IValidatorRepository : IRepository<Validator>
     Task<int> GetActiveValidatorCountAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the next validator for block creation based on round-robin and priority
+    /// Gets a random validator for block creation from active validators
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Next validator, or null if no active validators exist</returns>
+    /// <returns>A randomly selected active validator, or null if no active validators exist</returns>
     Task<Validator?> GetNextValidatorForBlockCreationAsync(CancellationToken cancellationToken = default);
 }
