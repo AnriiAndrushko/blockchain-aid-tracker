@@ -1,0 +1,192 @@
+@using BlockchainAidTracker.Web.Services
+@inject ApiClientService ApiClient
+
+@if (ShowModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Report Delivery Issue</h5>
+                    <button type="button" class="btn-close" @onclick="HandleClose"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle me-2"></i>
+                            @errorMessage
+                            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label for="issueType" class="form-label">
+                            <i class="bi bi-exclamation me-1"></i>Issue Type *
+                        </label>
+                        <select class="form-select @(issueTypeError ? "is-invalid" : "")"
+                                id="issueType" @bind="issueType" @bind:after="OnFormChanged">
+                            <option value="-1">-- Select an issue type --</option>
+                            <option value="0">⏱️ Delivery Delay</option>
+                            <option value="1">🔨 Shipment Damage</option>
+                            <option value="2">📭 Shipment Lost</option>
+                            <option value="3">❓ Other</option>
+                        </select>
+                        @if (issueTypeError)
+                        {
+                            <div class="invalid-feedback">
+                                Please select an issue type
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">
+                            <i class="bi bi-chat-left-text me-1"></i>Description *
+                        </label>
+                        <textarea class="form-control @(descriptionError ? "is-invalid" : "")"
+                                  id="description" rows="4" placeholder="Describe the issue in detail..."
+                                  @bind="description" @bind:event="oninput" @bind:after="OnFormChanged" maxlength="2000"></textarea>
+                        <small class="form-text text-muted">@description.Length / 2000</small>
+                        @if (descriptionError)
+                        {
+                            <div class="invalid-feedback">
+                                Description is required and must be at least 10 characters
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">
+                            <i class="bi bi-exclamation-diamond me-1"></i>Priority
+                        </label>
+                        <select class="form-select" id="priority" @bind="priority">
+                            <option value="0">🟢 Low - Can wait</option>
+                            <option value="1" selected>🟡 Medium - Needs attention soon</option>
+                            <option value="2">🔴 High - Urgent</option>
+                        </select>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>Reporting an issue will create a delivery event for audit purposes. The admin team will be notified.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HandleClose" disabled="@isSubmitting">
+                        Close
+                    </button>
+                    <button type="button" class="btn btn-warning" @onclick="SubmitForm" disabled="@(isSubmitting || !IsFormValid())">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
+                        Report Issue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string ShipmentId { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool ShowModal { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowModalChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnError { get; set; }
+
+    private int issueType = -1; // -1 = not selected
+    private string description = string.Empty;
+    private int priority = 1; // 1 = Medium
+    private bool isSubmitting = false;
+    private string errorMessage = string.Empty;
+    private bool issueTypeError = false;
+    private bool descriptionError = false;
+
+    private bool IsFormValid()
+    {
+        issueTypeError = issueType < 0;
+        descriptionError = string.IsNullOrWhiteSpace(description) || description.Length < 10;
+        bool isValid = !issueTypeError && !descriptionError;
+        Console.WriteLine($"IsFormValid check: issueType={issueType} ({!issueTypeError}), description length={description.Length} ({!descriptionError}), result={isValid}");
+        return isValid;
+    }
+
+    private void OnFormChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task HandleClose()
+    {
+        ShowModal = false;
+        await ShowModalChanged.InvokeAsync(false);
+    }
+
+    private async Task SubmitForm()
+    {
+        Console.WriteLine($"SubmitForm called. IsFormValid: {IsFormValid()}, IssueType: {issueType}, Description: {description}");
+
+        if (!IsFormValid())
+        {
+            errorMessage = "Please fill in all required fields";
+            Console.WriteLine($"Form validation failed. IssueTypeError: {issueTypeError}, DescriptionError: {descriptionError}");
+            return;
+        }
+
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+
+            var request = new ReportIssueRequest
+            {
+                IssueType = issueType,
+                Description = description,
+                Priority = priority
+            };
+
+            Console.WriteLine($"Posting report issue to API. ShipmentId: {ShipmentId}, IssueType: {request.IssueType}");
+            await ApiClient.PostAsync($"/api/logistics-partner/shipments/{ShipmentId}/report-issue", request);
+            Console.WriteLine("Report issue posted successfully");
+
+            // Reset form
+            issueType = -1;
+            description = string.Empty;
+            priority = 1;
+
+            ShowModal = false;
+            await ShowModalChanged.InvokeAsync(false);
+            await OnSuccess.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting form: {ex.Message}");
+            Console.WriteLine($"Exception type: {ex.GetType().Name}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            errorMessage = $"Failed to report issue: {ex.Message}";
+            await OnError.InvokeAsync(ex.Message);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private class ReportIssueRequest
+    {
+        public int IssueType { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public int Priority { get; set; }
+    }
+}

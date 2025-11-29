@@ -12,7 +12,7 @@ namespace BlockchainAidTracker.Api.Controllers;
 /// API endpoints for logistics partner shipment tracking and delivery management
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/logistics-partner")]
 [Authorize]
 public class LogisticsPartnerController : ControllerBase
 {
@@ -38,12 +38,7 @@ public class LogisticsPartnerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<List<ShipmentDto>>> GetAssignedShipments([FromQuery] string? status = null)
     {
-        var userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId))
-        {
-            _logger.LogWarning("GetAssignedShipments called with no user ID");
-            return Unauthorized("User not authenticated");
-        }
+        var userId = GetUserIdFromClaims();
 
         try
         {
@@ -124,9 +119,7 @@ public class LogisticsPartnerController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized("User not authenticated");
+        var userId = GetUserIdFromClaims();
 
         try
         {
@@ -169,9 +162,7 @@ public class LogisticsPartnerController : ControllerBase
         if (string.IsNullOrWhiteSpace(shipmentId))
             return BadRequest(new { message = "Shipment ID is required" });
 
-        var userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized("User not authenticated");
+        var userId = GetUserIdFromClaims();
 
         try
         {
@@ -287,9 +278,7 @@ public class LogisticsPartnerController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized("User not authenticated");
+        var userId = GetUserIdFromClaims();
 
         try
         {
@@ -322,9 +311,7 @@ public class LogisticsPartnerController : ControllerBase
         if (string.IsNullOrWhiteSpace(shipmentId))
             return BadRequest(new { message = "Shipment ID is required" });
 
-        var userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized("User not authenticated");
+        var userId = GetUserIdFromClaims();
 
         try
         {
@@ -342,5 +329,13 @@ public class LogisticsPartnerController : ControllerBase
             _logger.LogError(ex, "Error confirming receipt for shipment {ShipmentId}", shipmentId);
             return StatusCode(500, new { message = "An error occurred confirming receipt" });
         }
+    }
+
+    private string GetUserIdFromClaims()
+    {
+        return User.FindFirst("sub")?.Value
+            ?? User.FindFirst("userId")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedException("User ID not found in token");
     }
 }

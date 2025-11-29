@@ -31,13 +31,23 @@ public class ApiClientService
             var token = await _localStorage.GetItemAsync<string>("accessToken");
             if (!string.IsNullOrEmpty(token))
             {
+                Console.WriteLine($"AddAuthorizationHeaderAsync: Token found, length: {token.Length}");
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
+            else
+            {
+                Console.WriteLine("AddAuthorizationHeaderAsync: No token found in local storage");
+            }
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
             // JavaScript interop not available during server-side prerendering
             // This is expected - continue without token
+            Console.WriteLine($"AddAuthorizationHeaderAsync: InvalidOperationException - {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"AddAuthorizationHeaderAsync: Unexpected error - {ex.Message}");
         }
     }
 
@@ -106,13 +116,33 @@ public class ApiClientService
 
     public async Task<HttpResponseMessage> PostAsync<TRequest>(string endpoint, TRequest data)
     {
-        await AddAuthorizationHeaderAsync();
-        return await _httpClient.PostAsJsonAsync(endpoint, data);
+        try
+        {
+            await AddAuthorizationHeaderAsync();
+            var response = await _httpClient.PostAsJsonAsync(endpoint, data);
+            response.EnsureSuccessStatusCode();
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"POST request failed: {ex.Message}");
+            throw;
+        }
     }
 
     public async Task<HttpResponseMessage> PutAsync<TRequest>(string endpoint, TRequest data)
     {
-        await AddAuthorizationHeaderAsync();
-        return await _httpClient.PutAsJsonAsync(endpoint, data);
+        try
+        {
+            await AddAuthorizationHeaderAsync();
+            var response = await _httpClient.PutAsJsonAsync(endpoint, data);
+            response.EnsureSuccessStatusCode();
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"PUT request failed: {ex.Message}");
+            throw;
+        }
     }
 }

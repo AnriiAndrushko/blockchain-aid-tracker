@@ -46,8 +46,23 @@ public class LogisticsPartnerService : ILogisticsPartnerService
         if (user.Role != UserRole.LogisticsPartner && user.Role != UserRole.Administrator)
             throw new UnauthorizedException("Only logistics partners and administrators can view assigned shipments");
 
-        // Get shipments in transit (assigned to logistics partners)
-        var shipments = await _shipmentRepository.GetByStatusAsync(ShipmentStatus.InTransit);
+        // Get shipments based on status filter
+        List<Shipment> shipments;
+        if (!string.IsNullOrWhiteSpace(status) && int.TryParse(status, out int statusValue) && Enum.IsDefined(typeof(ShipmentStatus), statusValue))
+        {
+            // Get shipments with specific status
+            var statusEnum = (ShipmentStatus)statusValue;
+            shipments = await _shipmentRepository.GetByStatusAsync(statusEnum);
+        }
+        else
+        {
+            // Default: get all shipments in InTransit, Delivered, and Confirmed statuses
+            // Each call includes Items through .Include()
+            var inTransit = await _shipmentRepository.GetByStatusAsync(ShipmentStatus.InTransit);
+            var delivered = await _shipmentRepository.GetByStatusAsync(ShipmentStatus.Delivered);
+            var confirmed = await _shipmentRepository.GetByStatusAsync(ShipmentStatus.Confirmed);
+            shipments = inTransit.Concat(delivered).Concat(confirmed).OrderByDescending(s => s.CreatedTimestamp).ToList();
+        }
 
         var dtos = shipments.Select(s => new ShipmentDto
         {
@@ -56,7 +71,13 @@ public class LogisticsPartnerService : ILogisticsPartnerService
             Destination = s.Destination,
             Status = s.Status,
             CreatedAt = s.CreatedTimestamp,
-            UpdatedAt = s.UpdatedTimestamp
+            UpdatedAt = s.UpdatedTimestamp,
+            Items = s.Items?.Select(i => new ShipmentItemDto
+            {
+                Description = i.Description,
+                Quantity = i.Quantity,
+                Unit = i.Unit
+            }).ToList() ?? new()
         }).ToList();
 
         _logger.LogInformation("Retrieved {Count} assigned shipments for user {UserId}", dtos.Count, userId);

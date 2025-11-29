@@ -1,0 +1,186 @@
+@using BlockchainAidTracker.Web.Services
+@inject ApiClientService ApiClient
+
+@if (ShowModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-geo-alt me-2"></i>Update Location</h5>
+                    <button type="button" class="btn-close" @onclick="HandleClose"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle me-2"></i>
+                            @errorMessage
+                            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label for="latitude" class="form-label">
+                            <i class="bi bi-geo me-1"></i>Latitude
+                        </label>
+                        <input type="number" class="form-control @(latitudeError ? "is-invalid" : "")"
+                               id="latitude" placeholder="-90 to 90" step="0.000001"
+                               @bind="latitude" @bind:event="oninput" />
+                        @if (latitudeError)
+                        {
+                            <div class="invalid-feedback">
+                                Latitude must be between -90 and 90
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="longitude" class="form-label">
+                            <i class="bi bi-geo me-1"></i>Longitude
+                        </label>
+                        <input type="number" class="form-control @(longitudeError ? "is-invalid" : "")"
+                               id="longitude" placeholder="-180 to 180" step="0.000001"
+                               @bind="longitude" @bind:event="oninput" />
+                        @if (longitudeError)
+                        {
+                            <div class="invalid-feedback">
+                                Longitude must be between -180 and 180
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="locationName" class="form-label">
+                            <i class="bi bi-map me-1"></i>Location Name (Optional)
+                        </label>
+                        <input type="text" class="form-control" id="locationName"
+                               placeholder="e.g., Warehouse, Transit Hub, Destination"
+                               @bind="locationName" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="gpsAccuracy" class="form-label">
+                            <i class="bi bi-bullseye me-1"></i>GPS Accuracy (Optional)
+                        </label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="gpsAccuracy"
+                                   placeholder="Accuracy in meters" step="0.01" min="0"
+                                   @bind="gpsAccuracy" @bind:event="oninput" />
+                            <span class="input-group-text">m</span>
+                        </div>
+                        <small class="form-text text-muted">Optional: GPS accuracy radius in meters</small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>Current coordinates will be recorded and a delivery event will be created.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HandleClose" disabled="@isSubmitting">
+                        Close
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SubmitForm" disabled="@(isSubmitting || !IsFormValid())">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
+                        Update Location
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string ShipmentId { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool ShowModal { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowModalChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnError { get; set; }
+
+    private decimal latitude;
+    private decimal longitude;
+    private string locationName = string.Empty;
+    private decimal? gpsAccuracy;
+    private bool isSubmitting = false;
+    private string errorMessage = string.Empty;
+    private bool latitudeError = false;
+    private bool longitudeError = false;
+
+    private bool IsFormValid()
+    {
+        latitudeError = latitude < -90 || latitude > 90;
+        longitudeError = longitude < -180 || longitude > 180;
+        return !latitudeError && !longitudeError && latitude != 0 && longitude != 0;
+    }
+
+    private async Task HandleClose()
+    {
+        ShowModal = false;
+        await ShowModalChanged.InvokeAsync(false);
+    }
+
+    private async Task SubmitForm()
+    {
+        if (!IsFormValid())
+        {
+            errorMessage = "Please enter valid coordinates";
+            return;
+        }
+
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+
+            var request = new UpdateLocationRequest
+            {
+                Latitude = latitude,
+                Longitude = longitude,
+                LocationName = string.IsNullOrWhiteSpace(locationName) ? "Location Update" : locationName,
+                GpsAccuracy = gpsAccuracy
+            };
+
+            await ApiClient.PutAsync($"/api/logistics-partner/shipments/{ShipmentId}/location", request);
+
+            // Reset form
+            latitude = 0;
+            longitude = 0;
+            locationName = string.Empty;
+            gpsAccuracy = null;
+
+            ShowModal = false;
+            await ShowModalChanged.InvokeAsync(false);
+            await OnSuccess.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            await OnError.InvokeAsync(ex.Message);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private class UpdateLocationRequest
+    {
+        public decimal Latitude { get; set; }
+        public decimal Longitude { get; set; }
+        public string LocationName { get; set; } = string.Empty;
+        public decimal? GpsAccuracy { get; set; }
+    }
+}

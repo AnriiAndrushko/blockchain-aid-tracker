@@ -1,0 +1,45 @@
+@using System.Collections.Generic
+
+<div class="shipment-timeline">
+    <div class="timeline-container">
+        @{
+            var statuses = new[] {
+                ("Created", "📦", "secondary"),
+                ("Validated", "✓", "info"),
+                ("In Transit", "🚚", "warning"),
+                ("Delivered", "🏁", "success"),
+                ("Confirmed", "✅", "success")
+            };
+        }
+
+        @foreach (var (status, icon, color) in statuses)
+        {
+            var isCompleted = CurrentStatus >= statuses.ToList().FindIndex(s => s.Item1 == status);
+            var isActive = CurrentStatus == statuses.ToList().FindIndex(s => s.Item1 == status);
+
+            <div class="timeline-item @(isCompleted ? "completed" : "") @(isActive ? "active" : "")">
+                <div class="timeline-marker bg-@color">
+                    <span>@icon</span>
+                </div>
+                <div class="timeline-content">
+                    <h6 class="mb-0">@status</h6>
+                    @if (isCompleted && StatusTimestamps.ContainsKey(status))
+                    {
+                        <small class="text-muted">
+                            @StatusTimestamps[status].ToLocalTime().ToString("MMM dd, yyyy HH:mm")
+                        </small>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public int CurrentStatus { get; set; } = 0;
+
+    [Parameter]
+    public Dictionary<string, DateTime> StatusTimestamps { get; set; } = new();
+}

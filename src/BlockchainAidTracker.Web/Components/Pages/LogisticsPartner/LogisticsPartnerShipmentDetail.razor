@@ -1,0 +1,574 @@
+@page "/logistics-partner/shipments/{id}"
+@using BlockchainAidTracker.Web.Services
+@using System.Net.Http.Headers
+@using Blazored.LocalStorage
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApiClientService ApiClient
+@inject NavigationManager Navigation
+@inject HttpClient HttpClient
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<PageTitle>Shipment Details - Logistics Partner</PageTitle>
+
+<AuthorizeView Roles="LogisticsPartner,Administrator">
+    <Authorized Context="authContext">
+        <div class="container-fluid">
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading shipment details...</p>
+                </div>
+            }
+            else if (shipment == null)
+            {
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Shipment not found
+                </div>
+            }
+            else
+            {
+                <div class="row mb-4">
+                    <div class="col">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="/logistics-partner/shipments">My Shipments</a></li>
+                                <li class="breadcrumb-item active">@(shipment.Id.Length > 8 ? shipment.Id.Substring(0, 8) : shipment.Id)</li>
+                            </ol>
+                        </nav>
+                        <h2><i class="bi bi-truck me-2"></i>Shipment Details</h2>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        @errorMessage
+                        <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle me-2"></i>
+                        @successMessage
+                        <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+                    </div>
+                }
+
+                <!-- Main Content -->
+                <div class="row mb-3">
+                    <div class="col-12 col-lg-8">
+                        <!-- Shipment Information Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Shipment Information</h5>
+                                <span class="badge bg-@GetStatusColor(shipment.Status) fs-6">@GetStatusName(shipment.Status)</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <p class="mb-1"><strong>Shipment ID:</strong></p>
+                                        <code class="text-primary d-block text-break">@shipment.Id</code>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-12 col-lg-6">
+                                        <p class="mb-1"><strong><i class="bi bi-geo-alt-fill text-success"></i> Origin:</strong></p>
+                                        <p class="text-muted text-break">@shipment.Origin</p>
+                                    </div>
+                                    <div class="col-12 col-lg-6">
+                                        <p class="mb-1"><strong><i class="bi bi-geo-alt-fill text-danger"></i> Destination:</strong></p>
+                                        <p class="text-muted text-break">@shipment.Destination</p>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-12 col-lg-6">
+                                        <p class="mb-1"><strong>Created:</strong></p>
+                                        <p class="text-muted">@shipment.CreatedAt.ToLocalTime().ToString("MMMM dd, yyyy HH:mm")</p>
+                                    </div>
+                                    <div class="col-12 col-lg-6">
+                                        <p class="mb-1"><strong>Last Updated:</strong></p>
+                                        <p class="text-muted">@shipment.UpdatedAt.ToLocalTime().ToString("MMMM dd, yyyy HH:mm")</p>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-12 col-lg-6">
+                                        <p class="mb-1"><strong>Expected Delivery:</strong></p>
+                                        <p class="text-muted">@shipment.ExpectedDeliveryDate.ToLocalTime().ToString("MMM dd, yyyy")</p>
+                                    </div>
+                                    @if (shipment.ActualDeliveryDate.HasValue)
+                                    {
+                                        <div class="col-12 col-lg-6">
+                                            <p class="mb-1"><strong>Actual Delivery:</strong></p>
+                                            <p class="text-muted">@shipment.ActualDeliveryDate.Value.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</p>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-12">
+                                        <p class="mb-1"><strong>Recipient ID:</strong></p>
+                                        <p class="text-muted text-break">@shipment.RecipientId</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shipment Items Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-box me-2"></i>Shipment Items</h5>
+                            </div>
+                            <div class="card-body">
+                                @if (shipment.Items.Any())
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Item</th>
+                                                    <th>Quantity</th>
+                                                    <th>Unit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in shipment.Items)
+                                                {
+                                                    <tr>
+                                                        <td>@item.Description</td>
+                                                        <td>@item.Quantity</td>
+                                                        <td>@item.Unit</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No items listed</p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Current Location Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Current Location</h5>
+                                <button class="btn btn-sm btn-primary" @onclick="() => showUpdateLocationModal = true">
+                                    <i class="bi bi-pencil me-1"></i>Update Location
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                @if (currentLocation != null)
+                                {
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            <p class="mb-1"><strong>Location Name:</strong></p>
+                                            <p class="text-muted">@currentLocation.LocationName</p>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <p class="mb-1"><strong>Latitude:</strong></p>
+                                            <p class="text-muted">@currentLocation.Latitude.ToString("F6")</p>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="mb-1"><strong>Longitude:</strong></p>
+                                            <p class="text-muted">@currentLocation.Longitude.ToString("F6")</p>
+                                        </div>
+                                    </div>
+                                    @if (currentLocation.GpsAccuracy.HasValue)
+                                    {
+                                        <div class="row mb-2">
+                                            <div class="col-12">
+                                                <p class="mb-1"><strong>GPS Accuracy:</strong></p>
+                                                <p class="text-muted">±@currentLocation.GpsAccuracy.Value.ToString("F2")m</p>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <p class="mb-1"><strong>Last Updated:</strong></p>
+                                            <p class="text-muted">@currentLocation.CreatedTimestamp.ToLocalTime().ToString("MMMM dd, yyyy HH:mm")</p>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted"><i class="bi bi-info-circle me-2"></i>No location recorded yet</p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Location History Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-pin-map me-2"></i>Location History</h5>
+                            </div>
+                            <div class="card-body">
+                                @if (locationHistory.Any())
+                                {
+                                    <div class="timeline">
+                                        @foreach (var location in locationHistory)
+                                        {
+                                            <div class="timeline-item mb-3">
+                                                <div class="timeline-marker"></div>
+                                                <div class="ms-3">
+                                                    <p class="mb-1"><strong>@location.LocationName</strong></p>
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-geo-alt me-1"></i>
+                                                        @location.Latitude.ToString("F6"), @location.Longitude.ToString("F6")
+                                                    </small>
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-calendar me-1"></i>
+                                                        @location.CreatedTimestamp.ToLocalTime().ToString("MMM dd, yyyy HH:mm")
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted"><i class="bi bi-info-circle me-2"></i>No location history yet</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="col-12 col-lg-4">
+                        <!-- Actions Card -->
+                        <div class="card mb-3 sticky-top" style="top: 20px;">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Actions</h5>
+                            </div>
+                            <div class="card-body d-grid gap-2">
+                                @if (shipment.Status == 2) // In Transit
+                                {
+                                    <button class="btn btn-warning" @onclick="() => showReportIssueModal = true" disabled="@isProcessing">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>Report Issue
+                                    </button>
+                                }
+                                @if (shipment.Status == 3) // Delivered
+                                {
+                                    <button class="btn btn-success" @onclick="ConfirmReceipt" disabled="@isProcessing">
+                                        @if (isProcessing)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        }
+                                        <i class="bi bi-check-circle me-2"></i>Confirm Receipt
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Delivery Events Card -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Delivery Events</h5>
+                            </div>
+                            <div class="card-body">
+                                @if (deliveryEvents.Any())
+                                {
+                                    <div class="timeline">
+                                        @foreach (var evt in deliveryEvents.OrderByDescending(e => e.CreatedTimestamp).Take(10))
+                                        {
+                                            <div class="timeline-item mb-2">
+                                                <div class="timeline-marker"></div>
+                                                <div class="ms-2">
+                                                    <p class="mb-0 small"><strong>@GetEventTypeName(evt.EventType)</strong></p>
+                                                    <small class="text-muted d-block">@evt.CreatedTimestamp.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                                                    @if (!string.IsNullOrEmpty(evt.Description))
+                                                    {
+                                                        <small class="text-muted d-block">@evt.Description</small>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small"><i class="bi bi-info-circle me-2"></i>No events recorded yet</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Update Location Modal -->
+        @if (showUpdateLocationModal)
+        {
+            <UpdateLocation @bind-ShowModal="showUpdateLocationModal" ShipmentId="@Id" OnSuccess="HandleLocationUpdated" OnError="HandleError" />
+        }
+
+        <!-- Report Issue Modal -->
+        @if (showReportIssueModal)
+        {
+            <ReportDeliveryIssue @bind-ShowModal="showReportIssueModal" ShipmentId="@Id" OnSuccess="HandleIssueReported" OnError="HandleError" />
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            You are not authorized to access this page.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 0;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 2px;
+        width: 12px;
+        height: 12px;
+        background-color: #0d6efd;
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+
+    .sticky-top {
+        top: 20px !important;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private ShipmentDto? shipment;
+    private ShipmentLocationDto? currentLocation;
+    private List<ShipmentLocationDto> locationHistory = new();
+    private List<DeliveryEventDto> deliveryEvents = new();
+    private bool showUpdateLocationModal = false;
+    private bool showReportIssueModal = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadShipmentDetails();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadShipmentDetails()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Load shipment details
+            var shipmentData = await ApiClient.GetAsync<ShipmentDto>($"/api/shipments/{Id}");
+            shipment = shipmentData;
+
+            if (shipment != null)
+            {
+                // Load current location (may not exist yet)
+                try
+                {
+                    var location = await ApiClient.GetAsync<ShipmentLocationDto>($"/api/logistics-partner/shipments/{Id}/location");
+                    currentLocation = location;
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("404"))
+                {
+                    // No location set yet - this is expected
+                    currentLocation = null;
+                }
+
+                // Load location history
+                try
+                {
+                    var history = await ApiClient.GetAsync<List<ShipmentLocationDto>>($"/api/logistics-partner/shipments/{Id}/location-history?limit=20");
+                    locationHistory = history ?? new();
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("404"))
+                {
+                    // No location history yet
+                    locationHistory = new();
+                }
+
+                // Load delivery events (may not exist yet)
+                try
+                {
+                    var events = await ApiClient.GetAsync<List<DeliveryEventDto>>($"/api/logistics-partner/shipments/{Id}/delivery-history");
+                    deliveryEvents = events ?? new();
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("404"))
+                {
+                    // No delivery events yet
+                    deliveryEvents = new();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading delivery events: {ex.Message}");
+                    deliveryEvents = new();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading shipment details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLocationUpdated()
+    {
+        successMessage = "Location updated successfully";
+        showUpdateLocationModal = false;
+        await LoadShipmentDetails();
+    }
+
+    private async Task HandleIssueReported()
+    {
+        successMessage = "Issue reported successfully";
+        showReportIssueModal = false;
+        await LoadShipmentDetails();
+    }
+
+    private void HandleError(string error)
+    {
+        errorMessage = error;
+    }
+
+    private async Task ConfirmReceipt()
+    {
+        try
+        {
+            isProcessing = true;
+            await ApiClient.PostAsync($"/api/logistics-partner/shipments/{Id}/confirm-receipt", new { });
+            successMessage = "Receipt confirmed successfully";
+            await LoadShipmentDetails();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error confirming receipt: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private string GetStatusName(int status)
+    {
+        return status switch
+        {
+            0 => "Created",
+            1 => "Validated",
+            2 => "In Transit",
+            3 => "Delivered",
+            4 => "Confirmed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusColor(int status)
+    {
+        return status switch
+        {
+            0 => "secondary",
+            1 => "info",
+            2 => "warning",
+            3 => "success",
+            4 => "success",
+            _ => "secondary"
+        };
+    }
+
+    private string GetEventTypeName(int eventType)
+    {
+        return eventType switch
+        {
+            0 => "📍 Location Updated",
+            1 => "🚚 Delivery Started",
+            2 => "⚠️ Issue Reported",
+            3 => "✓ Issue Resolved",
+            4 => "🏁 Delivered",
+            5 => "✅ Receipt Confirmed",
+            _ => "Unknown Event"
+        };
+    }
+
+    private class ShipmentDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string Destination { get; set; } = string.Empty;
+        public string RecipientId { get; set; } = string.Empty;
+        public DateTime ExpectedDeliveryDate { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
+        public int Status { get; set; }
+        public string QrCode { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public List<ShipmentItemDto> Items { get; set; } = new();
+        public List<string> TransactionIds { get; set; } = new();
+    }
+
+    private class ShipmentItemDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
+    }
+
+    private class ShipmentLocationDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string ShipmentId { get; set; } = string.Empty;
+        public decimal Latitude { get; set; }
+        public decimal Longitude { get; set; }
+        public string LocationName { get; set; } = string.Empty;
+        public DateTime CreatedTimestamp { get; set; }
+        public decimal? GpsAccuracy { get; set; }
+    }
+
+    private class DeliveryEventDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string ShipmentId { get; set; } = string.Empty;
+        public int EventType { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public DateTime CreatedTimestamp { get; set; }
+        public string CreatedByUserId { get; set; } = string.Empty;
+    }
+}
