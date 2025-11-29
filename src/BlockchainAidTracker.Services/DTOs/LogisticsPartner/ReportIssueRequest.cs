@@ -14,6 +14,16 @@ public enum IssueType
 }
 
 /// <summary>
+/// Enumeration of issue priority levels
+/// </summary>
+public enum IssuePriority
+{
+    Low = 0,
+    Medium = 1,
+    High = 2
+}
+
+/// <summary>
 /// Request DTO for reporting delivery issues
 /// </summary>
 public class ReportIssueRequest
@@ -35,6 +45,5 @@ public class ReportIssueRequest
     /// Priority level of the issue
     /// </summary>
     [Required]
-    [Range(0, 2, ErrorMessage = "Priority must be Low (0), Medium (1), or High (2)")]
-    public int Priority { get; set; } // 0 = Low, 1 = Medium, 2 = High
+    public IssuePriority Priority { get; set; }
 }
