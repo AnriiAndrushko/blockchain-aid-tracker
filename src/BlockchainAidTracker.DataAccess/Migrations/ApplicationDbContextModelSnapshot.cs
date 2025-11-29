@@ -17,6 +17,51 @@ namespace BlockchainAidTracker.DataAccess.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
 
+            modelBuilder.Entity("BlockchainAidTracker.Core.Models.DeliveryEvent", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedTimestamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Metadata")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ShipmentId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CreatedTimestamp");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("ShipmentId", "CreatedTimestamp")
+                        .HasDatabaseName("IX_DeliveryEvents_ShipmentId_CreatedTimestamp");
+
+                    b.ToTable("DeliveryEvents", (string)null);
+                });
+
             modelBuilder.Entity("BlockchainAidTracker.Core.Models.PaymentRecord", b =>
                 {
                     b.Property<string>("Id")
@@ -208,6 +253,51 @@ namespace BlockchainAidTracker.DataAccess.Migrations
                     b.HasIndex("ShipmentId");
 
                     b.ToTable("ShipmentItems", (string)null);
+                });
+
+            modelBuilder.Entity("BlockchainAidTracker.Core.Models.ShipmentLocation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedTimestamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("GpsAccuracy")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Latitude")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("LocationName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Longitude")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("ShipmentId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedTimestamp");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("ShipmentId", "CreatedTimestamp")
+                        .HasDatabaseName("IX_ShipmentLocations_ShipmentId_CreatedTimestamp");
+
+                    b.ToTable("ShipmentLocations", (string)null);
                 });
 
             modelBuilder.Entity("BlockchainAidTracker.Core.Models.Supplier", b =>
@@ -534,6 +624,21 @@ namespace BlockchainAidTracker.DataAccess.Migrations
                     b.ToTable("Validators", (string)null);
                 });
 
+            modelBuilder.Entity("BlockchainAidTracker.Core.Models.DeliveryEvent", b =>
+                {
+                    b.HasOne("BlockchainAidTracker.Core.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BlockchainAidTracker.Core.Models.Shipment", null)
+                        .WithMany()
+                        .HasForeignKey("ShipmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BlockchainAidTracker.Core.Models.PaymentRecord", b =>
                 {
                     b.HasOne("BlockchainAidTracker.Core.Models.Shipment", "Shipment")
@@ -559,6 +664,21 @@ namespace BlockchainAidTracker.DataAccess.Migrations
                         .WithMany("Items")
                         .HasForeignKey("ShipmentId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BlockchainAidTracker.Core.Models.ShipmentLocation", b =>
+                {
+                    b.HasOne("BlockchainAidTracker.Core.Models.Shipment", null)
+                        .WithMany()
+                        .HasForeignKey("ShipmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BlockchainAidTracker.Core.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

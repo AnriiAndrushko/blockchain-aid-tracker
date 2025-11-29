@@ -58,5 +58,25 @@ public enum TransactionType
     /// <summary>
     /// A payment has failed to process.
     /// </summary>
-    PaymentFailed
+    PaymentFailed,
+
+    /// <summary>
+    /// A shipment location has been updated by logistics partner.
+    /// </summary>
+    LocationUpdated,
+
+    /// <summary>
+    /// Delivery has been started by logistics partner.
+    /// </summary>
+    DeliveryStarted,
+
+    /// <summary>
+    /// A delivery issue has been reported.
+    /// </summary>
+    DeliveryIssueReported,
+
+    /// <summary>
+    /// A delivery receipt has been confirmed.
+    /// </summary>
+    DeliveryReceiptConfirmed
 }

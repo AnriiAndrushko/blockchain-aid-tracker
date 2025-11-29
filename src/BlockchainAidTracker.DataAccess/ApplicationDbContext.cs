@@ -45,6 +45,16 @@ public class ApplicationDbContext : DbContext
     public DbSet<PaymentRecord> PaymentRecords { get; set; } = null!;
 
     /// <summary>
+    /// DbSet for ShipmentLocation entities (LogisticsPartner tracking)
+    /// </summary>
+    public DbSet<ShipmentLocation> ShipmentLocations { get; set; } = null!;
+
+    /// <summary>
+    /// DbSet for DeliveryEvent entities (LogisticsPartner tracking)
+    /// </summary>
+    public DbSet<DeliveryEvent> DeliveryEvents { get; set; } = null!;
+
+    /// <summary>
     /// Constructor for dependency injection
     /// </summary>
     /// <param name="options">DbContext options</param>
@@ -69,6 +79,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new SupplierConfiguration());
         modelBuilder.ApplyConfiguration(new SupplierShipmentConfiguration());
         modelBuilder.ApplyConfiguration(new PaymentRecordConfiguration());
+        modelBuilder.ApplyConfiguration(new ShipmentLocationConfiguration());
+        modelBuilder.ApplyConfiguration(new DeliveryEventConfiguration());
     }
 
     /// <summary>

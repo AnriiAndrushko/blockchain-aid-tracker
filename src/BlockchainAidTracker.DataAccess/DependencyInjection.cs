@@ -35,6 +35,8 @@ public static class DependencyInjection
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<ISupplierShipmentRepository, SupplierShipmentRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IShipmentLocationRepository, ShipmentLocationRepository>();
+        services.AddScoped<IDeliveryEventRepository, DeliveryEventRepository>();
 
         return services;
     }
@@ -64,6 +66,8 @@ public static class DependencyInjection
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<ISupplierShipmentRepository, SupplierShipmentRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IShipmentLocationRepository, ShipmentLocationRepository>();
+        services.AddScoped<IDeliveryEventRepository, DeliveryEventRepository>();
 
         return services;
     }
@@ -90,6 +94,8 @@ public static class DependencyInjection
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<ISupplierShipmentRepository, SupplierShipmentRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IShipmentLocationRepository, ShipmentLocationRepository>();
+        services.AddScoped<IDeliveryEventRepository, DeliveryEventRepository>();
 
         return services;
     }
