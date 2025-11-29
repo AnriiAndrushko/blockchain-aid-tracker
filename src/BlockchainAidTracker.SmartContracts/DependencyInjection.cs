@@ -21,6 +21,7 @@ public static class DependencyInjection
         // Register built-in contracts
         services.AddSingleton<ISmartContract, DeliveryVerificationContract>();
         services.AddSingleton<ISmartContract, ShipmentTrackingContract>();
+        services.AddSingleton<ISmartContract, PaymentReleaseContract>();
 
         return services;
     }
