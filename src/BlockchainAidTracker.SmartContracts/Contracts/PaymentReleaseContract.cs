@@ -212,6 +212,12 @@ public class PaymentReleaseContract : SmartContract
             output["reason"] = "No eligible suppliers for payment release";
         }
 
+        // Apply state changes to contract state
+        if (stateChanges.Any())
+        {
+            UpdateState(stateChanges);
+        }
+
         return ContractExecutionResult.SuccessResult(output, stateChanges, events);
     }
 
@@ -234,13 +240,17 @@ public class PaymentReleaseContract : SmartContract
             return ContractExecutionResult.FailureResult("Supplier ID not found in payload");
         }
 
-        var amountStr = paymentData.TryGetValue("Amount", out var amountElement)
-            ? amountElement.GetString() ?? "0"
-            : "0";
+        var amountStr = "0";
+        if (paymentData.TryGetValue("Amount", out var amountElement))
+        {
+            amountStr = amountElement.ValueKind == JsonValueKind.String
+                ? amountElement.GetString() ?? "0"
+                : amountElement.GetRawText();
+        }
 
         if (!decimal.TryParse(amountStr, out var amount) || amount <= 0)
         {
-            return ContractExecutionResult.FailureResult("Invalid payment amount");
+            return ContractExecutionResult.FailureResult($"Invalid payment amount: {amountStr}");
         }
 
         // Verify supplier status
@@ -285,6 +295,12 @@ public class PaymentReleaseContract : SmartContract
             { "timestamp", context.ExecutionTime }
         }));
 
+        // Apply state changes to contract state
+        if (stateChanges.Any())
+        {
+            UpdateState(stateChanges);
+        }
+
         return ContractExecutionResult.SuccessResult(output, stateChanges, events);
     }
 
@@ -325,9 +341,13 @@ public class PaymentReleaseContract : SmartContract
                 continue;
             }
 
-            var amountStr = supplier.TryGetValue("Amount", out var amountElement)
-                ? amountElement.GetString() ?? "0"
-                : "0";
+            var amountStr = "0";
+            if (supplier.TryGetValue("Amount", out var amountElement))
+            {
+                amountStr = amountElement.ValueKind == JsonValueKind.String
+                    ? amountElement.GetString() ?? "0"
+                    : amountElement.GetRawText();
+            }
 
             if (decimal.TryParse(amountStr, out var amount))
             {
