@@ -13,6 +13,11 @@ public class SupplierDto
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
+    /// User ID of the customer/supplier account
+    /// </summary>
+    public string UserId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Legal company name of the supplier
     /// </summary>
     public string CompanyName { get; set; } = string.Empty;
@@ -70,6 +75,7 @@ public class SupplierDto
         return new SupplierDto
         {
             Id = supplier.Id,
+            UserId = supplier.UserId,
             CompanyName = supplier.CompanyName,
             RegistrationId = supplier.RegistrationId,
             ContactEmail = supplier.ContactEmail,

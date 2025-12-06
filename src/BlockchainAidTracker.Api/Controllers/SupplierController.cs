@@ -128,10 +128,11 @@ public class SupplierController : ControllerBase
                 });
             }
 
-            // Check access control: Admin or supplier owner (supplier ID is the user ID for Customer role)
-            if (!IsAdministrator() && !IsSupplierOwner(id))
+            // Check access control: Admin or supplier owner
+            var userId = GetUserIdFromClaims();
+            if (!IsAdministrator() && supplier.UserId != userId)
             {
-                _logger.LogWarning("Unauthorized access attempt to supplier {SupplierId}", id);
+                _logger.LogWarning("Unauthorized access attempt to supplier {SupplierId} by user {UserId}", id, userId);
                 return Forbid();
             }
 
@@ -247,10 +248,11 @@ public class SupplierController : ControllerBase
                 });
             }
 
-            // Check access control: Admin or supplier owner (supplier ID is the user ID)
-            if (!IsAdministrator() && !IsSupplierOwner(id))
+            // Check access control: Admin or supplier owner
+            var userId = GetUserIdFromClaims();
+            if (!IsAdministrator() && supplier.UserId != userId)
             {
-                _logger.LogWarning("Unauthorized update attempt to supplier {SupplierId}", id);
+                _logger.LogWarning("Unauthorized update attempt to supplier {SupplierId} by user {UserId}", id, userId);
                 return Forbid();
             }
 
@@ -514,10 +516,11 @@ public class SupplierController : ControllerBase
                 });
             }
 
-            // Check access control: Admin or supplier owner (supplier ID is the user ID)
-            if (!IsAdministrator() && !IsSupplierOwner(id))
+            // Check access control: Admin or supplier owner
+            var userId = GetUserIdFromClaims();
+            if (!IsAdministrator() && supplier.UserId != userId)
             {
-                _logger.LogWarning("Unauthorized access attempt to supplier payments {SupplierId}", id);
+                _logger.LogWarning("Unauthorized access attempt to supplier payments {SupplierId} by user {UserId}", id, userId);
                 return Forbid();
             }
 
@@ -554,15 +557,6 @@ public class SupplierController : ControllerBase
     {
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
         return role == UserRole.Customer.ToString();
-    }
-
-    /// <summary>
-    /// Checks if the current user is the owner of a supplier
-    /// </summary>
-    private bool IsSupplierOwner(string supplierId)
-    {
-        var userId = GetUserIdFromClaims();
-        return userId == supplierId;
     }
 
     /// <summary>

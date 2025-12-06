@@ -20,11 +20,11 @@ The project serves as a **proof-of-concept** to demonstrate:
 **Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, Proof-of-Authority Consensus Engine, Consensus API Integration, Automated Block Creation Background Service, Blockchain Persistence, Cryptographic Key Management, and Blazor Web UI Complete** - The core blockchain engine with real ECDSA signature validation, PoA consensus, automated block creation, blockchain persistence, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, all API endpoints, and full Blazor Web UI are fully implemented and tested.
 
 **Current Metrics:**
--  **716 tests passing** (100% success rate: all categories) - **UPDATED 2025-12-06**
+-  **741 tests passing** (100% success rate: all categories) - **UPDATED 2025-12-06**
 -  **Complete Blazor Web UI with 16 pages** (auth, dashboard, shipments, users, validators, consensus, contracts, blockchain explorer)
 -  **Full role-based UI behavior** (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner, Customer - 7 roles)
--  **Customer/Supplier Payment System** (domain models, database schema, repositories, services complete)
--  **LogisticsPartner System** (backend complete with 66 tests: 34 service + 12 database + 20 integration) - **UPDATED 2025-12-06**
+-  **Customer/Supplier Payment System** (domain models, database schema, repositories, services, API endpoints with 91 tests: service, database, and 25 integration tests) - **UPDATED 2025-12-06**
+-  **LogisticsPartner System** (backend complete with 66 tests: 34 service + 12 database + 20 integration)
 -  **Blockchain persistence with automatic save/load and backup rotation**
 -  **Consensus API with 4 endpoints for block creation and validation**
 -  **Automated background service creating blocks every 30 seconds**
