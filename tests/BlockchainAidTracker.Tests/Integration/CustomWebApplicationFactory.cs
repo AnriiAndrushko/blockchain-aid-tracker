@@ -39,6 +39,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped<IShipmentRepository, ShipmentRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IValidatorRepository, ValidatorRepository>();
+            services.AddScoped<IShipmentLocationRepository, ShipmentLocationRepository>();
+            services.AddScoped<IDeliveryEventRepository, DeliveryEventRepository>();
+            services.AddScoped<ISupplierRepository, SupplierRepository>();
+            services.AddScoped<ISupplierShipmentRepository, SupplierShipmentRepository>();
+            services.AddScoped<IPaymentRepository, PaymentRepository>();
         });
     }
 

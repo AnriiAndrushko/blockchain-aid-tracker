@@ -20,17 +20,18 @@ The project serves as a **proof-of-concept** to demonstrate:
 **Foundation, Business Logic, Authentication, Shipment, User Management, Blockchain Query APIs, Smart Contract Framework, Smart Contract API Integration, Validator Node System, Proof-of-Authority Consensus Engine, Consensus API Integration, Automated Block Creation Background Service, Blockchain Persistence, Cryptographic Key Management, and Blazor Web UI Complete** - The core blockchain engine with real ECDSA signature validation, PoA consensus, automated block creation, blockchain persistence, smart contracts, smart contract API, validator management, cryptography services, key management, data access layer, services layer, all API endpoints, and full Blazor Web UI are fully implemented and tested.
 
 **Current Metrics:**
--  **555 tests passing** (100% success rate: all categories)
+-  **716 tests passing** (100% success rate: all categories) - **UPDATED 2025-12-06**
 -  **Complete Blazor Web UI with 16 pages** (auth, dashboard, shipments, users, validators, consensus, contracts, blockchain explorer)
--  **Full role-based UI behavior** (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner, Customer - 7 roles) NEWEST
--  **Customer/Supplier Payment System** (domain models, database schema, repositories to follow) NEWEST
+-  **Full role-based UI behavior** (Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner, Customer - 7 roles)
+-  **Customer/Supplier Payment System** (domain models, database schema, repositories, services complete)
+-  **LogisticsPartner System** (backend complete with 66 tests: 34 service + 12 database + 20 integration) - **UPDATED 2025-12-06**
 -  **Blockchain persistence with automatic save/load and backup rotation**
 -  **Consensus API with 4 endpoints for block creation and validation**
 -  **Automated background service creating blocks every 30 seconds**
--  Authentication, Shipment, User Management, Blockchain Query, Smart Contract, Validator & Consensus API endpoints operational with Swagger UI
--  8 core business services fully implemented (including key management & validator service)
--  **Validator node system with 6 API endpoints**
--  **Smart contract framework with 2 built-in contracts (DeliveryVerification, ShipmentTracking)**
+-  Authentication, Shipment, User Management, Blockchain Query, Smart Contract, Validator, Consensus, **LogisticsPartner** API endpoints operational with Swagger UI
+-  9 core business services fully implemented (including LogisticsPartner, key management & validator service)
+-  **Validator node system with 7 API endpoints**
+-  **Smart contract framework with 3 built-in contracts (DeliveryVerification, ShipmentTracking, PaymentRelease)**
 -  **Smart contract API integration with 4 endpoints (list, get, execute, get state)**
 -  **Blockchain engine with real ECDSA signature validation ENABLED**
 -  **AES-256 private key encryption with user passwords**
@@ -38,7 +39,7 @@ The project serves as a **proof-of-concept** to demonstrate:
 -  JWT authentication with BCrypt password hashing
 -  QR code generation for shipment tracking
 -  Complete data access layer with EF Core
--  Repository pattern fully tested
+-  Repository pattern fully tested (9 repositories with 23 specialized query methods)
 -  Cryptographic services (SHA-256, ECDSA) with real signatures
 -  Integration test infrastructure with WebApplicationFactory
 -  All blockchain transactions cryptographically signed and validated
@@ -372,7 +373,7 @@ The project follows a comprehensive implementation roadmap detailed in [CLAUDE.m
 
 ## Testing
 
-The project has a comprehensive test suite with **594 passing tests** (100% success rate):
+The project has a comprehensive test suite with **716 passing tests** (100% success rate):
 
 ### Test Coverage
 
@@ -393,13 +394,13 @@ dotnet test --filter "FullyQualifiedName~Integration"
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| **Services** | 159 | Business logic, key management, authentication, shipment lifecycle, **automated block creation** |
-| **SmartContracts** | 90 | Contract engine, delivery verification, shipment tracking |
+| **Services** | 193 | Business logic, key management, authentication, shipment lifecycle, **LogisticsPartner (34)**, automated block creation |
+| **SmartContracts** | 90 | Contract engine, delivery verification, shipment tracking, payment release |
 | **Models** | 75 | Domain entities (User, Shipment, Validator, Block, Transaction) |
+| **Database** | 71 | Repository tests (9 repositories) with in-memory DB, automatic cleanup |
 | **Blockchain** | 61 | Chain validation, block creation, signature verification, **persistence (save/load/backup)** |
-| **Database** | 71 | Repository tests with in-memory DB, automatic cleanup |
 | **Cryptography** | 31 | SHA-256 hashing, ECDSA signatures, key generation |
-| **Integration** | 107 | API endpoint tests (auth + shipments + user mgmt + blockchain + contracts + validators + **consensus**), real cryptographic validation |
+| **Integration** | 127 | API endpoint tests (auth + shipments + user mgmt + blockchain + contracts + validators + consensus + **LogisticsPartner (20)**), real cryptographic validation |
 
 ### Test Infrastructure Features
 

@@ -2,18 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Latest Implementation (2025-11-29)
+## Latest Implementation (2025-12-06)
 
 **What was done**:
-- ✅ Implemented 34 comprehensive unit tests for LogisticsPartnerService (all 7 service methods tested)
-- ✅ Created IssuePriority enum (Low, Medium, High) for improved code readability vs int values
-- ✅ All 696 tests passing (100% success rate)
-- ✅ Updated test suite from 662 to 696 tests
+- ✅ Implemented 20 comprehensive integration tests for LogisticsPartnerController (all 7 REST API endpoints tested)
+- ✅ All endpoints tested with success paths, error scenarios, authentication, and authorization
+- ✅ All 716 tests passing (100% success rate)
+- ✅ Updated test suite from 696 to 716 tests
+- ✅ Updated CustomWebApplicationFactory to register LogisticsPartner repositories for DI
 
 **Files Added/Modified**:
-- New: `tests/BlockchainAidTracker.Tests/Services/LogisticsPartnerServiceTests.cs` (720 lines, 34 tests)
-- Modified: `src/BlockchainAidTracker.Services/DTOs/LogisticsPartner/ReportIssueRequest.cs` (added IssuePriority enum)
+- New: `tests/BlockchainAidTracker.Tests/Integration/LogisticsPartnerControllerTests.cs` (580 lines, 20 tests)
+- Modified: `tests/BlockchainAidTracker.Tests/Integration/CustomWebApplicationFactory.cs` (added 5 new repository registrations)
 - Modified: `CLAUDE.md` (updated test counts and roadmap status)
+- Modified: `README.md` (updated test counts)
 
 ## ⚠️ Important Note: Showcase/Diploma Project
 
@@ -221,19 +223,20 @@ dotnet test --filter "FullyQualifiedName!~Integration"
 - **Features**: ECDSA keys, AES-256 encryption, round-robin selection, statistics
 - **Test Coverage**: 30 unit tests
 
-### ✅ Test Suite (696 Tests - 100% Passing)
+### ✅ Test Suite (716 Tests - 100% Passing)
 **Location**: `tests/BlockchainAidTracker.Tests/`
-- **Services** (193): Password, Token, Auth, User, QrCode, Shipment, Consensus, Background Service, **LogisticsPartner (34 new)**
+- **Services** (193): Password, Token, Auth, User, QrCode, Shipment, Consensus, Background Service, **LogisticsPartner (34)**
   - **LogisticsPartnerService** (34): Assigned shipments, location tracking, delivery events, issue reporting, role-based access control, integration workflows
 - **SmartContracts** (90): Engine, DeliveryVerification, ShipmentTracking
 - **Models** (75): Shipment/Items, Validator
 - **Database** (71): Repositories (User, Shipment, Validator, Supplier, ShipmentLocation, DeliveryEvent), DbContext
 - **Blockchain** (61): Core, Persistence, Integration
 - **Cryptography** (31): SHA-256, ECDSA
-- **Integration** (107): Auth, Shipments, Users, Blockchain, Contracts, Consensus API (with end-to-end workflows, real signatures, WebApplicationFactory)
+- **Integration** (127): Auth, Shipments, Users, Blockchain, Contracts, Consensus, **LogisticsPartner (20 new)** - all with end-to-end workflows, real signatures, WebApplicationFactory
+  - **LogisticsPartnerController** (20): All 7 endpoints, authentication, authorization, validation, error handling
 - **Test Infrastructure**: `DatabaseTestBase`, `CustomWebApplicationFactory`, builders (User, Shipment, Validator), in-memory DB isolation, Moq
-- **Execution**: ~28 seconds
-- **Coverage**: All service methods, edge cases, access control, and error handling with 100% pass rate
+- **Execution**: ~42 seconds
+- **Coverage**: All service methods, all API endpoints, edge cases, access control, and error handling with 100% pass rate
 
 ---
 
@@ -750,8 +753,8 @@ All features below are planned for step-by-step implementation. Each section rep
   - [x] DeliveryEventRepository tests (6 tests): By type, date range, recent events, counts
 - [x] Create service tests (34 tests) - ✅ COMPLETE:
   - [x] LogisticsPartnerService tests (34 tests): All 7 methods, location updates, issue reporting, role-based access control, error handling, integration workflows (100% passing)
-- [ ] Create API integration tests (8 tests) - TODO:
-  - [ ] LogisticsPartnerController endpoint tests (8 tests): All 7 endpoints + error scenarios
+- [x] Create API integration tests (20 tests) - ✅ COMPLETE:
+  - [x] LogisticsPartnerController endpoint tests (20 tests): All 7 endpoints with success paths, validation, authentication, authorization, error scenarios (100% passing)
 
 **E. Frontend - LogisticsPartner UI Pages**:
 - [ ] Create `LogisticsPartnerShipments.razor` page (LogisticsPartner role required):
