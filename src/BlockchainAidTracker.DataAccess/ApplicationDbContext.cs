@@ -55,6 +55,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<DeliveryEvent> DeliveryEvents { get; set; } = null!;
 
     /// <summary>
+    /// DbSet for SmartContractEntity (smart contract state persistence)
+    /// </summary>
+    public DbSet<SmartContractEntity> SmartContracts { get; set; } = null!;
+
+    /// <summary>
     /// Constructor for dependency injection
     /// </summary>
     /// <param name="options">DbContext options</param>
@@ -81,6 +86,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new PaymentRecordConfiguration());
         modelBuilder.ApplyConfiguration(new ShipmentLocationConfiguration());
         modelBuilder.ApplyConfiguration(new DeliveryEventConfiguration());
+        modelBuilder.ApplyConfiguration(new SmartContractEntityConfiguration());
     }
 
     /// <summary>

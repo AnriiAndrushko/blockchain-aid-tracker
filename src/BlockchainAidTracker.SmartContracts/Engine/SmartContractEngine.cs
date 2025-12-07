@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BlockchainAidTracker.SmartContracts.Interfaces;
 using BlockchainAidTracker.SmartContracts.Models;
 using Microsoft.Extensions.Logging;
@@ -12,11 +13,13 @@ public class SmartContractEngine
     private readonly Dictionary<string, ISmartContract> _deployedContracts;
     private readonly ILogger<SmartContractEngine>? _logger;
     private readonly object _contractsLock = new();
+    private readonly Func<object>? _getDbContext; // Factory to get DbContext when needed
 
-    public SmartContractEngine(ILogger<SmartContractEngine>? logger = null)
+    public SmartContractEngine(ILogger<SmartContractEngine>? logger = null, Func<object>? getDbContext = null)
     {
         _deployedContracts = new Dictionary<string, ISmartContract>();
         _logger = logger;
+        _getDbContext = getDbContext;
     }
 
     /// <summary>
@@ -36,6 +39,17 @@ public class SmartContractEngine
             }
 
             _deployedContracts[contract.ContractId] = contract;
+
+            // Store deployment timestamp in contract state if not already set
+            var state = contract.GetState();
+            if (!state.ContainsKey("_deployedAt"))
+            {
+                contract.UpdateState(new Dictionary<string, object>
+                {
+                    { "_deployedAt", DateTime.UtcNow }
+                });
+            }
+
             _logger?.LogInformation("Deployed contract: {Name} (ID: {ContractId})",
                 contract.Name, contract.ContractId);
             return true;

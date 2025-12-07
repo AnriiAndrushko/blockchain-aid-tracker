@@ -187,9 +187,6 @@ var blockchain = app.Services.GetRequiredService<Blockchain>();
 blockchain.ValidateTransactionSignatures = false; // TODO: Enable when private keys are properly managed
 blockchain.ValidateBlockSignatures = false; // Block validator signatures not yet implemented
 
-// Deploy smart contracts after building the app
-app.Services.DeployContracts();
-
 // Apply database migrations in development (but not in testing)
 if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {
@@ -202,6 +199,13 @@ if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing")
 
     app.Logger.LogInformation("Database migrations applied successfully");
 }
+
+// Deploy smart contracts AFTER database is ready
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.DeployContracts();
+}
+app.Logger.LogInformation("Smart contracts deployed");
 
 // Load blockchain from persistence if configured
 if (persistenceSettings.Enabled && persistenceSettings.AutoLoadOnStartup && !app.Environment.IsEnvironment("Testing"))

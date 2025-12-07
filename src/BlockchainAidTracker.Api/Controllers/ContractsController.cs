@@ -1,4 +1,5 @@
 using BlockchainAidTracker.Blockchain;
+using BlockchainAidTracker.DataAccess;
 using BlockchainAidTracker.Services.DTOs.SmartContract;
 using BlockchainAidTracker.SmartContracts.Engine;
 using BlockchainAidTracker.SmartContracts.Models;
@@ -17,15 +18,18 @@ public class ContractsController : ControllerBase
 {
     private readonly SmartContractEngine _contractEngine;
     private readonly Blockchain.Blockchain _blockchain;
+    private readonly ApplicationDbContext _dbContext;
     private readonly ILogger<ContractsController> _logger;
 
     public ContractsController(
         SmartContractEngine contractEngine,
         Blockchain.Blockchain blockchain,
+        ApplicationDbContext dbContext,
         ILogger<ContractsController> logger)
     {
         _contractEngine = contractEngine ?? throw new ArgumentNullException(nameof(contractEngine));
         _blockchain = blockchain ?? throw new ArgumentNullException(nameof(blockchain));
+        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -44,12 +48,19 @@ public class ContractsController : ControllerBase
         {
             _logger.LogInformation("Retrieving all deployed smart contracts");
 
-            var contracts = _contractEngine.GetAllContracts()
-                .Select(ContractDto.FromContract)
-                .ToList();
+            var contracts = _contractEngine.GetAllContracts();
+            var contractDtos = new List<ContractDto>();
 
-            _logger.LogInformation("Retrieved {ContractCount} deployed contracts", contracts.Count);
-            return Ok(contracts);
+            foreach (var contract in contracts)
+            {
+                // Try to load from database
+                var dbEntity = _dbContext.SmartContracts.Find(contract.ContractId);
+                var dto = ContractDto.FromContractWithEntity(contract, dbEntity);
+                contractDtos.Add(dto);
+            }
+
+            _logger.LogInformation("Retrieved {ContractCount} deployed contracts", contractDtos.Count);
+            return Ok(contractDtos);
         }
         catch (Exception ex)
         {
@@ -94,7 +105,11 @@ public class ContractsController : ControllerBase
                 });
             }
 
-            return Ok(ContractDto.FromContract(contract));
+            // Try to load from database
+            var dbEntity = _dbContext.SmartContracts.Find(contractId);
+            var dto = ContractDto.FromContractWithEntity(contract, dbEntity);
+
+            return Ok(dto);
         }
         catch (Exception ex)
         {

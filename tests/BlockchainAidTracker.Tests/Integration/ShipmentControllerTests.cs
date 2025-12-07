@@ -126,7 +126,7 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         result.Origin.Should().Be(request.Origin);
         result.Destination.Should().Be(request.Destination);
         result.RecipientId.Should().Be(recipientId);
-        result.Status.Should().Be(ShipmentStatus.Created);
+        result.Status.Should().Be(ShipmentStatus.Validated); // Auto-validated by SmartContract because it has items
         result.QrCode.Should().NotBeNullOrEmpty();
         result.Items.Should().HaveCount(2);
         result.TransactionIds.Should().NotBeEmpty();
@@ -198,19 +198,19 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        // Create a test shipment
+        // Create a test shipment (will be auto-validated by smart contract)
         var createRequest = CreateValidShipmentRequest(recipientId);
         await _client.PostAsJsonAsync("/api/shipments", createRequest);
 
-        // Act
-        var response = await _client.GetAsync($"/api/shipments?status={ShipmentStatus.Created}");
+        // Act - Filter by Validated status (smart contract auto-validates shipments with items)
+        var response = await _client.GetAsync($"/api/shipments?status={ShipmentStatus.Validated}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<List<ShipmentDto>>();
         result.Should().NotBeNull();
         result.Should().NotBeEmpty();
-        result!.All(s => s.Status == ShipmentStatus.Created).Should().BeTrue();
+        result!.All(s => s.Status == ShipmentStatus.Validated).Should().BeTrue();
     }
 
     [Fact]
@@ -295,15 +295,10 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         var createResponse = await _client.PostAsJsonAsync("/api/shipments", createRequest);
         var createdShipment = await createResponse.Content.ReadFromJsonAsync<ShipmentDto>();
 
-        // First update to Validated (required transition from Created)
-        var validateRequest = new UpdateShipmentStatusRequest
-        {
-            ShipmentId = createdShipment!.Id,
-            NewStatus = ShipmentStatus.Validated
-        };
-        await _client.PutAsJsonAsync($"/api/shipments/{createdShipment.Id}/status", validateRequest);
+        // Shipment is auto-validated by smart contract, no need to manually validate
+        createdShipment!.Status.Should().Be(ShipmentStatus.Validated);
 
-        // Then update to InTransit
+        // Update to InTransit
         var updateRequest = new UpdateShipmentStatusRequest
         {
             ShipmentId = createdShipment.Id,
@@ -322,7 +317,7 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         var result = await response.Content.ReadFromJsonAsync<ShipmentDto>();
         result.Should().NotBeNull();
         result!.Status.Should().Be(ShipmentStatus.InTransit);
-        result.TransactionIds.Should().HaveCountGreaterThan(1);
+        result.TransactionIds.Should().HaveCountGreaterThan(1); // Creation + InTransit update
     }
 
     [Fact]
@@ -570,20 +565,9 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         var createResponse = await _client.PostAsJsonAsync("/api/shipments", createRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var shipment = await createResponse.Content.ReadFromJsonAsync<ShipmentDto>();
-        shipment!.Status.Should().Be(ShipmentStatus.Created);
+        shipment!.Status.Should().Be(ShipmentStatus.Validated); //Smart contract changes from Created -> Validated on block creation
 
-        // Step 2: Update to Validated
-        var validateUpdate = new UpdateShipmentStatusRequest
-        {
-            ShipmentId = shipment.Id,
-            NewStatus = ShipmentStatus.Validated
-        };
-        var validateResponse = await _client.PutAsJsonAsync($"/api/shipments/{shipment.Id}/status", validateUpdate);
-        validateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var validatedShipment = await validateResponse.Content.ReadFromJsonAsync<ShipmentDto>();
-        validatedShipment!.Status.Should().Be(ShipmentStatus.Validated);
-
-        // Step 3: Update to InTransit
+        // Step 2: Update to InTransit
         var transitUpdate = new UpdateShipmentStatusRequest
         {
             ShipmentId = shipment.Id,
@@ -594,7 +578,7 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         var inTransitShipment = await transitResponse.Content.ReadFromJsonAsync<ShipmentDto>();
         inTransitShipment!.Status.Should().Be(ShipmentStatus.InTransit);
 
-        // Step 4: Update to Delivered
+        // Step 3: Update to Delivered
         var deliveredUpdate = new UpdateShipmentStatusRequest
         {
             ShipmentId = shipment.Id,
@@ -608,7 +592,7 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         // Create a block to include all status updates
         await _factory.TriggerBlockCreationAsync();
 
-        // Step 5: Confirm delivery as recipient
+        // Step 4: Confirm delivery as recipient
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", recipientToken);
         var confirmResponse = await _client.PostAsync($"/api/shipments/{shipment.Id}/confirm-delivery", null);
         confirmResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -619,14 +603,14 @@ public class ShipmentControllerTests : IClassFixture<CustomWebApplicationFactory
         // Create another block for the confirm delivery transaction
         await _factory.TriggerBlockCreationAsync();
 
-        // Step 6: Verify blockchain history
+        // Step 5: Verify blockchain history
         var historyResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}/history");
         historyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var history = await historyResponse.Content.ReadFromJsonAsync<List<string>>();
         history.Should().NotBeEmpty();
         history.Should().HaveCountGreaterThanOrEqualTo(4); // Created + Validated + InTransit + Delivered + Confirmed
 
-        // Step 7: Get QR code
+        // Step 6: Get QR code
         var qrResponse = await _client.GetAsync($"/api/shipments/{shipment.Id}/qrcode");
         qrResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         qrResponse.Content.Headers.ContentType!.MediaType.Should().Be("image/png");

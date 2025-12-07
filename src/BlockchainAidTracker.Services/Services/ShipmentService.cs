@@ -7,6 +7,8 @@ using BlockchainAidTracker.DataAccess.Repositories;
 using BlockchainAidTracker.Services.DTOs.Shipment;
 using BlockchainAidTracker.Services.Exceptions;
 using BlockchainAidTracker.Services.Interfaces;
+using BlockchainAidTracker.SmartContracts.Engine;
+using BlockchainAidTracker.SmartContracts.Models;
 
 namespace BlockchainAidTracker.Services.Services;
 
@@ -21,6 +23,7 @@ public class ShipmentService : IShipmentService
     private readonly Blockchain.Blockchain _blockchain;
     private readonly IDigitalSignatureService _digitalSignatureService;
     private readonly TransactionSigningContext _signingContext;
+    private readonly SmartContractEngine? _smartContractEngine;
 
     public ShipmentService(
         IShipmentRepository shipmentRepository,
@@ -28,7 +31,8 @@ public class ShipmentService : IShipmentService
         IQrCodeService qrCodeService,
         Blockchain.Blockchain blockchain,
         IDigitalSignatureService digitalSignatureService,
-        TransactionSigningContext signingContext)
+        TransactionSigningContext signingContext,
+        SmartContractEngine? smartContractEngine = null)
     {
         _shipmentRepository = shipmentRepository ?? throw new ArgumentNullException(nameof(shipmentRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -36,6 +40,7 @@ public class ShipmentService : IShipmentService
         _blockchain = blockchain ?? throw new ArgumentNullException(nameof(blockchain));
         _digitalSignatureService = digitalSignatureService ?? throw new ArgumentNullException(nameof(digitalSignatureService));
         _signingContext = signingContext ?? throw new ArgumentNullException(nameof(signingContext));
+        _smartContractEngine = smartContractEngine;
     }
 
     public async Task<ShipmentDto> CreateShipmentAsync(CreateShipmentRequest request, string coordinatorId)
@@ -101,7 +106,7 @@ public class ShipmentService : IShipmentService
         // Save to database (AddAsync saves automatically)
         await _shipmentRepository.AddAsync(shipment);
 
-        // Create blockchain transaction
+        // Create blockchain transaction (smart contracts will execute automatically)
         var transactionId = await CreateBlockchainTransactionAsync(
             TransactionType.ShipmentCreated,
             coordinator.PublicKey,
@@ -116,6 +121,22 @@ public class ShipmentService : IShipmentService
                 CreatedAt = shipment.CreatedTimestamp
             },
             coordinatorId);
+
+        // Sync smart contract state back to database (smart contracts are source of truth)
+        if (_smartContractEngine != null)
+        {
+            var contractState = _smartContractEngine.GetContractState("shipment-tracking-v1");
+            if (contractState != null && contractState.TryGetValue($"shipment_{shipmentId}_status", out var statusObj))
+            {
+                var contractStatus = statusObj.ToString();
+                if (Enum.TryParse<ShipmentStatus>(contractStatus, out var newStatus) && newStatus != shipment.Status)
+                {
+                    // Smart contract changed the status (e.g., auto-validated), update database to match
+                    shipment.UpdateStatus(newStatus);
+                    _shipmentRepository.Update(shipment);
+                }
+            }
+        }
 
         return MapToDto(shipment, new List<string> { transactionId });
     }
@@ -206,7 +227,7 @@ public class ShipmentService : IShipmentService
 
         _shipmentRepository.Update(shipment);
 
-        // Create blockchain transaction
+        // Create blockchain transaction (smart contract will validate the transition)
         var transactionId = await CreateBlockchainTransactionAsync(
             TransactionType.StatusUpdated,
             user.PublicKey,
@@ -219,6 +240,23 @@ public class ShipmentService : IShipmentService
                 UpdatedAt = shipment.UpdatedTimestamp
             },
             updatedBy);
+
+        // Sync smart contract state back to database (smart contracts are source of truth)
+        // Note: The contract should confirm our status update, but if it changes it for any reason, we sync
+        if (_smartContractEngine != null)
+        {
+            var contractState = _smartContractEngine.GetContractState("shipment-tracking-v1");
+            if (contractState != null && contractState.TryGetValue($"shipment_{shipmentId}_status", out var statusObj))
+            {
+                var contractStatus = statusObj.ToString();
+                if (Enum.TryParse<ShipmentStatus>(contractStatus, out var finalStatus) && finalStatus != shipment.Status)
+                {
+                    // Smart contract modified the status differently than expected, sync database
+                    shipment.UpdateStatus(finalStatus);
+                    _shipmentRepository.Update(shipment);
+                }
+            }
+        }
 
         // Use private method since we already have the shipment (no need to check existence)
         var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
@@ -263,18 +301,23 @@ public class ShipmentService : IShipmentService
 
         _shipmentRepository.Update(shipment);
 
-        // Create blockchain transaction
+        // Create blockchain transaction (DeliveryVerificationContract will execute)
         var transactionId = await CreateBlockchainTransactionAsync(
             TransactionType.DeliveryConfirmed,
             recipient.PublicKey,
             new
             {
                 ShipmentId = shipmentId,
-                RecipientId = recipientId,
+                RecipientId = recipient.PublicKey, // Contract compares sender public key to this
                 ConfirmedAt = shipment.UpdatedTimestamp,
-                ActualDeliveryDate = shipment.ActualDeliveryDate
+                ActualDeliveryDate = shipment.ActualDeliveryDate,
+                qrCodeData = shipment.QrCodeData,
+                expectedDeliveryTimeframe = shipment.ExpectedDeliveryTimeframe
             },
             recipientId);
+
+        // Note: DeliveryVerificationContract updates its own state, it doesn't change shipment status
+        // The contract verifies the delivery and records it, but shipment stays in Confirmed status
 
         // Use private method since we already have the shipment (no need to check existence)
         var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
@@ -364,6 +407,13 @@ public class ShipmentService : IShipmentService
         }
 
         _blockchain.AddTransaction(transaction);
+
+        // Execute applicable smart contracts automatically
+        if (_smartContractEngine != null)
+        {
+            var context = new ContractExecutionContext(transaction);
+            await _smartContractEngine.ExecuteApplicableContractsAsync(context);
+        }
 
         // Transaction is added to pending pool
         // The background service will create blocks from pending transactions automatically
