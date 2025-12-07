@@ -79,7 +79,7 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label text-muted"><strong>Contract ID</strong></label>
-                                <p><code>@contract.Id</code></p>
+                                <p><code>@contract.ContractId</code></p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-muted"><strong>Type</strong></label>
@@ -94,7 +94,7 @@
                                 <p class="text-muted">@GetContractDescription(contract.Type)</p>
                             </div>
                             <div class="d-grid gap-2">
-                                <button class="btn btn-outline-primary" @onclick="() => ViewContractState(contract.Id)">
+                                <button class="btn btn-outline-primary" @onclick="() => ViewContractState(contract.ContractId)">
                                     <i class="bi bi-eye me-2"></i>View State
                                 </button>
                             </div>
@@ -248,7 +248,7 @@
     {
         try
         {
-            selectedContract = contracts.FirstOrDefault(c => c.Id == contractId);
+            selectedContract = contracts.FirstOrDefault(c => c.ContractId == contractId);
             if (selectedContract == null) return;
 
             showStateModal = true;
@@ -287,7 +287,7 @@
 
     private class ContractDto
     {
-        public string Id { get; set; } = string.Empty;
+        public string ContractId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public DateTime DeployedAt { get; set; }
