@@ -20,7 +20,8 @@ public class ShipmentTrackingContract : SmartContract
     {
         // This contract handles all shipment-related transactions
         return context.Transaction.Type == TransactionType.ShipmentCreated ||
-               context.Transaction.Type == TransactionType.StatusUpdated;
+               context.Transaction.Type == TransactionType.StatusUpdated ||
+               context.Transaction.Type == TransactionType.DeliveryConfirmed;
     }
 
     public override async Task<ContractExecutionResult> ExecuteAsync(ContractExecutionContext context)
@@ -54,6 +55,10 @@ public class ShipmentTrackingContract : SmartContract
             else if (context.Transaction.Type == TransactionType.StatusUpdated)
             {
                 return await HandleStatusUpdate(shipmentId, shipmentData, context, events, stateChanges, output);
+            }
+            else if (context.Transaction.Type == TransactionType.DeliveryConfirmed)
+            {
+                return await HandleDeliveryConfirmation(shipmentId, shipmentData, context, events, stateChanges, output);
             }
 
             return ContractExecutionResult.FailureResult("Unsupported transaction type");
@@ -232,5 +237,55 @@ public class ShipmentTrackingContract : SmartContract
         }
 
         return false;
+    }
+
+    private async Task<ContractExecutionResult> HandleDeliveryConfirmation(
+        string shipmentId,
+        Dictionary<string, JsonElement> shipmentData,
+        ContractExecutionContext context,
+        List<ContractEvent> events,
+        Dictionary<string, object> stateChanges,
+        Dictionary<string, object> output)
+    {
+        // Get current status
+        var currentStatusStr = GetStateValue($"shipment_{shipmentId}_status")?.ToString();
+        if (currentStatusStr == null)
+        {
+            return ContractExecutionResult.FailureResult("Shipment not found in contract state");
+        }
+
+        if (!Enum.TryParse<ShipmentStatus>(currentStatusStr, out var currentStatus))
+        {
+            return ContractExecutionResult.FailureResult("Invalid current status in state");
+        }
+
+        // Validate that the current status is Delivered
+        if (currentStatus != ShipmentStatus.Delivered)
+        {
+            return ContractExecutionResult.FailureResult(
+                $"Cannot confirm delivery for shipment in {currentStatus} status. Must be Delivered.");
+        }
+
+        // Update state to Confirmed
+        stateChanges[$"shipment_{shipmentId}_status"] = ShipmentStatus.Confirmed.ToString();
+        stateChanges[$"shipment_{shipmentId}_confirmedAt"] = context.ExecutionTime;
+        stateChanges[$"shipment_{shipmentId}_confirmedBy"] = context.Transaction.SenderPublicKey;
+        stateChanges[$"shipment_{shipmentId}_lastUpdatedAt"] = context.ExecutionTime;
+
+        output["shipmentId"] = shipmentId;
+        output["previousStatus"] = currentStatus.ToString();
+        output["newStatus"] = ShipmentStatus.Confirmed.ToString();
+        output["confirmed"] = true;
+
+        events.Add(EmitEvent("ShipmentConfirmed", new Dictionary<string, object>
+        {
+            { "shipmentId", shipmentId },
+            { "confirmedBy", context.Transaction.SenderPublicKey },
+            { "timestamp", context.ExecutionTime }
+        }));
+
+        await Task.CompletedTask; // Placeholder for async operations
+
+        return ContractExecutionResult.SuccessResult(output, stateChanges, events);
     }
 }

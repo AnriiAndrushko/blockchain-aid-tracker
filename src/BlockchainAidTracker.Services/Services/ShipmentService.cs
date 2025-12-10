@@ -301,7 +301,7 @@ public class ShipmentService : IShipmentService
 
         _shipmentRepository.Update(shipment);
 
-        // Create blockchain transaction (DeliveryVerificationContract will execute)
+        // Create blockchain transaction (DeliveryVerificationContract and ShipmentTrackingContract will execute)
         var transactionId = await CreateBlockchainTransactionAsync(
             TransactionType.DeliveryConfirmed,
             recipient.PublicKey,
@@ -316,8 +316,22 @@ public class ShipmentService : IShipmentService
             },
             recipientId);
 
-        // Note: DeliveryVerificationContract updates its own state, it doesn't change shipment status
-        // The contract verifies the delivery and records it, but shipment stays in Confirmed status
+        // Sync smart contract state back to database (smart contracts are source of truth)
+        // ShipmentTrackingContract should update status to Confirmed
+        if (_smartContractEngine != null)
+        {
+            var contractState = _smartContractEngine.GetContractState("shipment-tracking-v1");
+            if (contractState != null && contractState.TryGetValue($"shipment_{shipmentId}_status", out var statusObj))
+            {
+                var contractStatus = statusObj.ToString();
+                if (Enum.TryParse<ShipmentStatus>(contractStatus, out var finalStatus) && finalStatus != shipment.Status)
+                {
+                    // Smart contract updated the status to Confirmed, sync database
+                    shipment.UpdateStatus(finalStatus);
+                    _shipmentRepository.Update(shipment);
+                }
+            }
+        }
 
         // Use private method since we already have the shipment (no need to check existence)
         var transactionIds = GetBlockchainTransactionsForShipment(shipmentId);
@@ -359,6 +373,15 @@ public class ShipmentService : IShipmentService
                         transactionIds.Add(transaction.Id);
                     }
                 }
+            }
+        }
+
+        // Also search pending transactions (not yet in a block)
+        foreach (var transaction in _blockchain.PendingTransactions)
+        {
+            if (transaction.PayloadData.Contains(shipmentId))
+            {
+                transactionIds.Add(transaction.Id);
             }
         }
 

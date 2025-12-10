@@ -42,7 +42,7 @@ public class ShipmentTrackingContractTests
     }
 
     [Fact]
-    public void CanExecute_WithDeliveryConfirmedTransaction_ShouldReturnFalse()
+    public void CanExecute_WithDeliveryConfirmedTransaction_ShouldReturnTrue()
     {
         // Arrange
         var transaction = new Transaction(TransactionType.DeliveryConfirmed, "sender-key", "{}");
@@ -52,7 +52,7 @@ public class ShipmentTrackingContractTests
         var result = _contract.CanExecute(context);
 
         // Assert
-        result.Should().BeFalse();
+        result.Should().BeTrue("because ShipmentTrackingContract now handles DeliveryConfirmed transactions to update status to Confirmed");
     }
 
     [Fact]
