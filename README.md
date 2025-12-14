@@ -20,7 +20,7 @@ The project serves as a **proof-of-concept** to demonstrate:
 **All core features implemented and tested** - Complete end-to-end blockchain-based humanitarian aid tracking system with automatic payment processing. The system demonstrates a full supply chain workflow from shipment creation through delivery tracking to automated payment release upon confirmation.
 
 **Current Metrics:**
--  **741 tests passing** (100% success rate) - **UPDATED 2025-12-06**
+-  **746 tests passing**
 -  **Complete Blazor Web UI with 20 pages** including LogisticsPartner dashboard
 -  **7 user roles fully implemented**: Administrator, Coordinator, Recipient, Donor, Validator, LogisticsPartner, Customer
 -  **14 Payment System API endpoints**: SupplierController (7) + PaymentController (7)
@@ -197,7 +197,6 @@ docker compose up --build
 - ✅ **Blockchain persistence with file-based JSON storage**
 - ✅ **Automatic save after block creation and load on startup**
 - ✅ **Backup file creation with configurable rotation**
-- ✅ **594 tests passing with real cryptographic signature validation**
 - ✅ **Complete Blazor Web UI with 16 pages**
 - ✅ **Role-based UI with different views for all 6 roles**
 - ✅ **Shipment status update and delivery confirmation modals**
